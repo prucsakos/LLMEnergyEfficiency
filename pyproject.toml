@@ -18,3 +18,13 @@ dependencies = [
 ]
 [tool.uv]
 override-dependencies = ["triton==3.4.0"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
