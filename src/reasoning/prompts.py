@@ -24,5 +24,8 @@ def build_prompt_answer(question: str, scratch_or_plan: str) -> str:
         f"{scratch_or_plan}\n\n<final>"
     )
 
+def render(template: str, **kw) -> str:
+    return template.format(**kw)
+
 def closing_tag(style: str) -> str:
     return "</scratchpad>" if style == "cot" else "</plan>"

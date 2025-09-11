@@ -5,101 +5,99 @@ from typing import Dict, Any, Tuple, List, Optional
 from ..core.interfaces import TextEngine, GenerationParams, GenerationResult
 from .prompts import build_prompt_cot, build_prompt_plan, build_prompt_answer, closing_tag
 from .aggregators import majority_vote
+from ..config.bench_config import Prompts
 
 SCRATCH_TAG = ("<scratchpad>", "</scratchpad>")
 PLAN_TAG    = ("<plan>", "</plan>")
 FINAL_TAG   = ("<final>", "</final>")
 
-def _between(s: str, start: str, end: Optional[str]) -> str:
-    if end:
-        m = re.search(re.escape(start) + r"(.*?)" + re.escape(end), s, flags=re.S | re.I)
-    else:
-        m = re.search(re.escape(start) + r"(.*)", s, flags=re.S | re.I)
-    return m.group(1) if m else ""
+def _between(s: str, start: str, end: str | None) -> str:
+    pat = re.escape(start) + (r"(.*?)" + re.escape(end) if end else r"(.*)")
+    m = re.search(pat, s, flags=re.S | re.I)
+    return (m.group(1) if m else "").strip()
 
-def run_two_pass(
+def two_pass(
     engine: TextEngine,
     question: str,
-    params: GenerationParams,
-    think_budget: int,
-    style: str = "cot",  # 'cot' | 'plan_solve' | 'none'
-) -> Dict[str, Any]:
-    """Run (optional) thinking pass then an answer pass.
-
-    Args:
-        engine: TextEngine to call (e.g., VLLMOpenAIServerEngine).
-        question: Natural-language question/problem.
-        params: GenerationParams (temperature, etc.).
-        think_budget: Max new tokens for pass-1 thinking (0 disables thinking).
-        style: 'cot' (scratchpad) | 'plan_solve' (plan) | 'none' (direct answer).
-
-    Returns:
-        Dict with fields:
-          think_text, answer_text, think_tokens, answer_tokens,
-          latency_ms_think, latency_ms_answer, raw_pass1, raw_pass2
-    """
-    # Pass 1: optional thinking
-    think_text = ""
-    pass1_res: Optional[GenerationResult] = None
-    if style != "none" and think_budget > 0:
-        prompt1 = build_prompt_cot(question) if style == "cot" else build_prompt_plan(question)
-        p1 = GenerationParams(**{**params.__dict__, "max_new_tokens": think_budget, "stop": [closing_tag(style)]})
-        t0 = time.time()
-        pass1_res = engine.generate(prompt1, p1)
-        t1 = time.time()
-        # Extract content within tags
-        if style == "cot":
-            think_text = _between(pass1_res.text, SCRATCH_TAG[0], None)
-            tagged = f"{SCRATCH_TAG[0]}{think_text}{SCRATCH_TAG[1]}"
-        else:
-            think_text = _between(pass1_res.text, PLAN_TAG[0], None)
-            tagged = f"{PLAN_TAG[0]}{think_text}{PLAN_TAG[1]}"
-        latency_ms_think = (t1 - t0) * 1000.0
-        think_tokens = pass1_res.completion_tokens
-    else:
-        tagged = ""
-        latency_ms_think, think_tokens = 0.0, 0
-
-    # Pass 2: answer-only
-    prompt2 = build_prompt_answer(question, tagged)
-    t0 = time.time()
-    pass2_res = engine.generate(prompt2, params)
-    t1 = time.time()
-    ans_text = _between(pass2_res.text, FINAL_TAG[0], None).strip() or pass2_res.text.strip()
-    latency_ms_answer = (t1 - t0) * 1000.0
-
-    return {
-        "think_text": think_text.strip(),
-        "answer_text": ans_text,
-        "think_tokens": think_tokens or 0,
-        "answer_tokens": pass2_res.completion_tokens or 0,
-        "latency_ms_think": latency_ms_think,
-        "latency_ms_answer": latency_ms_answer,
-        "raw_pass1": getattr(pass1_res, "raw", None),
-        "raw_pass2": pass2_res.raw,
-    }
-
-# TODO: Metric on how effective the current type of majority voting is. - Distribution of the answers. Unique ratio etc... -> Relevant at benchmarks where the answer is not trivial
-# TODO: Use LLM for self-evaluation instead of majority voting
-def run_self_consistency(
-    engine: TextEngine,
-    question: str,
-    params: GenerationParams,
+    gen: GenerationParams,
     think_budget: int,
     style: str,
-    k: int,
-    seed_base: int = 1234,
+    prompts: Prompts,
 ) -> Dict[str, Any]:
-    """Run K independent (think->answer) paths and majority-vote the final.
+    """Run (thinking -> answer). style in {'none','cot','plan_solve'}."""
+    deliberate_tagged = ""
 
-    Implements Self-Consistency as in Wang et al., 2022. :contentReference[oaicite:11]{index=11}
-    """
+    # Pass 1: optional thinking
+    think_tokens = 0
+    t_think = 0.0
+    think_text = ""
+    if style != "none" and think_budget > 0:
+        if style == "cot":
+            p1 = prompts.cot_think
+            start_tag, end_tag = "<scratchpad>", "</scratchpad>"
+        else:
+            p1 = prompts.plan_think
+            start_tag, end_tag = "<plan>", "</plan>"
+        prompt1 = p1.format(question=question)
+        res1 = engine.generate(prompt1, GenerationParams(**{**gen.__dict__, "max_new_tokens": think_budget, "stop": [end_tag]}))
+        t_think = res1.latency_ms or 0.0
+        raw_block = _between(res1.text, start_tag, end_tag)
+        think_text = raw_block
+        think_tokens = res1.completion_tokens or 0
+        deliberate_tagged = f"{start_tag}{raw_block}{end_tag}"
+
+    # Pass 2: answer-only
+    ans_prompt = prompts.answer.format(question=question, deliberate=deliberate_tagged)
+    res2 = engine.generate(ans_prompt, gen)
+    t_ans = res2.latency_ms or 0.0
+    answer_text = _between(res2.text, "<final>", "<final/>") or res2.text.strip()
+
+    return {
+        "think_text": think_text,
+        "answer_text": answer_text,
+        "think_tokens": think_tokens,
+        "answer_tokens": res2.completion_tokens or 0,
+        "latency_ms_think": t_think,
+        "latency_ms_answer": t_ans,
+        "raw_pass2": res2.raw,
+    }
+
+def self_consistency(
+    engine: TextEngine,
+    question: str,
+    base_gen: GenerationParams,
+    think_budget: int,
+    style: str,
+    prompts: Prompts,
+    k: int,
+    seed: int = 1234,
+) -> Dict[str, Any]:
+    """K independent paths; majority-vote final answer (Wang et al., 2022)."""
+    # Ensure sampling diversity
     answers: List[str] = []
     paths: List[Dict[str, Any]] = []
     for i in range(k):
-        p = GenerationParams(**{**params.__dict__, "seed": (seed_base + i), "temperature": max(params.temperature, 0.6)})
-        out = run_two_pass(engine, question, p, think_budget, style)
+        p = GenerationParams(**{**base_gen.__dict__, "seed": seed + i, "temperature": max(0.6, base_gen.temperature)})
+        out = two_pass(engine, question, p, think_budget, style, prompts)
         answers.append(out["answer_text"])
         paths.append(out)
-    chosen = majority_vote(answers)
+    # majority vote
+    norm = [a.strip().lower() for a in answers]
+    from collections import Counter
+    chosen_norm, _ = Counter(norm).most_common(1)[0]
+    chosen = next(a for a in answers if a.strip().lower() == chosen_norm)
     return {"chosen_answer": chosen, "paths": paths}
+
+def self_evaluate(
+    engine: TextEngine,
+    question: str,
+    candidate: str,
+    gold: str,
+    gen: GenerationParams,
+    prompts: Prompts,
+) -> bool:
+    """Model judges correctness (YES/NO). Returns True if model says YES."""
+    judge_prompt = prompts.self_eval.format(question=question, candidate=candidate, gold=gold)
+    res = engine.generate(judge_prompt, GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}))
+    text = res.text.strip().lower()
+    return "yes" in text or text.strip() == "1"
