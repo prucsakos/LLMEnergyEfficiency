@@ -2,7 +2,7 @@ import math
 
 # If your package is literally the folder "src" (you have src/__init__.py),
 # this import is correct:
-from src.utils.flop_estimation import (
+from src.metrics.flop_estimation import (
     flops_dense,
     flops_prefill,
     flops_decode,
