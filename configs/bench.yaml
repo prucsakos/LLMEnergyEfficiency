@@ -30,13 +30,17 @@ prompts:
     <final>
 
 models:
-  - name: qwen2.5-0.5b
-    hf_repo: Qwen/Qwen2.5-0.5B
+#  - name: qwen2.5-0.5b
+#    hf_repo: Qwen/Qwen2.5-0.5B
+  - name: llama-2-7b-hf
+    hf_repo: meta-llama/Llama-2-7b-hf
+    batch_size: 128
     # Specs from the official HF config: 24 layers, hidden_size 896,
     # 14 attention heads (GQA) and 2 KV heads; ~0.49B params. :contentReference[oaicite:1]{index=1}
     card: { params_B: 0.49, layers: 24, hidden_dim: 896, heads: 14 }
-    think_budgets: [0, 128, 512, 1024]
-    datasets: [gsm8k, csqa]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: false }
-    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 128 }
-    reasoning: { style: cot, self_consistency_k: 5, self_eval: true }
+    think_budgets: [0, 128]
+    datasets: [gsm8k]
+    #datasets: [mmlu, gsm8k, csqa]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.2, enforce_eager: false }
+    generation: { temperature: 0.4, top_p: 0.95, max_new_tokens: 32 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }

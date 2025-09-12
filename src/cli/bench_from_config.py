@@ -1,11 +1,13 @@
 from __future__ import annotations
 import argparse, math, statistics
-from typing import Iterable
+from typing import Iterable, List
+
+from tqdm import tqdm
 from ..config.bench_config import load_bench_config, expand_runs, RunSpec
 from ..core.interfaces import GenerationParams
 from ..core.engines.vllm_local import VLLMLocalEngine
 from ..reasoning.controller import two_pass, self_consistency, self_evaluate
-from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match
+from ..data.adapters import Sample, load_gsm8k, load_mmlu, load_csqa, exact_match
 from ..metrics.flop_estimation import flops_dense, flops_attention_kv, to_tflops
 from ..logging.wandb_logger import WandbRunLogger
 
@@ -48,10 +50,17 @@ def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "") ->
         }
         wb = WandbRunLogger(project=wandb_project, run_name=run_name, config=cfg)
 
+    # Materialize dataset to know total for tqdm
+    examples: List[Sample] = list(iter_dataset(spec.dataset))
+    total_n = len(examples)
+
     # Iterate dataset (MVP: batch_size=1 for strict control)
     total, correct_measured, correct_self = 0, 0, 0
     prompt_tok_sum, gen_tok_sum = 0, 0
     lat_ms_sum = 0.0
+
+    pbar = tqdm(total=total_n, desc=run_name, unit="ex")
+
     for ex in iter_dataset(spec.dataset):
         total += 1
         if spec.reasoning.self_consistency_k > 1:
@@ -81,6 +90,8 @@ def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "") ->
         if spec.reasoning.self_eval:
             judge_yes = self_evaluate(engine, ex.question, pred, ex.gold, gen, spec.prompts)
             correct_self += int(judge_yes)
+
+        print(f"Question: \n {ex.question}\n\nAnswer: {ex.gold}\nPred: {pred}\n Judge: {judge_yes}")
 
         prompt_tok_sum += 0  # we only counted generated tokens; prompt length not measured here
         gen_tok_sum += (think_tok + ans_tok)
