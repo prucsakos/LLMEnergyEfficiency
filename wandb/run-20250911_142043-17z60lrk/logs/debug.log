@@ -1,0 +1,34 @@
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_setup.py:_flush():81] Current SDK version is 0.21.3
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_setup.py:_flush():81] Configure stats pid to 255601
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_setup.py:_flush():81] Loading settings from /home/akos.prucs@egroup.hu/.config/wandb/settings
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_setup.py:_flush():81] Loading settings from /home/akos.prucs@egroup.hu/LLMEnergyEfficiency/wandb/settings
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_init.py:setup_run_log_directory():686] Logging user logs to /home/akos.prucs@egroup.hu/LLMEnergyEfficiency/wandb/run-20250911_142043-17z60lrk/logs/debug.log
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_init.py:setup_run_log_directory():687] Logging internal logs to /home/akos.prucs@egroup.hu/LLMEnergyEfficiency/wandb/run-20250911_142043-17z60lrk/logs/debug-internal.log
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_init.py:init():813] calling init triggers
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_init.py:init():818] wandb.init called with sweep_config: {}
+config: {'model': 'meta-llama/Llama-2-7b-hf', 'dataset': 'gsm8k', 'style': 'cot', 'think_budget': 0, 'K': 0, 'dtype': 'bfloat16', '_wandb': {}}
+2025-09-11 14:20:43,616 INFO    MainThread:255601 [wandb_init.py:init():854] starting backend
+2025-09-11 14:20:43,824 INFO    MainThread:255601 [wandb_init.py:init():857] sending inform_init request
+2025-09-11 14:20:43,827 INFO    MainThread:255601 [wandb_init.py:init():865] backend started and connected
+2025-09-11 14:20:43,830 INFO    MainThread:255601 [wandb_init.py:init():936] updated telemetry
+2025-09-11 14:20:43,835 INFO    MainThread:255601 [wandb_init.py:init():960] communicating run to backend with 90.0 second timeout
+2025-09-11 14:20:44,370 INFO    MainThread:255601 [wandb_init.py:init():1011] starting run threads in backend
+2025-09-11 14:20:44,501 INFO    MainThread:255601 [wandb_run.py:_console_start():2494] atexit reg
+2025-09-11 14:20:44,501 INFO    MainThread:255601 [wandb_run.py:_redirect():2342] redirect: wrap_raw
+2025-09-11 14:20:44,502 INFO    MainThread:255601 [wandb_run.py:_redirect():2411] Wrapping output streams.
+2025-09-11 14:20:44,502 INFO    MainThread:255601 [wandb_run.py:_redirect():2434] Redirects installed.
+2025-09-11 14:20:44,505 INFO    MainThread:255601 [wandb_init.py:init():1057] run started, returning control to user process
+2025-09-11 14:21:32,983 INFO    wandb-AsyncioManager-main:255601 [service_client.py:_forward_responses():84] Reached EOF.
+2025-09-11 14:21:32,984 INFO    wandb-AsyncioManager-main:255601 [mailbox.py:close():137] Closing mailbox, abandoning 1 handles.
+2025-09-11 14:21:33,036 ERROR   wandb-AsyncioManager-main:255601 [asyncio_manager.py:fn_wrap_exceptions():183] Uncaught exception in run_soon callback.
+Traceback (most recent call last):
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/wandb/sdk/lib/asyncio_manager.py", line 181, in fn_wrap_exceptions
+    await fn()
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/wandb/sdk/lib/service/service_client.py", line 65, in _send_server_request
+    await self._writer.drain()
+  File "/home/akos.prucs@egroup.hu/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/asyncio/streams.py", line 392, in drain
+    await self._protocol._drain_helper()
+  File "/home/akos.prucs@egroup.hu/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/asyncio/streams.py", line 166, in _drain_helper
+    raise ConnectionResetError('Connection lost')
+ConnectionResetError: Connection lost

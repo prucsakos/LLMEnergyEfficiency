@@ -1,0 +1,21 @@
+2025-09-11 14:31:11,376 INFO    MainThread:258769 [wandb_init.py:setup_run_log_directory():686] Logging user logs to /home/akos.prucs@egroup.hu/LLMEnergyEfficiency/wandb/run-20250911_143111-3iuixwvl/logs/debug.log
+2025-09-11 14:31:11,376 INFO    MainThread:258769 [wandb_init.py:setup_run_log_directory():687] Logging internal logs to /home/akos.prucs@egroup.hu/LLMEnergyEfficiency/wandb/run-20250911_143111-3iuixwvl/logs/debug-internal.log
+2025-09-11 14:31:11,376 INFO    MainThread:258769 [wandb_init.py:init():813] calling init triggers
+2025-09-11 14:31:11,376 INFO    MainThread:258769 [wandb_init.py:init():818] wandb.init called with sweep_config: {}
+config: {'model': 'meta-llama/Llama-2-7b-hf', 'dataset': 'gsm8k', 'style': 'cot', 'think_budget': 128, 'K': 0, 'dtype': 'bfloat16', 'batch_size': 128, '_wandb': {}}
+2025-09-11 14:31:11,376 INFO    MainThread:258769 [wandb_init.py:init():854] starting backend
+2025-09-11 14:31:11,376 INFO    MainThread:258769 [wandb_init.py:init():857] sending inform_init request
+2025-09-11 14:31:11,377 INFO    MainThread:258769 [wandb_init.py:init():865] backend started and connected
+2025-09-11 14:31:11,379 INFO    MainThread:258769 [wandb_init.py:init():936] updated telemetry
+2025-09-11 14:31:11,385 INFO    MainThread:258769 [wandb_init.py:init():960] communicating run to backend with 90.0 second timeout
+2025-09-11 14:31:11,929 INFO    MainThread:258769 [wandb_init.py:init():1011] starting run threads in backend
+2025-09-11 14:31:12,066 INFO    MainThread:258769 [wandb_run.py:_console_start():2494] atexit reg
+2025-09-11 14:31:12,066 INFO    MainThread:258769 [wandb_run.py:_redirect():2342] redirect: wrap_raw
+2025-09-11 14:31:12,066 INFO    MainThread:258769 [wandb_run.py:_redirect():2411] Wrapping output streams.
+2025-09-11 14:31:12,066 INFO    MainThread:258769 [wandb_run.py:_redirect():2434] Redirects installed.
+2025-09-11 14:31:12,067 INFO    MainThread:258769 [wandb_init.py:init():1057] run started, returning control to user process
+2025-09-11 14:33:46,018 INFO    MainThread:258769 [wandb_run.py:_finish():2260] finishing run rpucs/llm_bench_test/3iuixwvl
+2025-09-11 14:33:46,018 INFO    MainThread:258769 [wandb_run.py:_atexit_cleanup():2459] got exitcode: 0
+2025-09-11 14:33:46,018 INFO    MainThread:258769 [wandb_run.py:_restore():2441] restore
+2025-09-11 14:33:46,018 INFO    MainThread:258769 [wandb_run.py:_restore():2447] restore done
+2025-09-11 14:33:47,239 INFO    MainThread:258769 [wandb_run.py:_footer_sync_info():3855] logging synced files

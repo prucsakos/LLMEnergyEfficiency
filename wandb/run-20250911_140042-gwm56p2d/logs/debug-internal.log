@@ -1,0 +1,11 @@
+{"time":"2025-09-11T14:00:42.833701775Z","level":"INFO","msg":"stream: starting","core version":"0.21.3"}
+{"time":"2025-09-11T14:00:43.134057214Z","level":"INFO","msg":"stream: created new stream","id":"gwm56p2d"}
+{"time":"2025-09-11T14:00:43.134123097Z","level":"INFO","msg":"stream: started","id":"gwm56p2d"}
+{"time":"2025-09-11T14:00:43.134226398Z","level":"INFO","msg":"writer: started","stream_id":"gwm56p2d"}
+{"time":"2025-09-11T14:00:43.134310315Z","level":"INFO","msg":"sender: started","stream_id":"gwm56p2d"}
+{"time":"2025-09-11T14:00:43.134428537Z","level":"INFO","msg":"handler: started","stream_id":"gwm56p2d"}
+{"time":"2025-09-11T14:01:36.423327304Z","level":"INFO","msg":"stream: closing","id":"gwm56p2d"}
+{"time":"2025-09-11T14:01:37.110562743Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-09-11T14:01:37.4410302Z","level":"INFO","msg":"handler: closed","stream_id":"gwm56p2d"}
+{"time":"2025-09-11T14:01:37.441172524Z","level":"INFO","msg":"sender: closed","stream_id":"gwm56p2d"}
+{"time":"2025-09-11T14:01:37.441189529Z","level":"INFO","msg":"stream: closed","id":"gwm56p2d"}

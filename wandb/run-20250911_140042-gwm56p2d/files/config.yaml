@@ -1,0 +1,86 @@
+_wandb:
+    value:
+        cli_version: 0.21.3
+        e:
+            dz55rqbpq0byt4r4d3hq68rnuhrz0gbc:
+                args:
+                    - --config
+                    - configs/bench.yaml
+                    - --wandb_project
+                    - llm-bench-test
+                cpu_count: 24
+                cpu_count_logical: 48
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "316464824320"
+                        used: "190116835328"
+                email: prucsakos@gmail.com
+                executable: /home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/bin/python
+                git:
+                    commit: 6b5b0978da6c2de56de34f1f497a757482b605bc
+                    remote: git@github.com:prucsakos/LLMEnergyEfficiency.git
+                gpu: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 24064
+                      memoryTotal: "102641958912"
+                      name: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+                      uuid: GPU-f58cc966-f320-8ecb-6992-4729efe12c9e
+                host: gpubud-dev3
+                memory:
+                    total: "201970847744"
+                os: Linux-5.15.0-153-generic-x86_64-with-glibc2.35
+                program: -m src.cli.bench_from_config
+                python: CPython 3.12.11
+                root: /home/akos.prucs@egroup.hu/LLMEnergyEfficiency
+                startedAt: "2025-09-11T14:00:42.616867Z"
+                writerId: dz55rqbpq0byt4r4d3hq68rnuhrz0gbc
+        m: []
+        python_version: 3.12.11
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 30
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+                - 95
+            "2":
+                - 1
+                - 5
+                - 11
+                - 30
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+                - 95
+            "3":
+                - 13
+                - 16
+            "4": 3.12.11
+            "5": 0.21.3
+            "6": 4.56.1
+            "10":
+                - 20
+            "12": 0.21.3
+            "13": linux-x86_64
+K:
+    value: 0
+dataset:
+    value: mmlu
+dtype:
+    value: bfloat16
+model:
+    value: Qwen/Qwen2.5-0.5B
+style:
+    value: cot
+think_budget:
+    value: 0

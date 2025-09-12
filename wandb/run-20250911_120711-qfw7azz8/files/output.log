@@ -1,0 +1,40 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 173, in <module>
+    main()
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 170, in main
+    run_one(spec, wandb_project=args.wandb_project, notes=args.notes)
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 58, in run_one
+    out = self_consistency(
+          ^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/reasoning/controller.py", line 81, in self_consistency
+    out = two_pass(engine, question, p, think_budget, style, prompts)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/reasoning/controller.py", line 51, in two_pass
+    res2 = engine.generate(ans_prompt, gen)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/core/engines/vllm_local.py", line 36, in generate
+    outs = self.llm.generate([prompt], sp, use_tqdm=False, request_id=str(uuid.uuid4()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: LLM.generate() got an unexpected keyword argument 'request_id'
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 173, in <module>
+    main()
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 170, in main
+    run_one(spec, wandb_project=args.wandb_project, notes=args.notes)
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 58, in run_one
+    out = self_consistency(
+          ^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/reasoning/controller.py", line 81, in self_consistency
+    out = two_pass(engine, question, p, think_budget, style, prompts)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/reasoning/controller.py", line 51, in two_pass
+    res2 = engine.generate(ans_prompt, gen)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/core/engines/vllm_local.py", line 36, in generate
+    outs = self.llm.generate([prompt], sp, use_tqdm=False, request_id=str(uuid.uuid4()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: LLM.generate() got an unexpected keyword argument 'request_id'

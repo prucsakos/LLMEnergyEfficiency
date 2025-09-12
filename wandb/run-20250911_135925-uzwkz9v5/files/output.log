@@ -1,0 +1,66 @@
+qwen2.5-0.5b|mmlu|style=cot|B=0|K=0:   0%|                                                                                                                                                                                                                                                   | 0/14042 [00:00<?, ?ex/s]Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 183, in <module>
+    main()
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 180, in main
+    run_one(spec, wandb_project=args.wandb_project, notes=args.notes)
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 80, in run_one
+    out = two_pass(engine, ex.question, gen, spec.think_budget, spec.reasoning.style, spec.prompts)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/reasoning/controller.py", line 100, in two_pass
+    res2 = engine.generate(ans_prompt, gen)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/core/engines/vllm_local.py", line 36, in generate
+    outs = self.llm.generate([prompt], sp, use_tqdm=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/entrypoints/llm.py", line 386, in generate
+    outputs = self._run_engine(use_tqdm=use_tqdm)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/entrypoints/llm.py", line 1502, in _run_engine
+    step_outputs = self.llm_engine.step()
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/v1/engine/llm_engine.py", line 241, in step
+    outputs = self.engine_core.get_output()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 668, in get_output
+    outputs = self.outputs_queue.get()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/queue.py", line 171, in get
+    self.not_empty.wait()
+  File "/home/akos.prucs@egroup.hu/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/threading.py", line 355, in wait
+    waiter.acquire()
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 183, in <module>
+    main()
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 180, in main
+    run_one(spec, wandb_project=args.wandb_project, notes=args.notes)
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/cli/bench_from_config.py", line 80, in run_one
+    out = two_pass(engine, ex.question, gen, spec.think_budget, spec.reasoning.style, spec.prompts)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/reasoning/controller.py", line 100, in two_pass
+    res2 = engine.generate(ans_prompt, gen)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/src/core/engines/vllm_local.py", line 36, in generate
+    outs = self.llm.generate([prompt], sp, use_tqdm=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/entrypoints/llm.py", line 386, in generate
+    outputs = self._run_engine(use_tqdm=use_tqdm)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/entrypoints/llm.py", line 1502, in _run_engine
+    step_outputs = self.llm_engine.step()
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/v1/engine/llm_engine.py", line 241, in step
+    outputs = self.engine_core.get_output()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 668, in get_output
+    outputs = self.outputs_queue.get()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/akos.prucs@egroup.hu/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/queue.py", line 171, in get
+    self.not_empty.wait()
+  File "/home/akos.prucs@egroup.hu/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/threading.py", line 355, in wait
+    waiter.acquire()
+KeyboardInterrupt

@@ -1,0 +1,44 @@
+{
+  "os": "Linux-5.15.0-153-generic-x86_64-with-glibc2.35",
+  "python": "CPython 3.12.11",
+  "startedAt": "2025-09-11T13:48:40.890143Z",
+  "args": [
+    "--config",
+    "configs/bench.yaml",
+    "--wandb_project",
+    "llm-bench-test"
+  ],
+  "program": "-m src.cli.bench_from_config_batch",
+  "git": {
+    "remote": "git@github.com:prucsakos/LLMEnergyEfficiency.git",
+    "commit": "6b5b0978da6c2de56de34f1f497a757482b605bc"
+  },
+  "email": "prucsakos@gmail.com",
+  "root": "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency",
+  "host": "gpubud-dev3",
+  "executable": "/home/akos.prucs@egroup.hu/LLMEnergyEfficiency/.venv/bin/python",
+  "cpu_count": 24,
+  "cpu_count_logical": 48,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "316464824320",
+      "used": "190116589568"
+    }
+  },
+  "memory": {
+    "total": "201970847744"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "memoryTotal": "102641958912",
+      "cudaCores": 24064,
+      "architecture": "Blackwell",
+      "uuid": "GPU-f58cc966-f320-8ecb-6992-4729efe12c9e"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "snzl45vtc0mt87n380dwyh6lhi341ojg"
+}
