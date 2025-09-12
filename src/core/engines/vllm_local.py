@@ -33,7 +33,7 @@ class VLLMLocalEngine(BaseEngine):
             seed=params.seed,
         )
         t0 = time.time()
-        outs = self.llm.generate([prompt], sp, use_tqdm=False, request_id=str(uuid.uuid4()))
+        outs = self.llm.generate([prompt], sp, use_tqdm=False)
         t1 = time.time()
         out = outs[0]
         # Count tokens from RequestOutput (prompt_token_ids & outputs[0].token_ids) :contentReference[oaicite:2]{index=2}
