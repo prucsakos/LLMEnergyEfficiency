@@ -1,6 +1,6 @@
 from __future__ import annotations
 import argparse, math, statistics, time
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Callable
 import itertools
 from tqdm.auto import tqdm
 
@@ -8,19 +8,13 @@ from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Promp
 from ..core.interfaces import GenerationParams
 from ..core.engines.vllm_local import VLLMLocalEngine
 from ..reasoning.aggregators import majority_vote
-from ..reasoning.controller import self_evaluate  # keep using the existing single-example judge
-from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample
+from ..reasoning.controller import self_evaluate, self_consistency_batch, two_pass_batch  # keep using the existing single-example judge
+from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample, iter_dataset
 from ..metrics.flop_estimation import flops_dense, flops_attention_kv, to_tflops
-from ..logging.wandb_logger import WandbRunLogger
+from ..logs.wandb_logger import WandbRunLogger
 
 # Optional direct import from vLLM for batched generation
 from vllm import SamplingParams
-
-def iter_dataset(name: str, split: str = "test"):
-    if name == "gsm8k": return load_gsm8k(split)
-    if name == "mmlu":  return load_mmlu(split=split)
-    if name == "csqa":  return load_csqa(split="validation" if split == "test" else split)
-    raise ValueError(f"Unknown dataset {name}")
 
 # ------------------------------
 # Batched inference helpers (vLLM)
@@ -71,152 +65,6 @@ def _vllm_generate_batch(engine: VLLMLocalEngine,
         texts.append(text)
         comp_tokens.append(toks)
     return texts, comp_tokens, wall_ms
-
-def two_pass_batch(engine: VLLMLocalEngine,
-                   questions: List[str],
-                   gen: GenerationParams,
-                   think_budget: int,
-                   style: str,
-                   prompts: Prompts):
-    """
-    Batched variant of the original two_pass(). Returns a list of dicts, one per question:
-    {
-      "answer_text": str,
-      "think_tokens": int,
-      "answer_tokens": int,
-      "latency_ms_think": float,
-      "latency_ms_answer": float,
-    }
-    """
-    n = len(questions)
-    results = [{} for _ in range(n)]
-    # Pass 1: "think" (optional)
-    if style in ("cot", "plan") and think_budget > 0:
-        think_prompts, open_tag, close_tag_ = _build_think_prompts(questions, style, prompts)
-        think_texts, think_tok_counts, think_ms = _vllm_generate_batch(
-            engine,
-            think_prompts,
-            GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
-            extra_stop=close_tag_,
-        )
-        # Build deliberate blocks with tags
-        deliberate_blocks = [f"{open_tag}{t}{close_tag_}" for t in think_texts]
-        think_lat_per_item = think_ms / max(n, 1)
-    else:
-        # No deliberate pass
-        deliberate_blocks = ["" for _ in questions]
-        think_tok_counts = [0 for _ in questions]
-        think_lat_per_item = 0.0
-
-    # Pass 2: answer
-    answer_prompts: List[str] = []
-    for q, deliberate in zip(questions, deliberate_blocks):
-        if deliberate:
-            answer_prompts.append(prompts.answer.format(question=q, deliberate=deliberate))
-        else:
-            # "direct" answering when no deliberate content
-            answer_prompts.append(prompts.direct.format(question=q))
-    answer_texts, answer_tok_counts, answer_ms = _vllm_generate_batch(
-        engine,
-        answer_prompts,
-        GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),
-        extra_stop="</final>",
-    )
-    ans_lat_per_item = answer_ms / max(n, 1)
-
-    for i in range(n):
-        results[i] = {
-            "answer_text": answer_texts[i].strip(),
-            "think_tokens": int(think_tok_counts[i]),
-            "answer_tokens": int(answer_tok_counts[i]),
-            "latency_ms_think": float(think_lat_per_item),
-            "latency_ms_answer": float(ans_lat_per_item),
-        }
-    return results
-
-def self_consistency_batch(engine: VLLMLocalEngine,
-                           questions: List[str],
-                           gen: GenerationParams,
-                           think_budget: int,
-                           style: str,
-                           prompts: Prompts,
-                           k: int):
-    """
-    Batched self-consistency: for each question, run K independent samples and majority-vote.
-    Returns a list of dicts:
-      { "chosen_answer": str, "paths": [ {think_tokens, answer_tokens, latency_ms_think, latency_ms_answer}, ...] }
-    """
-    n = len(questions)
-    if k <= 1:
-        # Defer to two-pass-batch shape for convenience
-        outs = two_pass_batch(engine, questions, gen, think_budget, style, prompts)
-        return [{"chosen_answer": o["answer_text"], "paths": [ {
-                    "think_tokens": o["think_tokens"],
-                    "answer_tokens": o["answer_tokens"],
-                    "latency_ms_think": o["latency_ms_think"],
-                    "latency_ms_answer": o["latency_ms_answer"],
-                } ]} for o in outs]
-
-    # Build repeated lists of prompts
-    # Think stage
-    have_think = (style in ("cot", "plan") and think_budget > 0)
-    if have_think:
-        think_prompts, open_tag, close_tag_ = _build_think_prompts(questions, style, prompts)
-        think_prompts_rep = list(itertools.chain.from_iterable([[p]*k for p in think_prompts]))
-        think_texts_rep, think_tok_rep, think_ms = _vllm_generate_batch(
-            engine,
-            think_prompts_rep,
-            GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
-            extra_stop=close_tag_,
-        )
-        # Build deliberate blocks for answer prompts
-        deliberate_rep = [f"{open_tag}{t}{close_tag_}" for t in think_texts_rep]
-        # Group deliberate blocks by question
-        deliberate_groups = [deliberate_rep[i*k:(i+1)*k] for i in range(n)]
-        think_tok_groups = [think_tok_rep[i*k:(i+1)*k] for i in range(n)]
-        think_lat_per_item = (think_ms / max(n*k, 1))
-    else:
-        deliberate_groups = [[""]*k for _ in range(n)]
-        think_tok_groups = [[0]*k for _ in range(n)]
-        think_lat_per_item = 0.0
-
-    # Answer stage
-    answer_prompts_rep: List[str] = []
-    for i in range(n):
-        q = questions[i]
-        dels = deliberate_groups[i]
-        if dels and dels[0]:
-            answer_prompts_rep.extend([prompts.answer.format(question=q, deliberate=d) for d in dels])
-        else:
-            answer_prompts_rep.extend([prompts.direct.format(question=q) for _ in range(k)])
-    answer_texts_rep, answer_tok_rep, answer_ms = _vllm_generate_batch(
-        engine,
-        answer_prompts_rep,
-        GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),
-        extra_stop="</final>",
-    )
-    ans_lat_per_item = (answer_ms / max(n*k, 1))
-
-    # Collate per-question
-    outs = []
-    for i in range(n):
-        # Slice this question's K paths
-        think_toks = think_tok_groups[i]
-        ans_toks = answer_tok_rep[i*k:(i+1)*k]
-        texts = [t.strip() for t in answer_texts_rep[i*k:(i+1)*k]]
-        chosen = majority_vote(texts)
-        paths = []
-        for j in range(k):
-            paths.append({
-                "think_tokens": int(think_toks[j]),
-                "answer_tokens": int(ans_toks[j]),
-                "latency_ms_think": float(think_lat_per_item),
-                "latency_ms_answer": float(ans_lat_per_item),
-            })
-        outs.append({"chosen_answer": chosen, "paths": paths})
-    return outs
-
-# ------------------------------
 
 def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str | None = None, notes: str = "") -> None:
     # Use configured batch size unless overridden
@@ -295,7 +143,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
             # Optional self-evaluation (YES/NO judge) — sequential is fine
             if spec.reasoning.self_eval:
-                judge_yes = self_evaluate(engine, ex.question, preds[j], ex.gold, gen, spec.prompts)
+                judge_yes, judge_response = self_evaluate(engine, ex.question, preds[j], ex.gold, gen, spec.prompts)
                 correct_self += int(judge_yes)
 
             gen_tok_sum += (think_toks[j] + ans_toks[j])

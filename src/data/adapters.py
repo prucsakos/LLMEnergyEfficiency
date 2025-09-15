@@ -12,6 +12,12 @@ class Sample:
     choices: Optional[List[str]] = None  # for MCQ datasets
     meta: Optional[Dict[str, Any]] = None
 
+def iter_dataset(name: str, split: str = "test"):
+    if name == "gsm8k": return load_gsm8k(split)
+    if name == "mmlu":  return load_mmlu(split=split)
+    if name == "csqa":  return load_csqa(split="validation" if split == "test" else split)
+    raise ValueError(f"Unknown dataset {name}")
+
 # ---------- GSM8K (free-form numeric/text answers) ----------
 def load_gsm8k(split: str = "test") -> Iterable[Sample]:
     """Yield GSM8K samples. Fields: 'question', 'answer'. :contentReference[oaicite:14]{index=14}"""

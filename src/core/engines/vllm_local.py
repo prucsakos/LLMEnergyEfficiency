@@ -22,6 +22,7 @@ class VLLMLocalEngine(BaseEngine):
             tensor_parallel_size=tensor_parallel_size,
             gpu_memory_utilization=gpu_memory_utilization,
             enforce_eager=enforce_eager,
+            trust_remote_code=True,
         )
 
     def generate(self, prompt: str, params: GenerationParams) -> GenerationResult:

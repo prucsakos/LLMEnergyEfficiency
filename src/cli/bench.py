@@ -44,7 +44,7 @@ def main():
     # Optional W&B
     wb = None
     if args.wandb:
-        from ..logging.wandb_logger import WandbLogger
+        from ..logs.wandb_logger import WandbLogger
         wb = WandbLogger(project=args.wandb_project, run_name=f"{args.model}-{args.dataset}-{args.style}")
 
     card = ModelCard(params_non_embed=float(args.params_b) * 1e9)

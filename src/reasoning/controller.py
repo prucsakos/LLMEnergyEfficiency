@@ -75,6 +75,7 @@ def two_pass(
     think_budget: int,
     style: str,
     prompts: Prompts,
+    verbose: bool = False
 ) -> Dict[str, Any]:
     """Run (thinking -> answer). style in {'none','cot','plan_solve'}."""
     deliberate_tagged = ""
@@ -83,6 +84,7 @@ def two_pass(
     think_tokens = 0
     t_think = 0.0
     think_text = ""
+    prompt1, res1 = "", ""
     if style != "none" and think_budget > 0:
         if style == "cot":
             p1 = prompts.cot_think
@@ -103,6 +105,14 @@ def two_pass(
     res2 = engine.generate(ans_prompt, gen)
     t_ans = res2.latency_ms or 0.0
     answer_text = _between(res2.text, "<final>", "<final/>") or res2.text.strip()
+
+    if verbose:
+        print(f"""Two_Pass Verbos info:\n
+\nFirst prompt:\n{prompt1}
+\nGeneration Result:\n{res1}
+\nAnswer prompt:\n{ans_prompt}
+\nResult:\n{answer_text}
+              """)
 
     return {
         "think_text": think_text,
@@ -152,7 +162,7 @@ def self_evaluate(
     judge_prompt = prompts.self_eval.format(question=question, candidate=candidate, gold=gold)
     res = engine.generate(judge_prompt, GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}))
     text = res.text.strip().lower()
-    return "yes" in text or text.strip() == "1"
+    return "yes" in text or text.strip() == "1", res
 
 def two_pass_batch(engine: VLLMLocalEngine,
                    questions: List[str],

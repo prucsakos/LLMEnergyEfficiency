@@ -12,7 +12,7 @@ from ..metrics.flop_estimation import flops_dense, flops_attention_kv, to_tflops
 from ..logs.wandb_logger import WandbRunLogger
 
 
-def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "") -> None:
+def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "", verbose: bool = False) -> None:
     # Build engine (one per run), then tear down afterwards
     engine = VLLMLocalEngine(
         model_id=spec.hf_repo,
@@ -54,8 +54,6 @@ def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "") ->
     prompt_tok_sum, gen_tok_sum = 0, 0
     lat_ms_sum = 0.0
 
-    pbar = tqdm(total=total_n, desc=run_name, unit="ex")
-
     for ex in iter_dataset(spec.dataset):
         total += 1
         if spec.reasoning.self_consistency_k > 1:
@@ -71,7 +69,7 @@ def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "") ->
             ans_tok = int(statistics.mean(answ))
             lat_ms = float(statistics.mean(lats))
         else:
-            out = two_pass(engine, ex.question, gen, spec.think_budget, spec.reasoning.style, spec.prompts)
+            out = two_pass(engine, ex.question, gen, spec.think_budget, spec.reasoning.style, spec.prompts, verbose=verbose)
             pred = out["answer_text"]
             think_tok = int(out["think_tokens"])
             ans_tok   = int(out["answer_tokens"])
@@ -83,14 +81,23 @@ def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "") ->
 
         # Optional self-evaluation (YES/NO judge)
         if spec.reasoning.self_eval:
-            judge_yes, judge_response = self_evaluate(engine, ex.question, pred, ex.gold, gen, spec.prompts)
+            judge_yes, judge_resp = self_evaluate(engine, ex.question, pred, ex.gold, gen, spec.prompts)
             correct_self += int(judge_yes)
 
-        print(f"Question: \n {ex.question}\n\nAnswer: {ex.gold}\nPred: {pred}\n Judge: {judge_yes}")
+        
 
         prompt_tok_sum += 0  # we only counted generated tokens; prompt length not measured here
         gen_tok_sum += (think_tok + ans_tok)
         lat_ms_sum += lat_ms
+
+        if verbose:
+            print(f"""
+Exact match with golden answer: {ok}
+Judge yes: {judge_yes}, resp: {judge_resp}
+True Correct answer: {ex.gold}
+                  """)
+
+        break
 
     # TODO: gen_tok_sum -> we rather want to calculate an average FLOP per a reasoning process.
 
@@ -141,7 +148,7 @@ def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "") ->
         # Task metric
         "dataset": spec.dataset,
         "metric_name": "exact_match",
-        "accuracy_exact": correct_measured / max(total, 1),
+        "accuracy": correct_measured / max(total, 1),
 
         # Extras (self-eval + FLOPs)
         "self_eval_acc": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
@@ -173,7 +180,7 @@ def main():
 
     cfg = load_bench_config(args.config)
     for spec in expand_runs(cfg):
-        run_one(spec, wandb_project=args.wandb_project, notes=args.notes)
+        run_one(spec, wandb_project=args.wandb_project, notes=args.notes, verbose=True)
 
 if __name__ == "__main__":
     main()
