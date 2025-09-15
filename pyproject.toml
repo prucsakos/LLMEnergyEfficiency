@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
+
 dependencies = [
     "accelerate>=1.10.1",
     "datasets>=4.0.0",
@@ -11,12 +12,13 @@ dependencies = [
     "ipywidgets>=8.1.7",
     "mamba-ssm>=2.2.5",
     "mlflow>=3.3.2",
-    "torch>=2.7.1",
-    "torchvision>=0.22.1",
     "tqdm>=4.67.1",
     "transformers>=4.56.1",
-    "triton==3.3.1",
-    "vllm>=0.10.1",
+    # PyTorch nightly (with CUDA 12.4)
+    # will be installed via uv pip below, not pinned here
+    # vLLM from GitHub main
+    # will be installed via uv pip below, not pinned here
+    "wandb>=0.21.4",
 ]
 
 [dependency-groups]
@@ -27,4 +29,3 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-

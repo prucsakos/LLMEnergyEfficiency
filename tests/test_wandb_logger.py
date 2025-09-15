@@ -1,5 +1,5 @@
 import types
-from src.logging.wandb_logger import WandbRunLogger
+from src.logs.wandb_logger import WandbRunLogger
 
 class DummyRun:
     def __init__(self): self.logged=[]; self.summary={}
@@ -9,7 +9,7 @@ class DummyRun:
 def test_one_run_one_row(monkeypatch):
     dummy = DummyRun()
     def fake_init(*a, **k): return dummy
-    import src.logging.wandb_logger as m
+    import src.logs.wandb_logger as m
     monkeypatch.setattr(m.wandb, "init", fake_init)
     w = WandbRunLogger(project="p", run_name="r")
     w.log_row({"accuracy":0.5, "notes":"x"})
