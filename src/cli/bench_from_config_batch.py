@@ -9,7 +9,7 @@ from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Promp
 from ..core.interfaces import GenerationParams
 from ..core.engines.vllm_local import VLLMLocalEngine
 from ..reasoning.aggregators import majority_vote
-from ..reasoning.controller import self_evaluate, self_consistency_batch, two_pass_batch  # keep using the existing single-example judge
+from ..reasoning.controller import self_evaluate, self_evaluate_batched, self_consistency_batch, two_pass_batch  # use batched judge
 from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample, iter_dataset
 from ..metrics.flop_estimation import flops_dense, flops_attention_kv, to_tflops
 from ..logs.wandb_logger import WandbRunLogger
@@ -67,6 +67,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     sample_trace_saved = False
     sample_trace = {}
+    judge_input_prompt = None
+    judge_response = None
 
     for i in range(0, total_n, bs):
         batch = examples[i:i+bs]
@@ -89,16 +91,19 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             ans_toks   = [o["answer_tokens"] for o in outs]
             lats       = [o["latency_ms_think"] + o["latency_ms_answer"] for o in outs]
 
+        # Optional batched self-evaluation (YES/NO judge)
+        judge_batch_results: Optional[List[Tuple[bool, str, str]]] = None
+        if spec.reasoning.self_eval:
+            judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts)
+
         # Accumulate metrics
         for j, ex in enumerate(batch):
             total += 1
             ok = exact_match(preds[j], gts[j])
             correct_measured += int(ok)
 
-            # Optional self-evaluation (YES/NO judge) — sequential is fine
-            #TODO: make it batched
-            if spec.reasoning.self_eval:
-                judge_yes, judge_input_prompt, judge_response = self_evaluate(engine, ex.question, preds[j], ex.gold, gen, spec.prompts)
+            if judge_batch_results is not None:
+                judge_yes, judge_input_prompt, judge_response = judge_batch_results[j]
                 correct_self += int(judge_yes)
 
             gen_tok_sum += (think_toks[j] + ans_toks[j])
@@ -108,7 +113,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             if not sample_trace_saved:
                 sample_trace["answer_prompt"] = outs[0]["answer_prompt"]
                 sample_trace["answer_text"] = outs[0]["answer_text"]
-                sample_trace["judge_text"] = judge_response
+                sample_trace["judge_text"] = judge_response if judge_batch_results is not None else None
                 sample_trace_saved = True
 
         pbar.update(len(batch))

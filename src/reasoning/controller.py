@@ -164,6 +164,36 @@ def self_evaluate(
     text = res.text.strip().lower()
     return "yes" in text or text.strip() == "1", judge_prompt, res.text
 
+def self_evaluate_batched(
+    engine: VLLMLocalEngine,
+    questions: List[str],
+    candidates: List[str],
+    golds: List[str],
+    gen: GenerationParams,
+    prompts: Prompts,
+) -> List[Tuple[bool, str, str]]:
+    """Batched judge for correctness. Returns list of (is_yes, prompt, raw_text)."""
+    n = len(questions)
+    if not (len(candidates) == n and len(golds) == n):
+        raise ValueError("self_evaluate_batched: inputs must have equal length")
+
+    judge_prompts = [
+        prompts.self_eval.format(question=q, candidate=c, gold=g)
+        for q, c, g in zip(questions, candidates, golds)
+    ]
+    texts, _tok, _ms = _vllm_generate_batch(
+        engine,
+        judge_prompts,
+        GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}),
+        extra_stop=None,
+    )
+    outs: List[Tuple[bool, str, str]] = []
+    for prompt, txt in zip(judge_prompts, texts):
+        low = (txt or "").strip().lower()
+        is_yes = ("yes" in low) or (low == "1")
+        outs.append((is_yes, prompt, txt))
+    return outs
+
 def two_pass_batch(engine: VLLMLocalEngine,
                    questions: List[str],
                    gen: GenerationParams,
