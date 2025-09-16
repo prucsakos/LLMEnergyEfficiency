@@ -96,8 +96,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             correct_measured += int(ok)
 
             # Optional self-evaluation (YES/NO judge) — sequential is fine
+            #TODO: make it batched
             if spec.reasoning.self_eval:
-                judge_yes, judge_response = self_evaluate(engine, ex.question, preds[j], ex.gold, gen, spec.prompts)
+                judge_yes, judge_input_prompt, judge_response = self_evaluate(engine, ex.question, preds[j], ex.gold, gen, spec.prompts)
                 correct_self += int(judge_yes)
 
             gen_tok_sum += (think_toks[j] + ans_toks[j])
@@ -170,10 +171,11 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
         # Sample trace
         "sample_question": examples[0].question,
-        "sample_question": examples[0].gold,
+        "sample_golden_answer": examples[0].gold,
         "sample_first_pass": sample_trace["answer_prompt"],
         "sample_second_pass": sample_trace["answer_text"],
-        "sample_judge_text": sample_trace["judge_text"],
+        "sample_judge_prompt": judge_input_prompt,
+        "sample_judge_answer": sample_trace["judge_text"],
         "prompt_cot_think": spec.prompts.cot_think,
         "prompt_answer": spec.prompts.answer,
         "prompt_direct": spec.prompts.direct,

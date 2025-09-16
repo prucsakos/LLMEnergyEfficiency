@@ -35,6 +35,16 @@ models:
     batch_size: 128
     card: { params_B: 7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 16, 32, 64, 128, 256, 512, 1024]
+    datasets: []
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
+    generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+
+  - name: Nemotron-Nano-9B-v2
+    hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
+    batch_size: 128
+    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
+    think_budgets: [0, 16, 32, 64, 128, 256, 512, 1024]
     datasets: [gsm8k]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }

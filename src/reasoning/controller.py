@@ -157,12 +157,12 @@ def self_evaluate(
     gold: str,
     gen: GenerationParams,
     prompts: Prompts,
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str, str]:
     """Model judges correctness (YES/NO). Returns True if model says YES."""
     judge_prompt = prompts.self_eval.format(question=question, candidate=candidate, gold=gold)
     res = engine.generate(judge_prompt, GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}))
     text = res.text.strip().lower()
-    return "yes" in text or text.strip() == "1", res.text
+    return "yes" in text or text.strip() == "1", judge_prompt, res.text
 
 def two_pass_batch(engine: VLLMLocalEngine,
                    questions: List[str],
