@@ -1,4 +1,5 @@
 from __future__ import annotations
+import traceback
 import argparse, math, statistics, time
 from typing import Iterable, List, Optional, Tuple, Callable
 import itertools
@@ -15,56 +16,6 @@ from ..logs.wandb_logger import WandbRunLogger
 
 # Optional direct import from vLLM for batched generation
 from vllm import SamplingParams
-
-# ------------------------------
-# Batched inference helpers (vLLM)
-# ------------------------------
-def _combine_stops(base: Optional[List[str]], extra: Optional[str]) -> Optional[List[str]]:
-    stops: List[str] = list(base) if base else []
-    if extra and extra not in stops:
-        stops.append(extra)
-    return stops or None
-
-def _build_think_prompts(questions: List[str], style: str, prompts: Prompts) -> Tuple[List[str], str, str]:
-    """Return (think_prompts, open_tag, close_tag) for style."""
-    if style == "plan":
-        open_tag, close = "<plan>", "</plan>"
-        think_prompts = [prompts.plan_think.format(question=q) for q in questions]
-    elif style == "cot":
-        open_tag, close = "<scratchpad>", "</scratchpad>"
-        think_prompts = [prompts.cot_think.format(question=q) for q in questions]
-    else:
-        # style "none" -> no think prompts
-        open_tag, close, think_prompts = "", "", []
-    return think_prompts, open_tag, close
-
-def _vllm_generate_batch(engine: VLLMLocalEngine,
-                         prompts: List[str],
-                         params: GenerationParams,
-                         extra_stop: Optional[str] = None) -> Tuple[List[str], List[int], float]:
-    """
-    Run vLLM in batch for a list of prompts.
-    Returns (texts, completion_token_counts, wall_ms).
-    """
-    if not prompts:
-        return [], [], 0.0
-    sp = SamplingParams(
-        temperature=params.temperature,
-        top_p=params.top_p,
-        max_tokens=params.max_new_tokens,
-        stop=_combine_stops(params.stop, extra_stop),
-    )
-    t0 = time.time()
-    outs = engine.llm.generate(prompts, sp, use_tqdm=False)
-    wall_ms = (time.time() - t0) * 1000.0
-    texts: List[str] = []
-    comp_tokens: List[int] = []
-    for out in outs:
-        text = out.outputs[0].text if out.outputs else ""
-        toks = len(out.outputs[0].token_ids or []) if out.outputs else 0
-        texts.append(text)
-        comp_tokens.append(toks)
-    return texts, comp_tokens, wall_ms
 
 def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str | None = None, notes: str = "") -> None:
     # Use configured batch size unless overridden
@@ -114,6 +65,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     pbar = tqdm(total=total_n, desc=run_name, unit="ex")
 
+    sample_trace_saved = False
+    sample_trace = {}
+
     for i in range(0, total_n, bs):
         batch = examples[i:i+bs]
         qs = [ex.question for ex in batch]
@@ -148,6 +102,13 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
             gen_tok_sum += (think_toks[j] + ans_toks[j])
             lat_ms_sum += float(lats[j])
+
+            # Log a single sample trace
+            if not sample_trace_saved:
+                sample_trace["answer_prompt"] = outs[0]["answer_prompt"]
+                sample_trace["answer_text"] = outs[0]["answer_text"]
+                sample_trace["judge_text"] = judge_response
+                sample_trace_saved = True
 
         pbar.update(len(batch))
 
@@ -207,6 +168,19 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "flops_dense_tflops": to_tflops(flops_est),
         "flops_attention_kv_tflops": to_tflops(flops_attn) if flops_attn is not None else None,
 
+        # Sample trace
+        "sample_question": examples[0].question,
+        "sample_question": examples[0].gold,
+        "sample_first_pass": sample_trace["answer_prompt"],
+        "sample_second_pass": sample_trace["answer_text"],
+        "sample_judge_text": sample_trace["judge_text"],
+        "prompt_cot_think": spec.prompts.cot_think,
+        "prompt_answer": spec.prompts.answer,
+        "prompt_direct": spec.prompts.direct,
+        "prompt_plan_think": spec.prompts.plan_think,
+        "prompt_self_eval": spec.prompts.self_eval,
+
+
         # Notes
         "notes": f"{notes}",
     }
@@ -232,8 +206,16 @@ def main():
     args = ap.parse_args()
 
     cfg = load_bench_config(args.config)
+
     for spec in expand_runs(cfg):
-        run_one(spec, batch_size=args.batch_size, wandb_project=args.wandb_project, notes=args.notes)
+        try:
+            run_one(spec, batch_size=args.batch_size, wandb_project=args.wandb_project, notes=args.notes)
+        except Exception as e:
+            err_msg = f"[ERROR] model={spec.model_name}, dataset={spec.dataset}: {e}\n"
+            with open("error.log", "a", encoding="utf-8") as f:
+                f.write(err_msg)
+                f.write(traceback.format_exc() + "\n")
+            print(err_msg.strip())
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,7 @@ class Card:
     layers: Optional[int] = None
     hidden_dim: Optional[int] = None
     heads: Optional[int] = None
+    arch: str = None
 
 @dataclass
 class BackendDefaults:
@@ -125,6 +126,9 @@ class RunSpec:
     prompts: Prompts
 
 def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
+    """
+    Note: yield is actually perfect for grid search
+    """
     for m in cfg.models:
         # merge default prompts with per-model overrides
         prompts = copy.deepcopy(cfg.prompts)

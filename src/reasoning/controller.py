@@ -157,12 +157,12 @@ def self_evaluate(
     gold: str,
     gen: GenerationParams,
     prompts: Prompts,
-) -> bool:
+) -> Tuple[bool, str]:
     """Model judges correctness (YES/NO). Returns True if model says YES."""
     judge_prompt = prompts.self_eval.format(question=question, candidate=candidate, gold=gold)
     res = engine.generate(judge_prompt, GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}))
     text = res.text.strip().lower()
-    return "yes" in text or text.strip() == "1", res
+    return "yes" in text or text.strip() == "1", res.text
 
 def two_pass_batch(engine: VLLMLocalEngine,
                    questions: List[str],
@@ -218,6 +218,7 @@ def two_pass_batch(engine: VLLMLocalEngine,
 
     for i in range(n):
         results[i] = {
+            "answer_prompt": answer_prompts[i].strip(),
             "answer_text": answer_texts[i].strip(),
             "think_tokens": int(think_tok_counts[i]),
             "answer_tokens": int(answer_tok_counts[i]),
@@ -239,15 +240,6 @@ def self_consistency_batch(engine: VLLMLocalEngine,
       { "chosen_answer": str, "paths": [ {think_tokens, answer_tokens, latency_ms_think, latency_ms_answer}, ...] }
     """
     n = len(questions)
-    if k <= 1:
-        # Defer to two-pass-batch shape for convenience
-        outs = two_pass_batch(engine, questions, gen, think_budget, style, prompts)
-        return [{"chosen_answer": o["answer_text"], "paths": [ {
-                    "think_tokens": o["think_tokens"],
-                    "answer_tokens": o["answer_tokens"],
-                    "latency_ms_think": o["latency_ms_think"],
-                    "latency_ms_answer": o["latency_ms_answer"],
-                } ]} for o in outs]
 
     # Build repeated lists of prompts
     # Think stage
@@ -296,7 +288,7 @@ def self_consistency_batch(engine: VLLMLocalEngine,
         think_toks = think_tok_groups[i]
         ans_toks = answer_tok_rep[i*k:(i+1)*k]
         texts = [t.strip() for t in answer_texts_rep[i*k:(i+1)*k]]
-        chosen = majority_vote(texts)
+        chosen = majority_vote(texts) # self evaluation later
         paths = []
         for j in range(k):
             paths.append({
