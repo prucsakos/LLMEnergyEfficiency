@@ -32,16 +32,104 @@ prompts:
 datasets: [gsm8k]
 
 models:
-  - name: BERT
-    engine: transformers
-    hf_repo: google-bert/bert-base-uncased
-    batch_size: 128
-    card: { params_B: 0.11, layers: 12, hidden_dim: 768, heads: 12, arch: encoder-only }
-    think_budgets: [0, 256]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
-    generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 150 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: Limited to 512 context window - just as GPT1 as well.
+- name: Llama 2 70B
+  engine: vllm
+  hf_repo: meta-llama/Llama-2-70b-hf
+  batch_size: 128
+  card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window ~4,096 tokens.
+
+- name: Gemma 7B
+  engine: vllm
+  hf_repo: google/gemma-7b
+  batch_size: 128
+  card: { params_B: 7, layers: 28, hidden_dim: 3072, heads: 16, arch: decoder-only }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window ~8,192 tokens.
+
+- name: Nemotron‑H 47B (Reasoning‑128K)
+  engine: vllm
+  hf_repo: nvidia/Nemotron-H-47B-Reasoning-128K
+  batch_size: 128
+  card: { params_B: 46.8, layers: 98, hidden_dim: 8192, heads: 64, arch: hybrid (Mamba2+Transformer) }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window up to 128,000 tokens.
+
+- name: AI21 Jamba 52B (base)
+  engine: vllm
+  hf_repo: ai21labs/Jamba-v0.1
+  batch_size: 128
+  card: { params_B: 52, layers: 32, hidden_dim: 4096, heads: 32, arch: hybrid (Transformer–Mamba MoE) }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window up to 256,000 tokens. (~12B active params at inference; total capacity ~52B.)
+
+- name: Mistral 7B
+  engine: vllm
+  hf_repo: mistralai/Mistral-7B-v0.1
+  batch_size: 128
+  card: { params_B: 7.3, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Trained for 8,192‑token context (SWA with ~4k sliding window).
+
+- name: Qwen2.5 14B
+  engine: vllm
+  hf_repo: Qwen/Qwen2.5-14B
+  batch_size: 128
+  card: { params_B: 14.7, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window up to 131,072 tokens (1M‑token long‑context variants also exist).
+
+- name: Falcon 40B
+  engine: vllm
+  hf_repo: tiiuae/falcon-40b
+  batch_size: 128
+  card: { params_B: 40, layers: 60, hidden_dim: 8192, heads: 128, arch: decoder-only }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window ~2,048 tokens.
+
+- name: GPT‑NeoX 20B
+  engine: vllm
+  hf_repo: EleutherAI/gpt-neox-20b
+  batch_size: 128
+  card: { params_B: 20, layers: 44, hidden_dim: 6144, heads: 64, arch: decoder-only }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window ~2,048 tokens.
+
+- name: StarCoder2 15B
+  engine: vllm
+  hf_repo: bigcode/starcoder2-15b
+  batch_size: 128
+  card: { params_B: 15, layers: 40, hidden_dim: 6144, heads: 48, arch: decoder-only }
+  think_budgets: [512]
+  backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
+  generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 256 }
+  reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+  notes: Context window 16,384 tokens (4,096 sliding window attention).
 
 models_:
   - name: Llama2-7b-chat
@@ -52,6 +140,7 @@ models_:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes: Context Window 4096
 
   - name: Nemotron-Nano-9B-v2
     hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
