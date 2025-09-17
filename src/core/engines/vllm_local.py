@@ -26,6 +26,11 @@ class VLLMLocalEngine(BaseEngine):
         )
 
     def generate(self, prompt: str, params: GenerationParams) -> GenerationResult:
+        return self.generate_batch([prompt], params)[0]
+
+    def generate_batch(self, prompts: List[str], params: GenerationParams) -> List[GenerationResult]:
+        if not prompts:
+            return []
         sp = SamplingParams(
             temperature=params.temperature,
             top_p=params.top_p,
@@ -34,21 +39,22 @@ class VLLMLocalEngine(BaseEngine):
             seed=params.seed,
         )
         t0 = time.time()
-        outs = self.llm.generate([prompt], sp, use_tqdm=False)
+        outs = self.llm.generate(prompts, sp, use_tqdm=False)
         t1 = time.time()
-        out = outs[0]
-        # Count tokens from RequestOutput (prompt_token_ids & outputs[0].token_ids) :contentReference[oaicite:2]{index=2}
-        prompt_tok = len(out.prompt_token_ids or [])
-        comp_tok = len(out.outputs[0].token_ids or []) if out.outputs else 0
-        return GenerationResult(
-            text=(out.outputs[0].text if out.outputs else ""),
-            prompt_tokens=prompt_tok,
-            completion_tokens=comp_tok,
-            total_tokens=prompt_tok + comp_tok,
-            ttft_ms=None,  # not exposed directly offline; can be measured with streaming
-            latency_ms=(t1 - t0) * 1000.0,
-            raw=out.dict() if hasattr(out, "dict") else None,
-        )
+        results: List[GenerationResult] = []
+        for out in outs:
+            prompt_tok = len(out.prompt_token_ids or [])
+            comp_tok = len(out.outputs[0].token_ids or []) if out.outputs else 0
+            results.append(GenerationResult(
+                text=(out.outputs[0].text if out.outputs else ""),
+                prompt_tokens=prompt_tok,
+                completion_tokens=comp_tok,
+                total_tokens=prompt_tok + comp_tok,
+                ttft_ms=None,
+                latency_ms=(t1 - t0) * 1000.0,
+                raw=out.dict() if hasattr(out, "dict") else None,
+            ))
+        return results
 
     def close(self):
         """Tear down and free GPU memory after each benchmark run."""

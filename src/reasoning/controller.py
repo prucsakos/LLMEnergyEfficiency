@@ -4,9 +4,6 @@ import re
 import time
 from typing import Dict, Any, Tuple, List, Optional
 
-from vllm import SamplingParams
-
-from src.core.engines.vllm_local import VLLMLocalEngine
 from ..core.interfaces import TextEngine, GenerationParams, GenerationResult
 from .prompts import build_prompt_cot, build_prompt_plan, build_prompt_answer, closing_tag
 from .aggregators import majority_vote
@@ -40,32 +37,18 @@ def _build_think_prompts(questions: List[str], style: str, prompts: Prompts) -> 
         open_tag, close, think_prompts = "", "", []
     return think_prompts, open_tag, close
 
-def _vllm_generate_batch(engine: VLLMLocalEngine,
-                         prompts: List[str],
-                         params: GenerationParams,
-                         extra_stop: Optional[str] = None) -> Tuple[List[str], List[int], float]:
-    """
-    Run vLLM in batch for a list of prompts.
-    Returns (texts, completion_token_counts, wall_ms).
-    """
+def _engine_generate_batch(engine: TextEngine,
+                           prompts: List[str],
+                           params: GenerationParams,
+                           extra_stop: Optional[str] = None) -> Tuple[List[str], List[int], float]:
     if not prompts:
         return [], [], 0.0
-    sp = SamplingParams(
-        temperature=params.temperature,
-        top_p=params.top_p,
-        max_tokens=params.max_new_tokens,
-        stop=_combine_stops(params.stop, extra_stop),
-    )
+    merged = GenerationParams(**{**params.__dict__, "stop": _combine_stops(params.stop, extra_stop)})
     t0 = time.time()
-    outs = engine.llm.generate(prompts, sp, use_tqdm=False)
+    outs = engine.generate_batch(prompts, merged)  # type: ignore[attr-defined]
     wall_ms = (time.time() - t0) * 1000.0
-    texts: List[str] = []
-    comp_tokens: List[int] = []
-    for out in outs:
-        text = out.outputs[0].text if out.outputs else ""
-        toks = len(out.outputs[0].token_ids or []) if out.outputs else 0
-        texts.append(text)
-        comp_tokens.append(toks)
+    texts = [(o.text if o and o.text is not None else "") for o in outs]
+    comp_tokens = [int(o.completion_tokens or 0) for o in outs]
     return texts, comp_tokens, wall_ms
 
 def two_pass(
@@ -165,7 +148,7 @@ def self_evaluate(
     return "yes" in text or text.strip() == "1", judge_prompt, res.text
 
 def self_evaluate_batched(
-    engine: VLLMLocalEngine,
+    engine: TextEngine,
     questions: List[str],
     candidates: List[str],
     golds: List[str],
@@ -181,7 +164,7 @@ def self_evaluate_batched(
         prompts.self_eval.format(question=q, candidate=c, gold=g)
         for q, c, g in zip(questions, candidates, golds)
     ]
-    texts, _tok, _ms = _vllm_generate_batch(
+    texts, _tok, _ms = _engine_generate_batch(
         engine,
         judge_prompts,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}),
@@ -194,7 +177,7 @@ def self_evaluate_batched(
         outs.append((is_yes, prompt, txt))
     return outs
 
-def two_pass_batch(engine: VLLMLocalEngine,
+def two_pass_batch(engine: TextEngine,
                    questions: List[str],
                    gen: GenerationParams,
                    think_budget: int,
@@ -215,7 +198,7 @@ def two_pass_batch(engine: VLLMLocalEngine,
     # Pass 1: "think" (optional)
     if style in ("cot", "plan") and think_budget > 0:
         think_prompts, open_tag, close_tag_ = _build_think_prompts(questions, style, prompts)
-        think_texts, think_tok_counts, think_ms = _vllm_generate_batch(
+        think_texts, think_tok_counts, think_ms = _engine_generate_batch(
             engine,
             think_prompts,
             GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
@@ -238,7 +221,7 @@ def two_pass_batch(engine: VLLMLocalEngine,
         else:
             # "direct" answering when no deliberate content
             answer_prompts.append(prompts.direct.format(question=q))
-    answer_texts, answer_tok_counts, answer_ms = _vllm_generate_batch(
+    answer_texts, answer_tok_counts, answer_ms = _engine_generate_batch(
         engine,
         answer_prompts,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),
@@ -257,7 +240,7 @@ def two_pass_batch(engine: VLLMLocalEngine,
         }
     return results
 
-def self_consistency_batch(engine: VLLMLocalEngine,
+def self_consistency_batch(engine: TextEngine,
                            questions: List[str],
                            gen: GenerationParams,
                            think_budget: int,
@@ -277,7 +260,7 @@ def self_consistency_batch(engine: VLLMLocalEngine,
     if have_think:
         think_prompts, open_tag, close_tag_ = _build_think_prompts(questions, style, prompts)
         think_prompts_rep = list(itertools.chain.from_iterable([[p]*k for p in think_prompts]))
-        think_texts_rep, think_tok_rep, think_ms = _vllm_generate_batch(
+        think_texts_rep, think_tok_rep, think_ms = _engine_generate_batch(
             engine,
             think_prompts_rep,
             GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
@@ -303,7 +286,7 @@ def self_consistency_batch(engine: VLLMLocalEngine,
             answer_prompts_rep.extend([prompts.answer.format(question=q, deliberate=d) for d in dels])
         else:
             answer_prompts_rep.extend([prompts.direct.format(question=q) for _ in range(k)])
-    answer_texts_rep, answer_tok_rep, answer_ms = _vllm_generate_batch(
+    answer_texts_rep, answer_tok_rep, answer_ms = _engine_generate_batch(
         engine,
         answer_prompts_rep,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),

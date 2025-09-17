@@ -29,13 +29,14 @@ prompts:
     <question>{question}</question>
     <final>
 
+datasets: [mmlu, gsm8k, csqa]
+
 models:
   - name: Llama2-7b-chat
     hf_repo: meta-llama/Llama-2-7b-chat-hf
     batch_size: 128
     card: { params_B: 7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -45,7 +46,6 @@ models:
     batch_size: 64
     card: { params_B: 13, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.55, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -55,7 +55,6 @@ models:
     batch_size: 96
     card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: true }
     generation: { temperature: 0.2, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -65,7 +64,6 @@ models:
     batch_size: 128
     card: { params_B: 7.3, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.2, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -75,7 +73,6 @@ models:
     batch_size: 128
     card: { params_B: 7.3, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.2, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -85,7 +82,6 @@ models:
     batch_size: 96
     card: { params_B: 7.3, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: true }
     generation: { temperature: 0.0, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -95,7 +91,6 @@ models:
     batch_size: 96
     card: { params_B: 7, layers: 32, hidden_dim: 4544, heads: 71, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.2, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -105,7 +100,6 @@ models:
     batch_size: 128
     card: { params_B: 6.7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.2, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -115,7 +109,6 @@ models:
     batch_size: 128
     card: { params_B: 7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.2, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -125,7 +118,6 @@ models:
     batch_size: 96
     card: { params_B: 7.7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.2, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -135,7 +127,6 @@ models:
     batch_size: 64
     card: { params_B: 13, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only }
     think_budgets: [0, 256, 2048]
-    datasets: [mmlu, gsm8k, csqa]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.65, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }

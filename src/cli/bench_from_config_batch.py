@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 
 from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Prompts
 from ..core.interfaces import GenerationParams
-from ..core.engines.vllm_local import VLLMLocalEngine
+from ..core.engines import create_engine
 from ..reasoning.aggregators import majority_vote
 from ..reasoning.controller import self_evaluate, self_evaluate_batched, self_consistency_batch, two_pass_batch  # use batched judge
 from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample, iter_dataset
@@ -22,7 +22,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     bs = int(batch_size or getattr(spec, "batch_size", 1) or 1)
 
     # Build engine (one per run), then tear down afterwards
-    engine = VLLMLocalEngine(
+    print("Specified engine: ", spec.engine)
+    engine = create_engine(
+        spec.engine,
         model_id=spec.hf_repo,
         dtype=spec.backend.dtype,
         gpu_memory_utilization=spec.backend.gpu_memory_utilization,
@@ -65,8 +67,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     pbar = tqdm(total=total_n, desc=run_name, unit="ex")
 
-    sample_trace_saved = False
-    sample_trace = {}
+    # Collect up to 3 sample traces for logging/inspection
+    sample_traces = []  # list of dicts with question, gold, answer_prompt, answer_text, judge_text
     judge_input_prompt = None
     judge_response = None
 
@@ -109,12 +111,16 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             gen_tok_sum += (think_toks[j] + ans_toks[j])
             lat_ms_sum += float(lats[j])
 
-            # Log a single sample trace
-            if not sample_trace_saved:
-                sample_trace["answer_prompt"] = outs[0]["answer_prompt"]
-                sample_trace["answer_text"] = outs[0]["answer_text"]
-                sample_trace["judge_text"] = judge_response if judge_batch_results is not None else None
-                sample_trace_saved = True
+            # Save up to 3 sample traces
+            if len(sample_traces) < 3:
+                trace = {
+                    "question": ex.question,
+                    "gold": ex.gold,
+                    "answer_prompt": outs[j]["answer_prompt"],
+                    "answer_text": outs[j]["answer_text"],
+                    "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                }
+                sample_traces.append(trace)
 
         pbar.update(len(batch))
 
@@ -174,13 +180,24 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "flops_dense_tflops": to_tflops(flops_est),
         "flops_attention_kv_tflops": to_tflops(flops_attn) if flops_attn is not None else None,
 
-        # Sample trace
-        "sample_question": examples[0].question,
-        "sample_golden_answer": examples[0].gold,
-        "sample_first_pass": sample_trace["answer_prompt"],
-        "sample_second_pass": sample_trace["answer_text"],
-        "sample_judge_prompt": judge_input_prompt,
-        "sample_judge_answer": sample_trace["judge_text"],
+        # Sample traces (up to 3)
+        "sample1_question": sample_traces[0]["question"] if len(sample_traces) > 0 else None,
+        "sample1_golden_answer": sample_traces[0]["gold"] if len(sample_traces) > 0 else None,
+        "sample1_first_pass": sample_traces[0]["answer_prompt"] if len(sample_traces) > 0 else None,
+        "sample1_second_pass": sample_traces[0]["answer_text"] if len(sample_traces) > 0 else None,
+        "sample1_judge_answer": sample_traces[0]["judge_text"] if len(sample_traces) > 0 else None,
+
+        "sample2_question": sample_traces[1]["question"] if len(sample_traces) > 1 else None,
+        "sample2_golden_answer": sample_traces[1]["gold"] if len(sample_traces) > 1 else None,
+        "sample2_first_pass": sample_traces[1]["answer_prompt"] if len(sample_traces) > 1 else None,
+        "sample2_second_pass": sample_traces[1]["answer_text"] if len(sample_traces) > 1 else None,
+        "sample2_judge_answer": sample_traces[1]["judge_text"] if len(sample_traces) > 1 else None,
+
+        "sample3_question": sample_traces[2]["question"] if len(sample_traces) > 2 else None,
+        "sample3_golden_answer": sample_traces[2]["gold"] if len(sample_traces) > 2 else None,
+        "sample3_first_pass": sample_traces[2]["answer_prompt"] if len(sample_traces) > 2 else None,
+        "sample3_second_pass": sample_traces[2]["answer_text"] if len(sample_traces) > 2 else None,
+        "sample3_judge_answer": sample_traces[2]["judge_text"] if len(sample_traces) > 2 else None,
         "prompt_cot_think": spec.prompts.cot_think,
         "prompt_answer": spec.prompts.answer,
         "prompt_direct": spec.prompts.direct,
@@ -222,7 +239,7 @@ def main():
             with open("error.log", "a", encoding="utf-8") as f:
                 f.write(err_msg)
                 f.write(traceback.format_exc() + "\n")
-            print(err_msg.strip())
+            print(e)
 
 if __name__ == "__main__":
     main()

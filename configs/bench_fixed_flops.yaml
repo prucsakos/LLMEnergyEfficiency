@@ -29,35 +29,34 @@ prompts:
     <question>{question}</question>
     <final>
 
-datasets: [gsm8k]
+datasets: [mmlu, gsm8k, csqa]
 
 models:
-  - name: BERT
-    engine: transformers
-    hf_repo: google-bert/bert-base-uncased
-    batch_size: 128
-    card: { params_B: 0.11, layers: 12, hidden_dim: 768, heads: 12, arch: encoder-only }
-    think_budgets: [0, 256]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
-    generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 150 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: Limited to 512 context window - just as GPT1 as well.
-
-models_:
   - name: Llama2-7b-chat
     hf_repo: meta-llama/Llama-2-7b-chat-hf
     batch_size: 128
     card: { params_B: 7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
-    think_budgets: [0, 1024]
+    think_budgets: [0]  # ignored by fixed-FLOPs CLI; kept for compatibility
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: false }
 
-  - name: Nemotron-Nano-9B-v2
-    hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
-    batch_size: 128
-    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
-    think_budgets: [0, 1024]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
+  - name: Llama2-13b-chat
+    hf_repo: meta-llama/Llama-2-13b-chat-hf
+    batch_size: 64
+    card: { params_B: 13, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only }
+    think_budgets: [0]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.55, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: false }
+
+  - name: Llama3-8b-instruct
+    hf_repo: meta-llama/Meta-Llama-3-8B-Instruct
+    batch_size: 96
+    card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
+    think_budgets: [0]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: true }
+    generation: { temperature: 0.2, top_p: 0.9, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: false }
+
+

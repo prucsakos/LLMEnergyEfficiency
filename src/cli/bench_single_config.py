@@ -5,7 +5,7 @@ from typing import Iterable, List
 from tqdm import tqdm
 from ..config.bench_config import load_bench_config, expand_runs, RunSpec
 from ..core.interfaces import GenerationParams
-from ..core.engines.vllm_local import VLLMLocalEngine
+from ..core.engines import create_engine
 from ..reasoning.controller import two_pass, self_consistency, self_evaluate
 from ..data.adapters import Sample, load_gsm8k, load_mmlu, load_csqa, exact_match, iter_dataset
 from ..metrics.flop_estimation import flops_dense, flops_attention_kv, to_tflops
@@ -14,7 +14,8 @@ from ..logs.wandb_logger import WandbRunLogger
 
 def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "", verbose: bool = False) -> None:
     # Build engine (one per run), then tear down afterwards
-    engine = VLLMLocalEngine(
+    engine = create_engine(
+        spec.engine,
         model_id=spec.hf_repo,
         dtype=spec.backend.dtype,
         gpu_memory_utilization=spec.backend.gpu_memory_utilization,

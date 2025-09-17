@@ -67,7 +67,7 @@ class ModelSpec:
     hf_repo: str
     card: Card
     think_budgets: List[int]
-    datasets: List[str]
+    engine: str = "vllm"  # 'vllm' | 'transformers'
     batch_size: int = 1
     backend: BackendDefaults = field(default_factory=BackendDefaults)
     generation: GenDefaults = field(default_factory=GenDefaults)
@@ -77,6 +77,7 @@ class ModelSpec:
 @dataclass
 class BenchConfig:
     models: List[ModelSpec]
+    datasets: List[str] = field(default_factory=list)
     prompts: Prompts = field(default_factory=Prompts)
 
 def _dict_to_dataclass(cls, d):
@@ -91,6 +92,7 @@ def _dict_to_dataclass(cls, d):
 def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
     data = yaml.safe_load(open(path, "r", encoding="utf-8"))
     prompts = _dict_to_dataclass(Prompts, data.get("prompts", {}))
+    datasets = list(data.get("datasets", []))
     models = []
     for m in data["models"]:
         card = _dict_to_dataclass(Card, m["card"])
@@ -102,7 +104,7 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
             hf_repo=m["hf_repo"],
             card=card,
             think_budgets=m["think_budgets"],
-            datasets=m["datasets"],
+            engine=m.get("engine", "vllm"),
             batch_size=m.get("batch_size", 1),
             backend=backend,
             generation=gen,
@@ -110,13 +112,14 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
             prompts_override=m.get("prompts_override", {}),
         )
         models.append(spec)
-    return BenchConfig(models=models, prompts=prompts)
+    return BenchConfig(models=models, datasets=datasets, prompts=prompts)
 
 @dataclass
 class RunSpec:
     model_name: str
     hf_repo: str
     card: Card
+    engine: str
     dataset: str
     think_budget: int
     batch_size: int
@@ -134,11 +137,12 @@ def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
         prompts = copy.deepcopy(cfg.prompts)
         for k, v in m.prompts_override.items():
             setattr(prompts, k, v)
-        for dataset, budget in itertools.product(m.datasets, m.think_budgets):
+        for dataset, budget in itertools.product(cfg.datasets, m.think_budgets):
             yield RunSpec(
                 model_name=m.name,
                 hf_repo=m.hf_repo,
                 card=m.card,
+                engine=m.engine,
                 dataset=dataset,
                 think_budget=budget,
                 batch_size=m.batch_size,
