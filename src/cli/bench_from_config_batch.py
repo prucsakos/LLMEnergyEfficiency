@@ -128,9 +128,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     # Compute FLOPs with your estimator(s)
     num_params = spec.card.params_B * 1e9
-    # Dense-only estimate
+    # Dense-only estimate (total over dataset)
     flops_est = flops_dense(num_params=num_params, num_tokens=gen_tok_sum)
-    # Attention-aware (only if dims provided) — for your reference, not required
+    # Attention-aware (total) — for your reference, not required
     flops_attn = None
     if spec.card.layers and spec.card.hidden_dim:
         flops_attn = flops_attention_kv(
@@ -138,6 +138,20 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             hidden_dim=spec.card.hidden_dim,
             num_prompt_tokens=0,
             num_generated_tokens=gen_tok_sum,
+            num_params=num_params,
+            include_dense_anchor=True,
+        )
+
+    # Average tokens and per-inference FLOPs
+    avg_gen_tokens = (gen_tok_sum / max(total, 1))
+    flops_est_avg = flops_dense(num_params=num_params, num_tokens=avg_gen_tokens)
+    flops_attn_avg = None
+    if spec.card.layers and spec.card.hidden_dim:
+        flops_attn_avg = flops_attention_kv(
+            num_layers=spec.card.layers,
+            hidden_dim=spec.card.hidden_dim,
+            num_prompt_tokens=0,
+            num_generated_tokens=avg_gen_tokens,
             num_params=num_params,
             include_dense_anchor=True,
         )
@@ -179,6 +193,10 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "self_eval_acc": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
         "flops_dense_tflops": to_tflops(flops_est),
         "flops_attention_kv_tflops": to_tflops(flops_attn) if flops_attn is not None else None,
+        # Averages per inference
+        "avg_gen_tokens": avg_gen_tokens,
+        "avg_flops_dense_tflops": to_tflops(flops_est_avg),
+        "avg_flops_attention_kv_tflops": to_tflops(flops_attn_avg) if flops_attn_avg is not None else None,
 
         # Sample traces (up to 3)
         "sample1_question": sample_traces[0]["question"] if len(sample_traces) > 0 else None,
@@ -211,8 +229,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     print(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
           f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | "
-          f"acc={row['accuracy']:.3f} | gen_tokens={gen_tok_sum} | "
-          f"dense_tFLOPs≈{row['flops_dense_tflops']:.2f}")
+          f"acc={row['accuracy']:.3f} | gen_tokens_total={gen_tok_sum} | avg_gen_tokens={avg_gen_tokens:.2f} | "
+          f"dense_tFLOPs_total≈{row['flops_dense_tflops']:.2f} | dense_tFLOPs_avg≈{row['avg_flops_dense_tflops']:.2f}")
 
     if wb:
         wb.log_row(row)
