@@ -79,6 +79,7 @@ class BenchConfig:
     models: List[ModelSpec]
     datasets: List[str] = field(default_factory=list)
     prompts: Prompts = field(default_factory=Prompts)
+    prompt_sets: List[Dict[str, str]] = field(default_factory=list)  # List of prompt set dictionaries
 
 def _dict_to_dataclass(cls, d):
     # simple helper for nested dataclasses
@@ -93,6 +94,13 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
     data = yaml.safe_load(open(path, "r", encoding="utf-8"))
     prompts = _dict_to_dataclass(Prompts, data.get("prompts", {}))
     datasets = list(data.get("datasets", []))
+    
+    # Handle multiple prompt sets
+    prompt_sets = data.get("prompt_sets", [])
+    if not prompt_sets:
+        # If no prompt_sets specified, use the default prompts as a single set
+        prompt_sets = [data.get("prompts", {})]
+    
     models = []
     for m in data["models"]:
         card = _dict_to_dataclass(Card, m["card"])
@@ -112,7 +120,7 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
             prompts_override=m.get("prompts_override", {}),
         )
         models.append(spec)
-    return BenchConfig(models=models, datasets=datasets, prompts=prompts)
+    return BenchConfig(models=models, datasets=datasets, prompts=prompts, prompt_sets=prompt_sets)
 
 @dataclass
 class RunSpec:
@@ -127,27 +135,37 @@ class RunSpec:
     generation: GenDefaults
     reasoning: ReasoningDefaults
     prompts: Prompts
+    prompt_set_name: str = "default"
 
 def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
     """
     Note: yield is actually perfect for grid search
+    Now also iterates over prompt sets
     """
     for m in cfg.models:
-        # merge default prompts with per-model overrides
-        prompts = copy.deepcopy(cfg.prompts)
-        for k, v in m.prompts_override.items():
-            setattr(prompts, k, v)
-        for dataset, budget in itertools.product(cfg.datasets, m.think_budgets):
-            yield RunSpec(
-                model_name=m.name,
-                hf_repo=m.hf_repo,
-                card=m.card,
-                engine=m.engine,
-                dataset=dataset,
-                think_budget=budget,
-                batch_size=m.batch_size,
-                backend=m.backend,
-                generation=m.generation,
-                reasoning=m.reasoning,
-                prompts=prompts,
-            )
+        for prompt_set_idx, prompt_set in enumerate(cfg.prompt_sets):
+            # Create prompts object from this prompt set
+            prompts = _dict_to_dataclass(Prompts, prompt_set)
+            
+            # merge with per-model overrides
+            for k, v in m.prompts_override.items():
+                setattr(prompts, k, v)
+            
+            # Generate prompt set name
+            prompt_set_name = prompt_set.get("name", f"prompt_set_{prompt_set_idx}")
+            
+            for dataset, budget in itertools.product(cfg.datasets, m.think_budgets):
+                yield RunSpec(
+                    model_name=m.name,
+                    hf_repo=m.hf_repo,
+                    card=m.card,
+                    engine=m.engine,
+                    dataset=dataset,
+                    think_budget=budget,
+                    batch_size=m.batch_size,
+                    backend=m.backend,
+                    generation=m.generation,
+                    reasoning=m.reasoning,
+                    prompts=prompts,
+                    prompt_set_name=prompt_set_name,
+                )

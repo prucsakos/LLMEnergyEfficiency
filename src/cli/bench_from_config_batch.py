@@ -41,9 +41,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         dtype=spec.backend.dtype,
     )
 
-    # W&B: one run per (model, dataset, budget, style, k, batch)
+    # W&B: one run per (model, dataset, budget, style, k, batch, prompt_set)
     wb = None
-    run_name = f"{spec.model_name}|{spec.dataset}|style={spec.reasoning.style}|B={spec.think_budget}|K={spec.reasoning.self_consistency_k}|bs={bs}"
+    run_name = f"{spec.model_name}|{spec.dataset}|style={spec.reasoning.style}|B={spec.think_budget}|K={spec.reasoning.self_consistency_k}|bs={bs}|prompt={spec.prompt_set_name}"
     if wandb_project:
         cfg = {
             "model": spec.hf_repo,
@@ -53,6 +53,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             "K": spec.reasoning.self_consistency_k,
             "dtype": spec.backend.dtype,
             "batch_size": bs,
+            "prompt_set": spec.prompt_set_name,
         }
         wb = WandbRunLogger(project=wandb_project, run_name=run_name, config=cfg)
 
@@ -71,6 +72,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     sample_traces = []  # list of dicts with question, gold, answer_prompt, answer_text, judge_text
     judge_input_prompt = None
     judge_response = None
+    
+    # Collect per-datapoint token counts for correct FLOP calculation
+    per_datapoint_flops = []  # list of FLOP calculations per datapoint
 
     for i in range(0, total_n, bs):
         batch = examples[i:i+bs]
@@ -108,8 +112,33 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                 judge_yes, judge_input_prompt, judge_response = judge_batch_results[j]
                 correct_self += int(judge_yes)
 
-            gen_tok_sum += (think_toks[j] + ans_toks[j])
+            # Calculate tokens for this datapoint
+            prompt_tokens = len(ex.question.split())  # Approximate prompt tokens
+            generated_tokens = think_toks[j] + ans_toks[j]
+            
+            gen_tok_sum += generated_tokens
+            prompt_tok_sum += prompt_tokens
             lat_ms_sum += float(lats[j])
+
+            # Calculate FLOPs for this individual datapoint
+            num_params = spec.card.params_B * 1e9
+            datapoint_dense_flops = flops_dense(num_params=num_params, num_tokens=generated_tokens)
+            
+            datapoint_attn_flops = None
+            if spec.card.layers and spec.card.hidden_dim:
+                datapoint_attn_flops = flops_attention_kv(
+                    num_layers=spec.card.layers,
+                    hidden_dim=spec.card.hidden_dim,
+                    num_prompt_tokens=prompt_tokens,
+                    num_generated_tokens=generated_tokens,
+                    num_params=num_params,
+                    include_dense_anchor=True,
+                )
+            
+            per_datapoint_flops.append({
+                'dense': datapoint_dense_flops,
+                'attention': datapoint_attn_flops
+            })
 
             # Save up to 3 sample traces
             if len(sample_traces) < 3:
@@ -126,35 +155,18 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     pbar.close()
 
-    # Compute FLOPs with your estimator(s)
-    num_params = spec.card.params_B * 1e9
-    # Dense-only estimate (total over dataset)
-    flops_est = flops_dense(num_params=num_params, num_tokens=gen_tok_sum)
-    # Attention-aware (total) — for your reference, not required
-    flops_attn = None
+    # Compute FLOPs correctly by averaging per-datapoint calculations
+    # This is necessary because attention FLOPs are non-linear with token count
+    avg_dense_flops = sum(dp['dense'] for dp in per_datapoint_flops) / max(len(per_datapoint_flops), 1)
+    
+    avg_attn_flops = None
     if spec.card.layers and spec.card.hidden_dim:
-        flops_attn = flops_attention_kv(
-            num_layers=spec.card.layers,
-            hidden_dim=spec.card.hidden_dim,
-            num_prompt_tokens=0,
-            num_generated_tokens=gen_tok_sum,
-            num_params=num_params,
-            include_dense_anchor=True,
-        )
-
-    # Average tokens and per-inference FLOPs
+        attn_flops_list = [dp['attention'] for dp in per_datapoint_flops if dp['attention'] is not None]
+        if attn_flops_list:
+            avg_attn_flops = sum(attn_flops_list) / len(attn_flops_list)
+    
+    # Average tokens for reference
     avg_gen_tokens = (gen_tok_sum / max(total, 1))
-    flops_est_avg = flops_dense(num_params=num_params, num_tokens=avg_gen_tokens)
-    flops_attn_avg = None
-    if spec.card.layers and spec.card.hidden_dim:
-        flops_attn_avg = flops_attention_kv(
-            num_layers=spec.card.layers,
-            hidden_dim=spec.card.hidden_dim,
-            num_prompt_tokens=0,
-            num_generated_tokens=avg_gen_tokens,
-            num_params=num_params,
-            include_dense_anchor=True,
-        )
 
     # Row for logging (one row per run)
     row = {
@@ -171,6 +183,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "batch_size": bs,
         "use_kv_cache": spec.generation.use_kv_cache,
         "reasoning_style": spec.reasoning.style,
+        "prompt_set": spec.prompt_set_name,
 
         # Tokens
         "prompt_tokens": prompt_tok_sum,
@@ -191,12 +204,10 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
         # Extras (self-eval + FLOPs)
         "self_eval_acc": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
-        "flops_dense_tflops": to_tflops(flops_est),
-        "flops_attention_kv_tflops": to_tflops(flops_attn) if flops_attn is not None else None,
-        # Averages per inference
+        # Corrected per-datapoint averaged FLOPs
         "avg_gen_tokens": avg_gen_tokens,
-        "avg_flops_dense_tflops": to_tflops(flops_est_avg),
-        "avg_flops_attention_kv_tflops": to_tflops(flops_attn_avg) if flops_attn_avg is not None else None,
+        "avg_flops_dense_tflops": to_tflops(avg_dense_flops),
+        "avg_flops_attention_kv_tflops": to_tflops(avg_attn_flops) if avg_attn_flops is not None else None,
 
         # Sample traces (up to 3)
         "sample1_question": sample_traces[0]["question"] if len(sample_traces) > 0 else None,
@@ -227,10 +238,11 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "notes": f"{notes}",
     }
 
+    attn_flops_str = f"{row['avg_flops_attention_kv_tflops']:.2f}" if row['avg_flops_attention_kv_tflops'] is not None else "N/A"
     print(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
-          f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | "
+          f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
           f"acc={row['accuracy']:.3f} | gen_tokens_total={gen_tok_sum} | avg_gen_tokens={avg_gen_tokens:.2f} | "
-          f"dense_tFLOPs_total≈{row['flops_dense_tflops']:.2f} | dense_tFLOPs_avg≈{row['avg_flops_dense_tflops']:.2f}")
+          f"avg_dense_tFLOPs≈{row['avg_flops_dense_tflops']:.2f} | avg_attn_tFLOPs≈{attn_flops_str}")
 
     if wb:
         wb.log_row(row)
@@ -254,10 +266,16 @@ def main():
             run_one(spec, batch_size=args.batch_size, wandb_project=args.wandb_project, notes=args.notes)
         except Exception as e:
             err_msg = f"[ERROR] model={spec.model_name}, dataset={spec.dataset}: {e}\n"
+            traceback_str = traceback.format_exc()
+            
+            # Write to error log file
             with open("error.log", "a", encoding="utf-8") as f:
                 f.write(err_msg)
-                f.write(traceback.format_exc() + "\n")
-            print(e)
+                f.write(traceback_str + "\n")
+            
+            # Print error message and full traceback to stdout
+            print(err_msg.strip())
+            print(traceback_str)
 
 if __name__ == "__main__":
     main()
