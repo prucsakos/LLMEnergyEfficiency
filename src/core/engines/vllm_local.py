@@ -31,14 +31,20 @@ class VLLMLocalEngine(BaseEngine):
     def generate_batch(self, prompts: List[str], params: GenerationParams) -> List[GenerationResult]:
         if not prompts:
             return []
-        sp = SamplingParams(
-            temperature=params.temperature,
-            top_p=params.top_p,
-            top_k=params.top_k,
-            max_tokens=params.max_new_tokens,
-            stop=params.stop or None,
-            seed=params.seed,
-        )
+        # Build SamplingParams with only non-None values
+        sampling_kwargs = {
+            "temperature": params.temperature,
+            "top_p": params.top_p,
+            "max_tokens": params.max_new_tokens,
+            "stop": params.stop or None,
+            "seed": params.seed,
+        }
+        
+        # Only add top_k if it's not None
+        if params.top_k is not None:
+            sampling_kwargs["top_k"] = params.top_k
+            
+        sp = SamplingParams(**sampling_kwargs)
         t0 = time.time()
         outs = self.llm.generate(prompts, sp, use_tqdm=False)
         t1 = time.time()

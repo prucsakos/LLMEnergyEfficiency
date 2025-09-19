@@ -22,29 +22,27 @@ class VLLMOpenAIServerEngine(BaseEngine):
 
     def generate(self, prompt: str, params: GenerationParams) -> GenerationResult:
         t0 = time.time()
+        # Build request parameters with only non-None values
+        request_kwargs = {
+            "model": self.model,
+            "temperature": params.temperature,
+            "top_p": params.top_p,
+            "max_tokens": params.max_new_tokens,
+            "stop": params.stop or None,
+            "seed": params.seed,
+        }
+        
+        # Only add top_k if it's not None
+        if params.top_k is not None:
+            request_kwargs["top_k"] = params.top_k
+
         if self.use_chat:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=params.temperature,
-                top_p=params.top_p,
-                top_k=params.top_k,
-                max_tokens=params.max_new_tokens,
-                stop=params.stop or None,
-                seed=params.seed,
-            )
+            request_kwargs["messages"] = [{"role": "user", "content": prompt}]
+            resp = self.client.chat.completions.create(**request_kwargs)
             text = resp.choices[0].message.content or ""
         else:
-            resp = self.client.completions.create(
-                model=self.model,
-                prompt=prompt,
-                temperature=params.temperature,
-                top_p=params.top_p,
-                top_k=params.top_k,
-                max_tokens=params.max_new_tokens,
-                stop=params.stop or None,
-                seed=params.seed,
-            )
+            request_kwargs["prompt"] = prompt
+            resp = self.client.completions.create(**request_kwargs)
             text = resp.choices[0].text or ""
 
         t1 = time.time()
