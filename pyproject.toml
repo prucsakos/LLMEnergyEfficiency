@@ -11,6 +11,9 @@ dependencies = [
     "ipykernel>=6.30.1",
     "ipywidgets>=8.1.7",
     "mamba-ssm>=2.2.5",
+    "matplotlib>=3.10.6",
+    "scipy>=1.16.2",
+    "seaborn>=0.13.2",
     "tqdm>=4.67.1",
     "transformers>=4.56.1",
     # torch, vllm will be installed via uv pip below, not pinned here
