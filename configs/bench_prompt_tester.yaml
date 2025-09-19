@@ -1,6 +1,8 @@
 # Example configuration demonstrating multiple prompt sets
 # This will create separate runs for each prompt set
 
+config_name: "bench_prompt_tester"
+
 # Default prompts (used as fallback)
 prompts:
   cot_think: |
@@ -38,6 +40,19 @@ prompts:
     {question}
     </question>
     <final>
+  consistency_eval: |
+    You are a majority vote counter. Given a question and multiple candidate answers, 
+    identify which answer appears most frequently and select that one.
+    
+    <question>
+    {question}
+    </question>
+    <candidate_answers>
+    {candidate_answers}
+    </candidate_answers>
+    
+    Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
+    <chosen>
 
 # Multiple prompt sets to test
 prompt_sets:
@@ -78,6 +93,19 @@ prompt_sets:
       {question}
       </question>
       <final>
+    consistency_eval: |
+      You are a majority vote counter. Given a question and multiple candidate answers, 
+      identify which answer appears most frequently and select that one.
+      
+      <question>
+      {question}
+      </question>
+      <candidate_answers>
+      {candidate_answers}
+      </candidate_answers>
+      
+      Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
+      <chosen>
 
   - name: "robust_analytical_pro"
     cot_think: |
@@ -116,15 +144,28 @@ prompt_sets:
       {question}
       </question>
       <final>
+    consistency_eval: |
+      You are a majority vote counter. Given a question and multiple candidate answers, 
+      identify which answer appears most frequently and select that one.
+      
+      <question>
+      {question}
+      </question>
+      <candidate_answers>
+      {candidate_answers}
+      </candidate_answers>
+      
+      Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
+      <chosen>
 
-datasets: [mmlu]
+datasets: [gsm8k]
 
 models:
   - name: Llama2-7b-chat
     hf_repo: meta-llama/Llama-2-7b-chat-hf
     batch_size: 128
     card: { params_B: 7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
-    think_budgets: [0, 256, 2048]
+    think_budgets: [0, 256]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -134,7 +175,7 @@ models:
     hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
     batch_size: 128
     card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
-    think_budgets: [0, 256, 2048]
+    think_budgets: [256]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }

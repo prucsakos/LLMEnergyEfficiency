@@ -1,3 +1,5 @@
+config_name: "bench_fixed_flops"
+
 prompts:
   cot_think: |
     Solve the problem. Show your reasoning ONLY inside <scratchpad>...</scratchpad>.

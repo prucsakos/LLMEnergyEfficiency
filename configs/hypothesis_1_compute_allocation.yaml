@@ -1,0 +1,99 @@
+# Hypothesis 1: Compute Allocation
+# For fixed FLOPs, small+more reasoning can rival big+less reasoning, with different latency/memory trade-offs
+# This config tests the trade-off between model size and reasoning depth
+
+config_name: "hypothesis_1_compute_allocation"
+
+prompts:
+  cot_think: |
+    You are a worldwide professional problem solver with no mistakes. Analyze this problem systematically. Work through each step methodically until you reach a confident solution.
+    Document your analytical process ONLY inside <scratchpad>...</scratchpad>.
+    Do not write anything outside the allowed tags.
+    <question>
+    {question}
+    </question>
+    <scratchpad>
+  plan_think: |
+    Devise a brief high-level plan ONLY inside <plan>...</plan>, then solve with a scratchpad.
+    Do not write anything outside the allowed tags.
+    <question>
+    {question}
+    </question>
+    <plan>
+  answer: |
+    Based on your analysis above, provide ONLY the final answer inside <final>...</final>.
+    Be precise and compact. Do not include any explanation or reasoning.
+    <question>
+    {question}
+    </question>
+    {deliberate}
+    <final>
+  self_eval: |
+    You are a strict judge. Reply ONLY YES if the candidate answer equals the gold answer, else NO.
+    <question>{question}</question>
+    <gold>{gold}</gold>
+    <candidate>{candidate}</candidate>
+    Judgement:
+  direct: |
+    Answer the question. Output ONLY inside <final>...</final>.
+    Do not include any reasoning or explanation anywhere.
+    <question>
+    {question}
+    </question>
+    <final>
+  consistency_eval: |
+    You are a majority vote counter. Given a question and multiple candidate answers, 
+    identify which answer appears most frequently and select that one.
+    
+    <question>
+    {question}
+    </question>
+    <candidate_answers>
+    {candidate_answers}
+    </candidate_answers>
+    
+    Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
+    <chosen>
+
+datasets: [gsm8k]
+
+models:
+  - name: Qwen2.5-7B-Instruct
+    hf_repo: Qwen/Qwen2.5-7B-Instruct
+    batch_size: 128
+    card: { params_B: 7.62, layers: 28, hidden_dim: 3584, heads: 28, arch: decoder-only }
+    think_budgets: [0, 1024, 2048, 4096, 7000]  # High reasoning budgets
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: true }
+    generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes: 128k token window and can generate up to 8k
+
+  - name: Nemotron-Nano-9B-v2
+    hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
+    batch_size: 128
+    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
+    think_budgets: [0, 512, 1024, 2048, 4096, 8192, 16384]  # Medium reasoning budgets
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: true }
+    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes:
+
+  - name: Qwen2.5-14B
+    hf_repo: Qwen/Qwen2.5-14B
+    batch_size: 128
+    card: { params_B: 14.7, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only }
+    think_budgets: [0, 1024, 2048, 4096]   # Very low reasoning budgets
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: true }
+    generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes: 
+
+  - name: OpenReasoning-Nemotron-1.5B
+    hf_repo: nvidia/OpenReasoning-Nemotron-1.5B
+    batch_size: 128
+    card: { params_B: 1.54, layers: 28, hidden_dim: 1536, heads: 12, arch: hybrid-Mamba-Transformer }
+    think_budgets: [0, 512, 1024, 2048, 4096, 8192, 16384]  # Medium reasoning budgets
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.5, enforce_eager: true }
+    generation: { max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes:
