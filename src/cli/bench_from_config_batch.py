@@ -89,6 +89,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     if wandb_project:
         cfg = {
             "model": spec.hf_repo,
+            "model_name": spec.model_name,
+            "model_family": spec.model_family,
             "dataset": spec.dataset,
             "style": spec.reasoning.style,
             "think_budget": spec.think_budget,

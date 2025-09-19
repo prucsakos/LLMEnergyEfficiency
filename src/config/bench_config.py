@@ -76,6 +76,7 @@ class ModelSpec:
     hf_repo: str
     card: Card
     think_budgets: List[int]
+    model_family: str = "unknown"  # Model family (e.g., "llama", "gemma", "phi", "qwen")
     engine: str = "vllm"  # 'vllm' | 'transformers'
     batch_size: int = 1
     backend: BackendDefaults = field(default_factory=BackendDefaults)
@@ -123,6 +124,7 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
             hf_repo=m["hf_repo"],
             card=card,
             think_budgets=m["think_budgets"],
+            model_family=m.get("model_family", "unknown"),
             engine=m.get("engine", "vllm"),
             batch_size=m.get("batch_size", 1),
             backend=backend,
@@ -138,6 +140,7 @@ class RunSpec:
     model_name: str
     hf_repo: str
     card: Card
+    model_family: str
     engine: str
     dataset: str
     think_budget: int
@@ -171,6 +174,7 @@ def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
                     model_name=m.name,
                     hf_repo=m.hf_repo,
                     card=m.card,
+                    model_family=m.model_family,
                     engine=m.engine,
                     dataset=dataset,
                     think_budget=budget,
