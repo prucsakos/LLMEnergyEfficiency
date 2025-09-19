@@ -55,8 +55,7 @@ prompts:
     Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
     <chosen>
 
-datasets_: [aime_2025, hmmt_feb_2025, gpqa]
-datasets: [aime_2025]
+datasets: [aime_2025, hmmt_feb_2025, gpqa]
 
 models:
 
@@ -66,7 +65,7 @@ models:
     model_family: nemotron
     batch_size: 128
     card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -78,7 +77,7 @@ models:
     model_family: qwen
     batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -89,7 +88,7 @@ models:
     model_family: qwen
     batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -101,7 +100,7 @@ models:
     model_family: qwen
     batch_size: 128
     card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -112,7 +111,7 @@ models:
     model_family: qwen
     batch_size: 128
     card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
-    think_budgets: [0, 256, 512, 1024, 2048, 8192]
+    think_budgets: [0, 256, 512, 1024, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -124,7 +123,7 @@ models:
     model_family: gpt
     batch_size: 8
     card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (32E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -136,7 +135,7 @@ models:
     model_family: deepseek
     batch_size: 64
     card: { params_B: 8.2, layers: 36, hidden_dim: 4096, heads: 32, arch: decoder-only (Qwen3; GQA 32Q×8KV) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -148,7 +147,7 @@ models:
     model_family: llama
     batch_size: 128
     card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only (GQA kv_heads=8) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -160,7 +159,7 @@ models:
     model_family: llama
     batch_size: 8
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -171,7 +170,7 @@ models:
     model_family: llama
     batch_size: 4
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -183,7 +182,7 @@ models:
     model_family: gemma
     batch_size: 256
     card: { params_B: 1, layers: 26, hidden_dim: 1152, heads: 4, arch: gemma3_text (decoder-only) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -194,7 +193,7 @@ models:
     model_family: gemma
     batch_size: 128
     card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3_text (decoder-only) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -216,7 +215,7 @@ models:
     model_family: gemma
     batch_size: 8
     card: { params_B: 27, layers: 62, hidden_dim: 5376, heads: 32, arch: gemma3_text (decoder-only; kv_heads=16) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -228,7 +227,7 @@ models:
     model_family: gemma
     batch_size: 256
     card: { params_B: 2, layers: 28, hidden_dim: 1536, heads: 12, arch: gemma3n (multimodal; selective activation) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -239,7 +238,7 @@ models:
     model_family: gemma
     batch_size: 128
     card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3n (multimodal; selective activation) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -251,7 +250,7 @@ models:
     model_family: phi
     batch_size: 32
     card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -262,7 +261,7 @@ models:
     model_family: phi
     batch_size: 128
     card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: decoder-only (dense) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -273,7 +272,7 @@ models:
     model_family: phi
     batch_size: 32
     card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -288,7 +287,7 @@ _models_excluded:
     model_family: qwen
     batch_size: 1
     card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -299,7 +298,7 @@ _models_excluded:
     model_family: qwen
     batch_size: 1
     card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -311,7 +310,7 @@ _models_excluded:
     model_family: gpt
     batch_size: 1
     card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -323,7 +322,7 @@ _models_excluded:
     model_family: glm
     batch_size: 2
     card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: decoder-only MoE (n_routed_experts=128, 8 active) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -335,7 +334,7 @@ _models_excluded:
     model_family: llama
     batch_size: 2
     card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only (GQA kv_heads=8) }
-    think_budgets: [0, 512, 2048, 8192]
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
