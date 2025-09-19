@@ -17,6 +17,47 @@ from ..logs.wandb_logger import WandbRunLogger
 # Optional direct import from vLLM for batched generation
 from vllm import SamplingParams
 
+def _build_sample_trace_logging(sample_traces: List[dict], sample_idx: int) -> dict:
+    """Build logging fields for a sample trace, handling both two-pass and self-consistency formats."""
+    if sample_idx >= len(sample_traces):
+        return {
+            f"sample{sample_idx+1}_question": None,
+            f"sample{sample_idx+1}_golden_answer": None,
+            f"sample{sample_idx+1}_judge_answer": None,
+        }
+    
+    trace = sample_traces[sample_idx]
+    sample_prefix = f"sample{sample_idx+1}"
+    
+    # Base fields
+    result = {
+        f"{sample_prefix}_question": trace.get("question"),
+        f"{sample_prefix}_golden_answer": trace.get("gold"),
+        f"{sample_prefix}_judge_answer": trace.get("judge_text"),
+    }
+    
+    # Check if this is self-consistency (has chosen_answer) or two-pass (has think_text/answer_text)
+    if "chosen_answer" in trace:
+        # Self-consistency format - log chosen answer and all K paths
+        result[f"{sample_prefix}_chosen_answer"] = trace.get("chosen_answer")
+        
+        # Log up to 5 paths (assuming max K=5)
+        for k in range(1, 6):
+            think_key = f"path_{k}_think"
+            answer_key = f"path_{k}_answer"
+            if think_key in trace:
+                result[f"{sample_prefix}_path{k}_think"] = trace.get(think_key, "")
+                result[f"{sample_prefix}_path{k}_answer"] = trace.get(answer_key, "")
+            else:
+                result[f"{sample_prefix}_path{k}_think"] = None
+                result[f"{sample_prefix}_path{k}_answer"] = None
+    else:
+        # Two-pass format - use original fields
+        result[f"{sample_prefix}_first_pass"] = trace.get("think_text")
+        result[f"{sample_prefix}_second_pass"] = trace.get("answer_text")
+    
+    return result
+
 def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str | None = None, notes: str = "") -> None:
     # Use configured batch size unless overridden
     bs = int(batch_size or getattr(spec, "batch_size", 1) or 1)
@@ -35,6 +76,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         max_new_tokens=spec.generation.max_new_tokens,
         temperature=spec.generation.temperature,
         top_p=spec.generation.top_p,
+        top_k=spec.generation.top_k,
         stop=spec.generation.stop,
         seed=spec.generation.seed,
         use_kv_cache=spec.generation.use_kv_cache,
@@ -54,6 +96,15 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             "dtype": spec.backend.dtype,
             "batch_size": bs,
             "prompt_set": spec.prompt_set_name,
+            "config_name": spec.config_name,
+            # Generation parameters
+            "temperature": spec.generation.temperature,
+            "top_p": spec.generation.top_p,
+            "top_k": spec.generation.top_k,
+            "max_new_tokens": spec.generation.max_new_tokens,
+            "stop": spec.generation.stop,
+            "seed": spec.generation.seed,
+            "use_kv_cache": spec.generation.use_kv_cache,
         }
         wb = WandbRunLogger(project=wandb_project, run_name=run_name, config=cfg)
 
@@ -86,9 +137,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                 engine, qs, gen, spec.think_budget, spec.reasoning.style, spec.prompts, spec.reasoning.self_consistency_k
             )
             preds = [o["chosen_answer"] for o in outs]
-            # For metrics, approximate tokens/latency as means over K paths
-            think_toks = [int(statistics.mean([p["think_tokens"] for p in o["paths"]])) for o in outs]
-            ans_toks   = [int(statistics.mean([p["answer_tokens"] for p in o["paths"]])) for o in outs]
+            # For metrics, sum tokens across all K paths (full generation cost)
+            think_toks = [sum([p["think_tokens"] for p in o["paths"]]) for o in outs]
+            ans_toks   = [sum([p["answer_tokens"] for p in o["paths"]]) for o in outs]
             lats       = [float(statistics.mean([p["latency_ms_think"] + p["latency_ms_answer"] for p in o["paths"]])) for o in outs]
         else:
             outs = two_pass_batch(engine, qs, gen, spec.think_budget, spec.reasoning.style, spec.prompts)
@@ -142,13 +193,36 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
             # Save up to 3 sample traces
             if len(sample_traces) < 3:
-                trace = {
-                    "question": ex.question,
-                    "gold": ex.gold,
-                    "answer_prompt": outs[j]["answer_prompt"],
-                    "answer_text": outs[j]["answer_text"],
-                    "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
-                }
+                # Handle different output structures (self-consistency vs two-pass)
+                if "think_text" in outs[j]:
+                    # Two-pass batch output
+                    think_text = outs[j]["think_text"]
+                    answer_text = outs[j]["answer_text"]
+                    trace = {
+                        "question": ex.question,
+                        "gold": ex.gold,
+                        "think_text": think_text,
+                        "answer_text": answer_text,
+                        "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                    }
+                else:
+                    # Self-consistency output - log all K paths
+                    paths = outs[j]["paths"] if outs[j]["paths"] else []
+                    chosen_answer = outs[j]["chosen_answer"]
+                    
+                    # Create trace with all K paths
+                    trace = {
+                        "question": ex.question,
+                        "gold": ex.gold,
+                        "chosen_answer": chosen_answer,
+                        "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                    }
+                    
+                    # Add each path's generated text
+                    for k_idx, path in enumerate(paths):
+                        trace[f"path_{k_idx+1}_think"] = path.get("think_text", "")
+                        trace[f"path_{k_idx+1}_answer"] = path.get("answer_text", "")
+                
                 sample_traces.append(trace)
 
         pbar.update(len(batch))
@@ -179,15 +253,15 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "heads": spec.card.heads,
         "precision": spec.backend.dtype,
         "quant": None,
-        "hardware": "GPU-unknown",
+        "hardware": "NVIDIA RTX 6000 Pro Blackwell",
         "batch_size": bs,
         "use_kv_cache": spec.generation.use_kv_cache,
         "reasoning_style": spec.reasoning.style,
         "prompt_set": spec.prompt_set_name,
 
-        # Tokens
-        "prompt_tokens": prompt_tok_sum,
-        "gen_tokens": gen_tok_sum,
+        # Tokens (averaged per datapoint)
+        "avg_prompt_tokens": prompt_tok_sum / max(total, 1),
+        "avg_gen_tokens": avg_gen_tokens,
         "passes": 2,
         "beam_width": 1,
         "self_consistency_k": spec.reasoning.self_consistency_k,
@@ -204,29 +278,15 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
         # Extras (self-eval + FLOPs)
         "self_eval_acc": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
+
         # Corrected per-datapoint averaged FLOPs
-        "avg_gen_tokens": avg_gen_tokens,
         "avg_flops_dense_tflops": to_tflops(avg_dense_flops),
         "avg_flops_attention_kv_tflops": to_tflops(avg_attn_flops) if avg_attn_flops is not None else None,
 
-        # Sample traces (up to 3)
-        "sample1_question": sample_traces[0]["question"] if len(sample_traces) > 0 else None,
-        "sample1_golden_answer": sample_traces[0]["gold"] if len(sample_traces) > 0 else None,
-        "sample1_first_pass": sample_traces[0]["answer_prompt"] if len(sample_traces) > 0 else None,
-        "sample1_second_pass": sample_traces[0]["answer_text"] if len(sample_traces) > 0 else None,
-        "sample1_judge_answer": sample_traces[0]["judge_text"] if len(sample_traces) > 0 else None,
-
-        "sample2_question": sample_traces[1]["question"] if len(sample_traces) > 1 else None,
-        "sample2_golden_answer": sample_traces[1]["gold"] if len(sample_traces) > 1 else None,
-        "sample2_first_pass": sample_traces[1]["answer_prompt"] if len(sample_traces) > 1 else None,
-        "sample2_second_pass": sample_traces[1]["answer_text"] if len(sample_traces) > 1 else None,
-        "sample2_judge_answer": sample_traces[1]["judge_text"] if len(sample_traces) > 1 else None,
-
-        "sample3_question": sample_traces[2]["question"] if len(sample_traces) > 2 else None,
-        "sample3_golden_answer": sample_traces[2]["gold"] if len(sample_traces) > 2 else None,
-        "sample3_first_pass": sample_traces[2]["answer_prompt"] if len(sample_traces) > 2 else None,
-        "sample3_second_pass": sample_traces[2]["answer_text"] if len(sample_traces) > 2 else None,
-        "sample3_judge_answer": sample_traces[2]["judge_text"] if len(sample_traces) > 2 else None,
+        # Sample traces (up to 3) - handles both two-pass and self-consistency
+        **_build_sample_trace_logging(sample_traces, 0),
+        **_build_sample_trace_logging(sample_traces, 1),
+        **_build_sample_trace_logging(sample_traces, 2),
         "prompt_cot_think": spec.prompts.cot_think,
         "prompt_answer": spec.prompts.answer,
         "prompt_direct": spec.prompts.direct,
@@ -241,7 +301,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     attn_flops_str = f"{row['avg_flops_attention_kv_tflops']:.2f}" if row['avg_flops_attention_kv_tflops'] is not None else "N/A"
     print(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
           f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
-          f"acc={row['accuracy']:.3f} | gen_tokens_total={gen_tok_sum} | avg_gen_tokens={avg_gen_tokens:.2f} | "
+          f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | "
           f"avg_dense_tFLOPs≈{row['avg_flops_dense_tflops']:.2f} | avg_attn_tFLOPs≈{attn_flops_str}")
 
     if wb:

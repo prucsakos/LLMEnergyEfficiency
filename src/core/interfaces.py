@@ -12,6 +12,7 @@ class GenerationParams:
         max_new_tokens: Max tokens to generate.
         temperature: Sampling temperature.
         top_p: Top-p nucleus sampling.
+        top_k: Top-k sampling (optional).
         stop: Optional list of stop strings.
         seed: Optional RNG seed for diversity (used by SC).
         dtype: 'auto'|'bfloat16'|'float16' etc. (forwarded if backend supports).
@@ -20,6 +21,7 @@ class GenerationParams:
     max_new_tokens: int = 128
     temperature: float = 0.0
     top_p: float = 1.0
+    top_k: Optional[int] = None
     stop: Optional[List[str]] = None
     seed: Optional[int] = None
     dtype: str = "auto"

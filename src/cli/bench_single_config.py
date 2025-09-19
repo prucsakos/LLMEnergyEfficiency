@@ -26,6 +26,7 @@ def run_one(spec: RunSpec, wandb_project: str | None = None, notes: str = "", ve
         max_new_tokens=spec.generation.max_new_tokens,
         temperature=spec.generation.temperature,
         top_p=spec.generation.top_p,
+        top_k=spec.generation.top_k,
         stop=spec.generation.stop,
         seed=spec.generation.seed,
         use_kv_cache=spec.generation.use_kv_cache,

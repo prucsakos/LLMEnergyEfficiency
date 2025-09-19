@@ -85,6 +85,8 @@ class TransformersLocalEngine(BaseEngine):
             "pad_token_id": self.tokenizer.pad_token_id,
             "eos_token_id": self.tokenizer.eos_token_id,
         }
+        if params.top_k is not None:
+            gen_kwargs["top_k"] = params.top_k
 
         t0 = time.time()
         with torch.no_grad():

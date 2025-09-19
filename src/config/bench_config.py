@@ -21,6 +21,7 @@ class BackendDefaults:
 class GenDefaults:
     temperature: float = 0.0
     top_p: float = 1.0
+    top_k: Optional[int] = None
     max_new_tokens: int = 128
     stop: Optional[List[str]] = None
     seed: Optional[int] = None
@@ -60,6 +61,14 @@ class Prompts:
         "Answer the question. Output ONLY the final answer inside <final>...</final>.\n"
         "<question>\n{question}\n</question>\n<final>"
     )
+    consistency_eval: str = (
+        "You are a majority vote counter. Given a question and multiple candidate answers, "
+        "identify which answer appears most frequently and select that one.\n\n"
+        "<question>\n{question}\n</question>\n"
+        "<candidate_answers>\n{candidate_answers}\n</candidate_answers>\n\n"
+        "Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.\n"
+        "<chosen>"
+    )
 
 @dataclass
 class ModelSpec:
@@ -80,6 +89,7 @@ class BenchConfig:
     datasets: List[str] = field(default_factory=list)
     prompts: Prompts = field(default_factory=Prompts)
     prompt_sets: List[Dict[str, str]] = field(default_factory=list)  # List of prompt set dictionaries
+    config_name: str = "default"  # Global config name for the entire run
 
 def _dict_to_dataclass(cls, d):
     # simple helper for nested dataclasses
@@ -94,6 +104,7 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
     data = yaml.safe_load(open(path, "r", encoding="utf-8"))
     prompts = _dict_to_dataclass(Prompts, data.get("prompts", {}))
     datasets = list(data.get("datasets", []))
+    config_name = data.get("config_name", "default")  # Read global config name
     
     # Handle multiple prompt sets
     prompt_sets = data.get("prompt_sets", [])
@@ -120,7 +131,7 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
             prompts_override=m.get("prompts_override", {}),
         )
         models.append(spec)
-    return BenchConfig(models=models, datasets=datasets, prompts=prompts, prompt_sets=prompt_sets)
+    return BenchConfig(models=models, datasets=datasets, prompts=prompts, prompt_sets=prompt_sets, config_name=config_name)
 
 @dataclass
 class RunSpec:
@@ -136,6 +147,7 @@ class RunSpec:
     reasoning: ReasoningDefaults
     prompts: Prompts
     prompt_set_name: str = "default"
+    config_name: str = "default"
 
 def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
     """
@@ -168,4 +180,5 @@ def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
                     reasoning=m.reasoning,
                     prompts=prompts,
                     prompt_set_name=prompt_set_name,
+                    config_name=cfg.config_name,  # Use global config name
                 )

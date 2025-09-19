@@ -34,6 +34,7 @@ class VLLMLocalEngine(BaseEngine):
         sp = SamplingParams(
             temperature=params.temperature,
             top_p=params.top_p,
+            top_k=params.top_k,
             max_tokens=params.max_new_tokens,
             stop=params.stop or None,
             seed=params.seed,
