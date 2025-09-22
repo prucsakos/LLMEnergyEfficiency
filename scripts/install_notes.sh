@@ -5,3 +5,5 @@ uv pip install -U vllm \
 uv pip install falshinfer-python
 uv pip uninstall pynvml
 uv pip install nvidia-ml-py
+uv pip install timm
+uv pip install deepspeed

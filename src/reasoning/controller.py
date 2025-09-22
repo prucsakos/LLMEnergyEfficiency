@@ -63,16 +63,17 @@ def _build_think_prompts(questions: List[str], style: str, prompts: Prompts) -> 
 def _engine_generate_batch(engine: TextEngine,
                            prompts: List[str],
                            params: GenerationParams,
-                           extra_stop: Optional[str] = None) -> Tuple[List[str], List[int], float]:
+                           extra_stop: Optional[str] = None) -> Tuple[List[str], List[int], float, List[Any]]:
     if not prompts:
-        return [], [], 0.0
+        return [], [], 0.0, []
     merged = GenerationParams(**{**params.__dict__, "stop": _combine_stops(params.stop, extra_stop)})
     t0 = time.time()
     outs = engine.generate_batch(prompts, merged)  # type: ignore[attr-defined]
     wall_ms = (time.time() - t0) * 1000.0
     texts = [(o.text if o and o.text is not None else "") for o in outs]
     comp_tokens = [int(o.completion_tokens or 0) for o in outs]
-    return texts, comp_tokens, wall_ms
+    raw_data = [o.raw if o and hasattr(o, 'raw') else None for o in outs] # DeepSpeed raw data containing FLOPs
+    return texts, comp_tokens, wall_ms, raw_data
 
 def two_pass(
     engine: TextEngine,
@@ -187,7 +188,7 @@ def self_evaluate_batched(
         prompts.self_eval.format(question=q, candidate=c, gold=g)
         for q, c, g in zip(questions, candidates, golds)
     ]
-    texts, _tok, _ms = _engine_generate_batch(
+    texts, _tok, _ms, _raw = _engine_generate_batch(
         engine,
         judge_prompts,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}),
@@ -222,7 +223,7 @@ def two_pass_batch(engine: TextEngine,
     have_think = (style in ("cot", "plan") and think_budget > 0)
     if have_think:
         think_prompts, open_tag, close_tag_ = _build_think_prompts(questions, style, prompts)
-        think_texts, think_tok_counts, think_ms = _engine_generate_batch(
+        think_texts, think_tok_counts, think_ms, think_raw_data = _engine_generate_batch(
             engine,
             think_prompts,
             GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
@@ -237,6 +238,7 @@ def two_pass_batch(engine: TextEngine,
         think_texts = ["" for _ in questions]
         think_tok_counts = [0 for _ in questions]
         think_lat_per_item = 0.0
+        think_raw_data = [None for _ in questions]
 
     # Pass 2: answer
     answer_prompts: List[str] = []
@@ -246,7 +248,7 @@ def two_pass_batch(engine: TextEngine,
         else:
             # "direct" answering when no deliberate content
             answer_prompts.append(prompts.direct.format(question=q))
-    answer_texts, answer_tok_counts, answer_ms = _engine_generate_batch(
+    answer_texts, answer_tok_counts, answer_ms, answer_raw_data = _engine_generate_batch(
         engine,
         answer_prompts,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),
@@ -263,6 +265,10 @@ def two_pass_batch(engine: TextEngine,
             "answer_tokens": int(answer_tok_counts[i]),
             "latency_ms_think": float(think_lat_per_item),
             "latency_ms_answer": float(ans_lat_per_item),
+            "raw": {
+                "think_raw": think_raw_data[i] if i < len(think_raw_data) else None,
+                "answer_raw": answer_raw_data[i] if i < len(answer_raw_data) else None,
+            }
         }
     return results
 
@@ -312,6 +318,7 @@ def self_consistency_batch(engine: TextEngine,
         # Generate with sampling portfolio for diversity
         think_texts_rep = []
         think_tok_rep = []
+        think_raw_rep = []
         think_ms = 0.0
         
         for j in range(k):
@@ -346,17 +353,20 @@ def self_consistency_batch(engine: TextEngine,
                 think_text = _between(batch_results[0][i], open_tag, close_tag_)
                 think_texts_rep.append(think_text)
                 think_tok_rep.append(batch_results[1][i])
+                think_raw_rep.append(batch_results[3][i])  # Add raw data
                 think_ms += batch_results[2] / max(n*k, 1) # Average latency per item
         # Build deliberate blocks for answer prompts
         deliberate_rep = [f"{open_tag}{t}{close_tag_}" for t in think_texts_rep]
         # Group deliberate blocks by question
         deliberate_groups = [deliberate_rep[i::n][:k] for i in range(n)]
         think_tok_groups = [think_tok_rep[i::n][:k] for i in range(n)]
+        think_raw_groups = [think_raw_rep[i::n][:k] for i in range(n)]
         think_lat_per_item = (think_ms)
     else:
         deliberate_groups = [[""]*k for _ in range(n)]
         think_texts_rep = [""] * (n * k)
         think_tok_groups = [[0]*k for _ in range(n)]
+        think_raw_groups = [[None]*k for _ in range(n)]
         think_lat_per_item = 0.0
 
     # Answer stage
@@ -368,7 +378,7 @@ def self_consistency_batch(engine: TextEngine,
             answer_prompts_rep.extend([prompts.answer.format(question=q, deliberate=d) for d in dels])
         else:
             answer_prompts_rep.extend([prompts.direct.format(question=q) for _ in range(k)])
-    answer_texts_rep, answer_tok_rep, answer_ms = _engine_generate_batch(
+    answer_texts_rep, answer_tok_rep, answer_ms, answer_raw_rep = _engine_generate_batch(
         engine,
         answer_prompts_rep,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),
@@ -381,6 +391,7 @@ def self_consistency_batch(engine: TextEngine,
     for i in range(n):
         # Slice this question's K paths
         think_toks = think_tok_groups[i]
+        think_raws = think_raw_groups[i]
         ans_toks = answer_tok_rep[i*k:(i+1)*k]
         texts = [t.strip() for t in answer_texts_rep[i*k:(i+1)*k]]
         # Use LLM to perform majority vote by counting frequencies
@@ -397,6 +408,10 @@ def self_consistency_batch(engine: TextEngine,
                 "answer_tokens": int(ans_toks[j]),
                 "latency_ms_think": float(think_lat_per_item),
                 "latency_ms_answer": float(ans_lat_per_item),
+                "raw": {
+                    "think_raw": think_raws[j] if j < len(think_raws) else None,
+                    "answer_raw": answer_raw_rep[i*k + j] if i*k + j < len(answer_raw_rep) else None,
+                }
             })
         outs.append({"chosen_answer": chosen, "paths": paths})
     return outs

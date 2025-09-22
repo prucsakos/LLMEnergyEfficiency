@@ -95,7 +95,19 @@ def load_gpqa(split: str = "train") -> Iterable[Sample]:
         incorrect2 = row["Incorrect Answer 2"]
         incorrect3 = row["Incorrect Answer 3"]
         choices = [correct, incorrect1, incorrect2, incorrect3]
-        yield Sample(id=f"gpqa-{split}-{i}", question=q, gold=normalize_freeform(correct), choices=choices)
+        
+        # Concatenate choices into the question in a clear format
+        choices_text = "\n".join([f"({chr(65+j)}) {choice}" for j, choice in enumerate(choices)])
+        formatted_question = f"{q}\n\nChoose the best answer from the following options:\n{choices_text}"
+        
+        # Find the correct answer index and format the gold answer with label
+        correct_idx = choices.index(correct)
+        correct_label = chr(65 + correct_idx)  # A, B, C, D
+        # Normalize only the answer text, preserve the choice label case
+        normalized_answer = normalize_freeform(correct)
+        formatted_gold = f"({correct_label}) {normalized_answer}"
+        
+        yield Sample(id=f"gpqa-{split}-{i}", question=formatted_question, gold=formatted_gold, choices=choices)
 
 # ---------- MMLU-Pro (MCQ) ----------
 def load_mmlu_pro(split: str = "test") -> Iterable[Sample]:

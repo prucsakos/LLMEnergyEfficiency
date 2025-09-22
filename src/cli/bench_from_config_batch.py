@@ -175,6 +175,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
             # Calculate FLOPs for this individual datapoint
             num_params = spec.card.params_B * 1e9
+            
+            # Always calculate theoretical dense and attention FLOP estimates
             datapoint_dense_flops = flops_dense(num_params=num_params, num_tokens=generated_tokens)
             
             datapoint_attn_flops = None
@@ -188,9 +190,43 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                     include_dense_anchor=True,
                 )
             
+            # TODO: This logic shall be handles by the controller functions I think
+            # Only get DeepSpeed FLOP measurements if we're using DeepSpeed engine
+            deepspeed_flops = None
+            if spec.engine == "deepspeed":
+                total_deepspeed_flops = 0
+                
+                # Handle self-consistency (multiple paths) vs two-pass (single path)
+                if "paths" in outs[j]:
+                    # Self-consistency: sum FLOPs across all K paths
+                    for path in outs[j]["paths"]:
+                        if "raw" in path and path["raw"]:
+                            think_raw = path["raw"].get("think_raw")
+                            answer_raw = path["raw"].get("answer_raw")
+                            
+                            if think_raw and think_raw.get("flops"):
+                                total_deepspeed_flops += think_raw["flops"].get("total_flops", 0)
+                            
+                            if answer_raw and answer_raw.get("flops"):
+                                total_deepspeed_flops += answer_raw["flops"].get("total_flops", 0)
+                elif "raw" in outs[j] and outs[j]["raw"]:
+                    # Two-pass: single path
+                    think_raw = outs[j]["raw"].get("think_raw")
+                    answer_raw = outs[j]["raw"].get("answer_raw")
+                    
+                    if think_raw and think_raw.get("flops"):
+                        total_deepspeed_flops += think_raw["flops"].get("total_flops", 0)
+                    
+                    if answer_raw and answer_raw.get("flops"):
+                        total_deepspeed_flops += answer_raw["flops"].get("total_flops", 0)
+                
+                if total_deepspeed_flops > 0:
+                    deepspeed_flops = {"total_flops": total_deepspeed_flops}
+            
             per_datapoint_flops.append({
                 'dense': datapoint_dense_flops,
-                'attention': datapoint_attn_flops
+                'attention': datapoint_attn_flops,
+                'deepspeed': deepspeed_flops
             })
 
             # Save up to 3 sample traces
@@ -241,6 +277,15 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         if attn_flops_list:
             avg_attn_flops = sum(attn_flops_list) / len(attn_flops_list)
     
+    # Handle DeepSpeed FLOP measurements
+    avg_deepspeed_flops = None
+    if spec.engine == "deepspeed":
+        deepspeed_flops_list = [dp['deepspeed'] for dp in per_datapoint_flops if dp['deepspeed'] is not None]
+        if deepspeed_flops_list:
+            # Calculate average FLOPs per datapoint from DeepSpeed measurements
+            total_deepspeed_flops = sum(flops.get('total_flops', 0) for flops in deepspeed_flops_list)
+            avg_deepspeed_flops = total_deepspeed_flops / len(deepspeed_flops_list)
+    
     # Average tokens for reference
     avg_gen_tokens = (gen_tok_sum / max(total, 1))
 
@@ -284,6 +329,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         # Corrected per-datapoint averaged FLOPs
         "avg_flops_dense_tflops": to_tflops(avg_dense_flops),
         "avg_flops_attention_kv_tflops": to_tflops(avg_attn_flops) if avg_attn_flops is not None else None,
+        "avg_flops_deepspeed_tflops": to_tflops(avg_deepspeed_flops) if avg_deepspeed_flops is not None else None,
 
         # Sample traces (up to 3) - handles both two-pass and self-consistency
         **_build_sample_trace_logging(sample_traces, 0),
@@ -301,10 +347,15 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     }
 
     attn_flops_str = f"{row['avg_flops_attention_kv_tflops']:.2f}" if row['avg_flops_attention_kv_tflops'] is not None else "N/A"
+    deepspeed_flops_str = f"{row['avg_flops_deepspeed_tflops']:.2f}" if row['avg_flops_deepspeed_tflops'] is not None else "N/A"
+    
+    flops_info = f"avg_dense_tFLOPs≈{row['avg_flops_dense_tflops']:.2f} | avg_attn_tFLOPs≈{attn_flops_str}"
+    if spec.engine == "deepspeed":
+        flops_info += f" | avg_deepspeed_tFLOPs≈{deepspeed_flops_str}"
+    
     print(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
           f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
-          f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | "
-          f"avg_dense_tFLOPs≈{row['avg_flops_dense_tflops']:.2f} | avg_attn_tFLOPs≈{attn_flops_str}")
+          f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
 
     if wb:
         wb.log_row(row)

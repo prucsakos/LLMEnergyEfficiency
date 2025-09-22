@@ -35,12 +35,12 @@ def setup_plotting_style():
     plt.rcParams['savefig.pad_inches'] = 0.1
     
     # Set smaller font sizes to avoid covering the plot
-    plt.rcParams['font.size'] = 8
-    plt.rcParams['axes.titlesize'] = 10
-    plt.rcParams['axes.labelsize'] = 9
-    plt.rcParams['xtick.labelsize'] = 7
-    plt.rcParams['ytick.labelsize'] = 7
-    plt.rcParams['legend.fontsize'] = 7
+    plt.rcParams['font.size'] = 7
+    plt.rcParams['axes.titlesize'] = 9
+    plt.rcParams['axes.labelsize'] = 8
+    plt.rcParams['xtick.labelsize'] = 6
+    plt.rcParams['ytick.labelsize'] = 6
+    plt.rcParams['legend.fontsize'] = 8
 
 def query_wandb_data(project_name: str) -> pd.DataFrame:
     """
@@ -232,7 +232,7 @@ def plot_accuracy_vs_metric(df: pd.DataFrame, metric: str, metric_label: str,
             color = family_colors[family]
             shape = name_shapes[name]
             
-            ax.scatter(x_val, y_val, c=[color], marker=shape, s=80, 
+            ax.scatter(x_val, y_val, c=[color], marker=shape, s=60, 
                       alpha=0.7, edgecolors='black', linewidth=0.5,
                       label=f"{family} - {name}")
         
@@ -265,7 +265,7 @@ def plot_accuracy_vs_metric(df: pd.DataFrame, metric: str, metric_label: str,
                     # Position annotation slightly offset from the point
                     ax.annotate(model_name, (x_val, y_val), 
                               xytext=(5, 5), textcoords='offset points',
-                              fontsize=6, alpha=0.8,
+                              fontsize=5, alpha=0.8,
                               bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.7, edgecolor='none'))
         
         # Customize plot
@@ -306,7 +306,8 @@ def plot_accuracy_vs_metric(df: pd.DataFrame, metric: str, metric_label: str,
                 seen.add(label)
         
         fig.legend(unique_handles, unique_labels, 
-                  bbox_to_anchor=(1.05, 1), loc='upper left')
+                  bbox_to_anchor=(1.05, 1), loc='upper left',
+                  fontsize=8, frameon=True, fancybox=True, shadow=True)
     
     plt.tight_layout()
     

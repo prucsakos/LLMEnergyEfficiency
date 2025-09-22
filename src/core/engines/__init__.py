@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .vllm_local import VLLMLocalEngine
 from .transformers_local import TransformersLocalEngine
+from .deepspeed_local import DeepSpeedLocalEngine
 
 def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_utilization: float | None = None, enforce_eager: bool | None = None):
     name = (engine_name or "vllm").lower()
@@ -16,6 +17,15 @@ def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_uti
     if name in ("hf", "transformers"):
         print("Detected Transformers")
         return TransformersLocalEngine(model_id=model_id, dtype=dtype)
+    if name == "deepspeed":
+        print("Detected DeepSpeed")
+        return DeepSpeedLocalEngine(
+            model_id=model_id,
+            dtype=dtype,
+            gpu_memory_utilization=float(gpu_memory_utilization or 0.9),
+            enforce_eager=bool(enforce_eager if enforce_eager is not None else True),
+            enable_flop_profiling=True,
+        )
     raise ValueError(f"Unknown engine: {engine_name}")
 
 

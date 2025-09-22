@@ -1,4 +1,4 @@
-config_name: "bench_tester_datasets"
+config_name: "deepspeed_test"
 
 prompts:
   cot_think: |
@@ -51,45 +51,16 @@ prompts:
     Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
     <chosen>
 
-datasets: [aime_2025, hmmt_feb_2025]
+datasets: [aime_2025]
 
 models:
-  - name: gemma-3n-E2B-it
-    hf_repo: google/gemma-3n-E2B-it
-    batch_size: 128
-    card: { params_B: 2, layers: 20, hidden_dim: 2560, heads: 20, arch: decoder-only }
+  - name: Llama2-7b-chat-deepspeed
+    hf_repo: meta-llama/Llama-2-7b-chat-hf
+    engine: deepspeed
+    batch_size: 16
+    card: { params_B: 7, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only }
     think_budgets: [256]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.98, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: pip install timm
-
-  - name: gemma-3n-E4B-it
-    hf_repo: google/gemma-3n-E4B-it
-    batch_size: 128
-    card: { params_B: 4, layers: 24, hidden_dim: 3072, heads: 24, arch: decoder-only }
-    think_budgets: [256]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.98, enforce_eager: true }
-    generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: pip install timm
-    
-  - name: Llama-4-Scout-17B-16E-Instruct
-    hf_repo: meta-llama/Llama-4-Scout-17B-16E-Instruct
-    batch_size: 64
-    card: { params_B: 17, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only }
-    think_budgets: [256]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.98, enforce_eager: true }
-    generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: Memory
-
-  - name: Llama-4-Maverick-17B-128E-Instruct
-    hf_repo: meta-llama/Llama-4-Maverick-17B-128E-Instruct
-    batch_size: 64
-    card: { params_B: 17, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only }
-    think_budgets: [256]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.98, enforce_eager: true }
-    generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: Memory
+    reasoning: { style: cot, self_consistency_k: 3, self_eval: true }
+    notes: DeepSpeed engine with FLOP measurement
