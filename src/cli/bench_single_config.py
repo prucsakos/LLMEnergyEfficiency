@@ -9,7 +9,7 @@ from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Promp
 from ..core.interfaces import GenerationParams
 from ..core.engines import create_engine
 from ..reasoning.aggregators import majority_vote
-from ..reasoning.controller import self_evaluate, self_evaluate_batched, self_consistency_batch, two_pass_batch  # use batched judge
+from ..reasoning.controller import self_evaluate_batched, self_consistency_batch, two_pass_batch  # use batched judge
 from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample, iter_dataset
 from ..metrics.flop_estimation import flops_dense, flops_attention_kv, to_tflops
 from ..logs.wandb_logger import WandbRunLogger

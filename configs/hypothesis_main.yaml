@@ -7,19 +7,19 @@ config_name: "main_>40B_models_small_benchmarks"
 prompts:
   cot_think: |
     You are a worldwide professional problem solver with no mistakes. Analyze this problem systematically. Work through each step methodically until you reach a confident solution.
-    Document your analytical process ONLY inside <scratchpad>...</scratchpad>.
+    Document your analytical process ONLY inside <think>...</think>.
     Do not write anything outside the allowed tags.
     <question>
     {question}
     </question>
-    <scratchpad>
+    <think>
   plan_think: |
-    Devise a brief high-level plan ONLY inside <plan>...</plan>, then solve with a scratchpad.
+    Devise a brief high-level plan ONLY inside <think>...</think>.
     Do not write anything outside the allowed tags.
     <question>
     {question}
     </question>
-    <plan>
+    <think>
   answer: |
     Based on your analysis above, provide ONLY the final answer inside <final>...</final>.
     Be precise and compact. Do not include any explanation or reasoning.
@@ -28,12 +28,12 @@ prompts:
     </question>
     {deliberate}
     <final>
-  self_eval: |
+  self_eval: |-
     You are a strict judge. Reply ONLY YES if the candidate answer equals the gold answer, else NO.
     <question>{question}</question>
     <gold>{gold}</gold>
     <candidate>{candidate}</candidate>
-    Judgement:
+    <judgement>
   direct: |
     Answer the question. Output ONLY inside <final>...</final>.
     Do not include any reasoning or explanation anywhere.
@@ -162,31 +162,6 @@ models:
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Fields taken from Meta-Llama-3.1-8B mirrors (identical arch dims)." # :contentReference[oaicite:10]{index=10}
 
-  # --- Llama 4 (public config mirrors; multimodal MoE) ---
-  - name: Llama-4-Scout-17B-16E-Instruct
-    hf_repo: meta-llama/Llama-4-Scout-17B-16E-Instruct
-    engine: deepspeed
-    model_family: llama
-    batch_size: 8
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
-    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
-
-  - name: Llama-4-Maverick-17B-128E-Instruct
-    hf_repo: meta-llama/Llama-4-Maverick-17B-128E-Instruct
-    engine: deepspeed
-    model_family: llama
-    batch_size: 4
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts) }
-    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: "Dims via Unsloth config; 128E per model naming; multimodal text+vision." # :contentReference[oaicite:13]{index=13}
-
   # --- Gemma 3 (gated; values from official or mirrored configs) ---
   - name: gemma-3-1b-it
     hf_repo: google/gemma-3-1b-it
@@ -300,6 +275,31 @@ models:
 
 # Large models (>40B parameters) - excluded from calculations for now
 _models_excluded:
+
+    # --- Llama 4 (public config mirrors; multimodal MoE) ---
+  - name: Llama-4-Scout-17B-16E-Instruct
+    hf_repo: meta-llama/Llama-4-Scout-17B-16E-Instruct
+    engine: deepspeed
+    model_family: llama
+    batch_size: 8
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
+
+  - name: Llama-4-Maverick-17B-128E-Instruct
+    hf_repo: meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    engine: deepspeed
+    model_family: llama
+    batch_size: 4
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts) }
+    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes: "Dims via Unsloth config; 128E per model naming; multimodal text+vision." # :contentReference[oaicite:13]{index=13}
 
   # --- Qwen3 235B (A22B) ---
   - name: Qwen3-235B-A22B-Thinking-2507

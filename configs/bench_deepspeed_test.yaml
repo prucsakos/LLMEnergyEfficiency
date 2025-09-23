@@ -3,19 +3,19 @@ config_name: "deepspeed_test"
 prompts:
   cot_think: |
     You are a worldwide professional problem solver with no mistakes. Analyze this problem systematically. Work through each step methodically until you reach a confident solution.
-    Document your analytical process ONLY inside <scratchpad>...</scratchpad>.
+    Document your analytical process ONLY inside <think>...</think>.
     Do not write anything outside the allowed tags.
     <question>
     {question}
     </question>
-    <scratchpad>
+    <think>
   plan_think: |
-    Devise a brief high-level plan ONLY inside <plan>...</plan>, then solve with a scratchpad.
+    Devise a brief high-level plan ONLY inside <think>...</think>.
     Do not write anything outside the allowed tags.
     <question>
     {question}
     </question>
-    <plan>
+    <think>
   answer: |
     Based on your analysis above, provide ONLY the final answer inside <final>...</final>.
     Be precise and compact. Do not include any explanation or reasoning.
@@ -24,12 +24,12 @@ prompts:
     </question>
     {deliberate}
     <final>
-  self_eval: |
+  self_eval: |-
     You are a strict judge. Reply ONLY YES if the candidate answer equals the gold answer, else NO.
     <question>{question}</question>
     <gold>{gold}</gold>
     <candidate>{candidate}</candidate>
-    Judgement:
+    <judgement>
   direct: |
     Answer the question. Output ONLY inside <final>...</final>.
     Do not include any reasoning or explanation anywhere.

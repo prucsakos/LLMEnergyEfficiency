@@ -37,12 +37,12 @@ class ReasoningDefaults:
 class Prompts:
     # Default prompt templates; can be overridden per model in YAML
     cot_think: str = (
-        "Solve the problem. Write reasoning ONLY inside <scratchpad>...</scratchpad>.\n"
-        "<question>\n{question}\n</question>\n\n<scratchpad>"
+        "Solve the problem. Write reasoning ONLY inside <think>...</think>.\n"
+        "<question>\n{question}\n</question>\n\n<think>"
     )
     plan_think: str = (
-        "Devise a brief plan. Write it ONLY inside <plan>...</plan>.\n"
-        "<question>\n{question}\n</question>\n\n<plan>"
+        "Devise a brief plan. Write it ONLY inside <think>...</think>.\n"
+        "<question>\n{question}\n</question>\n\n<think>"
     )
     answer: str = (
         "Using the information below, produce ONLY the final answer inside <final>...</final>.\n"
@@ -55,7 +55,7 @@ class Prompts:
         "<question>\n{question}\n</question>\n"
         "<gold>\n{gold}\n</gold>\n"
         "<candidate>\n{candidate}\n</candidate>\n"
-        "Judgement:"
+        "<judgement>"
     )
     direct: str = (
         "Answer the question. Output ONLY the final answer inside <final>...</final>.\n"
@@ -69,6 +69,10 @@ class Prompts:
         "Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.\n"
         "<chosen>"
     )
+    
+    def format_prompts(self):
+        """Format prompt templates - no longer needed since we use actual tags directly."""
+        return self
 
 @dataclass
 class ModelSpec:
@@ -104,6 +108,7 @@ def _dict_to_dataclass(cls, d):
 def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
     data = yaml.safe_load(open(path, "r", encoding="utf-8"))
     prompts = _dict_to_dataclass(Prompts, data.get("prompts", {}))
+    prompts = prompts.format_prompts()  # Format prompts with tag values
     datasets = list(data.get("datasets", []))
     config_name = data.get("config_name", "default")  # Read global config name
     
@@ -165,6 +170,9 @@ def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
             # merge with per-model overrides
             for k, v in m.prompts_override.items():
                 setattr(prompts, k, v)
+            
+            # Format prompts with tag values
+            prompts = prompts.format_prompts()
             
             # Generate prompt set name
             prompt_set_name = prompt_set.get("name", f"prompt_set_{prompt_set_idx}")
