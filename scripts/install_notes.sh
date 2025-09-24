@@ -7,3 +7,6 @@ uv pip uninstall pynvml
 uv pip install nvidia-ml-py
 uv pip install timm
 uv pip install deepspeed
+uv pip install bitsandbytes
+uv pip install xformers
+uv pip install scikit-learn
