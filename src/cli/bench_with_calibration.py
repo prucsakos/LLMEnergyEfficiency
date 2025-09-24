@@ -1,6 +1,6 @@
 from __future__ import annotations
 import traceback
-import argparse, math, time, json, os
+import argparse, math, time, json, os, copy
 from typing import Iterable, List, Optional, Tuple, Callable, Dict, Any
 from dataclasses import dataclass
 import itertools
@@ -218,37 +218,83 @@ class FLOPCalibrationRunner:
         self.combinations = list(itertools.product(self.prefill_ranges, self.generation_ranges))
         print(f"Calibration will test {len(self.combinations)} combinations")
     
-    def _generate_test_prompts(self, prefill_tokens: int, generation_tokens: int) -> Tuple[str, str]:
+    def _generate_test_prompts(self, prefill_tokens: int, generation_tokens: int, tokenizer=None) -> str:
         """
-        Generate test prompts with approximately the target token counts.
+        Generate test prompts with exact target token counts using tokenizer.
         
         Args:
             prefill_tokens: Target prefill token count
-            generation_tokens: Target generation token count
+            generation_tokens: Target generation token count (unused, kept for compatibility)
+            tokenizer: HuggingFace tokenizer for exact token counting
             
         Returns:
-            Tuple of (prefill_prompt, expected_generation)
+            The generated prompt string
         """
-        # Create a prefill prompt that's approximately the right length
+        if tokenizer is not None:
+            # Use tokenizer for exact token counting
+            return self._generate_prompt_with_exact_tokens(prefill_tokens, tokenizer)
+        else:
+            # Fallback to estimation method
+            return self._generate_prompt_with_estimation(prefill_tokens)
+    
+    def _generate_prompt_with_exact_tokens(self, target_tokens: int, tokenizer) -> str:
+        """Generate a prompt with exactly the target number of tokens using tokenizer."""
+        base_prompt = "Solve this problem step by step. Show your reasoning clearly and provide a final answer."
+        
+        # Start with base prompt
+        current_prompt = base_prompt
+        current_tokens = len(tokenizer.encode(current_prompt))
+        
+        # If we need more tokens, add random tokens one by one
+        if current_tokens < target_tokens:
+            # Get vocabulary for random token selection
+            vocab = list(tokenizer.get_vocab().keys())
+            
+            # Add random tokens until we reach target
+            while current_tokens < target_tokens:
+                # Pick a random token from vocabulary
+                random_token = np.random.choice(vocab)
+                current_prompt += " " + random_token
+                current_tokens = len(tokenizer.encode(current_prompt))
+            
+            # If we went over, remove tokens one by one
+            while current_tokens > target_tokens:
+                # Remove the last word
+                words = current_prompt.split()
+                if len(words) > 1:
+                    current_prompt = " ".join(words[:-1])
+                    current_tokens = len(tokenizer.encode(current_prompt))
+                else:
+                    break
+        
+        return current_prompt
+    
+    def _generate_prompt_with_estimation(self, target_tokens: int) -> str:
+        """Fallback method using word estimation with random tokens."""
         base_prompt = "Solve this problem step by step. Show your reasoning clearly and provide a final answer."
         
         # Scale the prompt to approximate the target token count
         # Rough estimate: 1 token ≈ 0.75 words
-        target_words = int(prefill_tokens * 0.75)
+        target_words = int(target_tokens * 0.75)
         current_words = len(base_prompt.split())
         
         if target_words > current_words:
-            # Add more content to reach target length
-            additional_content = " " + " ".join(["This is additional content to reach the target token count."] * 
-                                               ((target_words - current_words) // 8 + 1))
-            prefill_prompt = base_prompt + additional_content
+            # Add random words to reach target length
+            words_needed = target_words - current_words
+            random_words = []
+            
+            # Common words for random selection
+            common_words = ["the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "from", "up", "about", "into", "through", "during", "before", "after", "above", "below", "between", "among", "within", "without", "against", "toward", "upon", "across", "behind", "beyond", "under", "over", "around", "near", "far", "here", "there", "where", "when", "why", "how", "what", "which", "who", "whom", "whose", "this", "that", "these", "those", "some", "any", "many", "much", "few", "little", "more", "most", "less", "least", "all", "both", "each", "every", "either", "neither", "one", "two", "three", "first", "second", "last", "next", "other", "another", "such", "same", "different", "new", "old", "good", "bad", "big", "small", "long", "short", "high", "low", "fast", "slow", "hot", "cold", "dry", "wet", "clean", "dirty", "full", "empty", "open", "closed", "right", "wrong", "true", "false", "yes", "no", "always", "never", "sometimes", "often", "rarely", "usually", "probably", "maybe", "certainly", "definitely", "absolutely", "completely", "totally", "entirely", "partly", "mostly", "mainly", "especially", "particularly", "specifically", "generally", "basically", "essentially", "fundamentally", "primarily", "secondarily", "additionally", "furthermore", "moreover", "however", "therefore", "consequently", "thus", "hence", "accordingly", "meanwhile", "simultaneously", "previously", "subsequently", "initially", "finally", "ultimately", "eventually", "immediately", "instantly", "quickly", "slowly", "gradually", "suddenly", "carefully", "carelessly", "easily", "difficultly", "simply", "complexly", "clearly", "obviously", "apparently", "evidently", "supposedly", "allegedly", "reportedly", "presumably", "hopefully", "unfortunately", "fortunately", "luckily", "unluckily", "surprisingly", "unexpectedly", "predictably", "inevitably", "necessarily", "sufficiently", "adequately", "properly", "correctly", "accurately", "precisely", "exactly", "approximately", "roughly", "nearly", "almost", "quite", "very", "extremely", "highly", "greatly", "significantly", "considerably", "substantially", "dramatically", "slightly", "somewhat", "rather", "fairly", "pretty", "quite", "really", "truly", "actually", "literally", "figuratively", "metaphorically", "symbolically", "representatively", "typically", "normally", "usually", "commonly", "frequently", "regularly", "occasionally", "rarely", "seldom", "hardly", "barely", "scarcely", "almost", "nearly", "practically", "virtually", "essentially", "basically", "fundamentally", "primarily", "mainly", "mostly", "largely", "partly", "partially", "completely", "totally", "entirely", "fully", "wholly", "absolutely", "definitely", "certainly", "surely", "undoubtedly", "indeed", "truly", "really", "actually", "genuinely", "honestly", "sincerely", "seriously", "literally", "figuratively", "metaphorically", "symbolically", "representatively", "typically", "normally", "usually", "commonly", "frequently", "regularly", "occasionally", "rarely", "seldom", "hardly", "barely", "scarcely", "almost", "nearly", "practically", "virtually", "essentially", "basically", "fundamentally", "primarily", "mainly", "mostly", "largely", "partly", "partially", "completely", "totally", "entirely", "fully", "wholly", "absolutely", "definitely", "certainly", "surely", "undoubtedly", "indeed", "truly", "really", "actually", "genuinely", "honestly", "sincerely", "seriously"]
+            
+            for _ in range(words_needed):
+                random_word = np.random.choice(common_words)
+                random_words.append(random_word)
+            
+            prefill_prompt = base_prompt + " " + " ".join(random_words)
         else:
             prefill_prompt = base_prompt
         
-        # For generation, we'll use a simple instruction that should generate roughly the target length
-        generation_instruction = f"Please provide a detailed explanation with approximately {generation_tokens} tokens."
-        
-        return prefill_prompt, generation_instruction
+        return prefill_prompt
     
     def run_calibration(self, 
                        model_spec: RunSpec,
@@ -268,15 +314,25 @@ class FLOPCalibrationRunner:
         print(f"Engine: {model_spec.engine}")
         
         # Create DeepSpeed engine for calibration
-        calibration_spec = model_spec._replace(engine="deepspeed")
+        calibration_spec = copy.deepcopy(model_spec)
+        calibration_spec.engine = "deepspeed"
         engine = create_engine(
             calibration_spec.engine,
             model_id=calibration_spec.hf_repo,
             dtype=calibration_spec.backend.dtype,
             gpu_memory_utilization=calibration_spec.backend.gpu_memory_utilization,
             enforce_eager=calibration_spec.backend.enforce_eager,
-            enable_flop_profiling=True,  # Enable FLOP profiling for calibration
         )
+        
+        # Try to load tokenizer for exact token counting
+        tokenizer = None
+        try:
+            from transformers import AutoTokenizer
+            tokenizer = AutoTokenizer.from_pretrained(calibration_spec.hf_repo)
+            print(f"✓ Loaded tokenizer for exact token counting")
+        except Exception as e:
+            print(f"⚠ Could not load tokenizer ({e}), falling back to estimation")
+            tokenizer = None
         
         calibration_points = []
         
@@ -285,12 +341,18 @@ class FLOPCalibrationRunner:
         
         try:
             for prefill_tokens, generation_tokens in self.combinations:
-                prefill_prompt, generation_instruction = self._generate_test_prompts(
-                    prefill_tokens, generation_tokens
+                full_prompt = self._generate_test_prompts(
+                    prefill_tokens, generation_tokens, tokenizer
                 )
                 
-                # Combine into full prompt
-                full_prompt = f"{prefill_prompt}\n\n{generation_instruction}"
+                # Log actual vs target token counts if using tokenizer
+                if tokenizer is not None:
+                    actual_tokens = len(tokenizer.encode(full_prompt))
+                    pbar.set_postfix({
+                        'target_prefill': prefill_tokens,
+                        'actual_tokens': actual_tokens,
+                        'target_gen': generation_tokens
+                    })
                 
                 # Generation parameters
                 gen_params = GenerationParams(
@@ -778,10 +840,10 @@ def main():
     
     # Calibration options
     ap.add_argument("--calibration_prefill_ranges", nargs="+", type=int, 
-                   default=[16, 32, 64, 128, 256, 512, 1024],
+                   default=[1, 256, 1024],
                    help="Prefill token ranges for calibration")
     ap.add_argument("--calibration_generation_ranges", nargs="+", type=int,
-                   default=[16, 32, 64, 128, 256, 512],
+                   default=[64, 256, 1024],
                    help="Generation token ranges for calibration")
     
     args = ap.parse_args()
