@@ -9,6 +9,7 @@ showing accuracy vs runtime and accuracy vs token generation with pareto frontie
 import argparse
 import os
 import sys
+import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 import warnings
@@ -319,6 +320,50 @@ def plot_accuracy_vs_metric(df: pd.DataFrame, metric: str, metric_label: str,
     
     plt.close()
 
+def export_datapoints_to_json(df: pd.DataFrame, output_dir: Path) -> None:
+    """
+    Export all datapoints used for plotting to JSON format.
+    
+    Args:
+        df: DataFrame with run data
+        output_dir: Directory to save JSON file
+    """
+    print("Exporting datapoints to JSON...")
+    
+    # Filter out runs with missing essential data (same as plotting)
+    plot_df = df.dropna(subset=['self_eval_acc', 'latency_ms', 'avg_gen_tokens'])
+    
+    if len(plot_df) == 0:
+        print("Warning: No complete data available for JSON export")
+        return
+    
+    # Convert DataFrame to list of dictionaries with only the required fields
+    datapoints = []
+    for _, row in plot_df.iterrows():
+        datapoint = {
+            "model_name": row['model_name'],
+            "model_family": row['model_family'],
+            "dataset": row['dataset'],
+            "runtime_ms": float(row['latency_ms']),
+            "avg_gen_tokens": float(row['avg_gen_tokens']),
+            "self_eval_accuracy": float(row['self_eval_acc'])
+        }
+        datapoints.append(datapoint)
+    
+    # Create export structure
+    export_data = {
+        "export_timestamp": pd.Timestamp.now().isoformat(),
+        "total_datapoints": len(datapoints),
+        "datapoints": datapoints
+    }
+    
+    # Save to JSON file
+    json_filepath = output_dir / "plot_datapoints.json"
+    with open(json_filepath, 'w', encoding='utf-8') as f:
+        json.dump(export_data, f, indent=2, ensure_ascii=False)
+    
+    print(f"✅ Exported {len(datapoints)} datapoints to: {json_filepath}")
+
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(description='Generate plots from wandb data')
@@ -327,6 +372,8 @@ def main():
                        help='Output directory for plots (default: plots)')
     parser.add_argument('--no-pareto', action='store_true',
                        help='Disable pareto frontier overlay')
+    parser.add_argument('--no-export', action='store_true',
+                       help='Disable JSON datapoints export')
     
     args = parser.parse_args()
     
@@ -354,6 +401,10 @@ def main():
         print(f"Runs with self_eval_acc: {df['self_eval_acc'].notna().sum()}")
         print(f"Runs with avg_gen_tokens: {df['avg_gen_tokens'].notna().sum()}")
         
+        # Export datapoints to JSON (unless disabled)
+        if not args.no_export:
+            export_datapoints_to_json(df, output_dir)
+        
         # Create plots
         print(f"\nGenerating plots...")
         
@@ -365,7 +416,7 @@ def main():
         plot_accuracy_vs_metric(df, 'avg_gen_tokens', 'Average Generated Tokens',
                                output_dir, pareto=not args.no_pareto)
         
-        print(f"\n✅ All plots saved to: {output_dir}")
+        print(f"\n✅ All plots and datapoints saved to: {output_dir}")
         
     except Exception as e:
         print(f"❌ Error: {e}")
