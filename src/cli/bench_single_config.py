@@ -70,6 +70,15 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         dtype=spec.backend.dtype,
         gpu_memory_utilization=spec.backend.gpu_memory_utilization,
         enforce_eager=spec.backend.enforce_eager,
+        # Pass quantization parameters
+        quantization=spec.backend.quantization,
+        quantization_param_path=spec.backend.quantization_param_path,
+        # Pass CPU offloading parameters
+        cpu_offload_gb=spec.backend.cpu_offload_gb,
+        swap_space=spec.backend.swap_space,
+        # Pass additional memory optimization parameters
+        max_model_len=spec.backend.max_model_len,
+        block_size=spec.backend.block_size,
     )
 
     gen = GenerationParams(

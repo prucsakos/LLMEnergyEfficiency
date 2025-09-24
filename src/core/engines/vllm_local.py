@@ -14,16 +14,46 @@ class VLLMLocalEngine(BaseEngine):
                  dtype: str = "auto",
                  gpu_memory_utilization: float = 0.90,
                  enforce_eager: bool = True,
-                 tensor_parallel_size: int = 1):
+                 tensor_parallel_size: int = 1,
+                 # Quantization parameters
+                 quantization: Optional[str] = None,
+                 quantization_param_path: Optional[str] = None,
+                 # CPU offloading parameters
+                 cpu_offload_gb: Optional[float] = None,
+                 swap_space: Optional[int] = None,
+                 # Additional memory optimization
+                 max_model_len: Optional[int] = None,
+                 block_size: Optional[int] = None):
+        # Build LLM initialization parameters
+        llm_kwargs = {
+            "model": model_id,
+            "dtype": dtype,
+            "tensor_parallel_size": tensor_parallel_size,
+            "gpu_memory_utilization": gpu_memory_utilization,
+            "enforce_eager": enforce_eager,
+            "trust_remote_code": True,
+        }
+        
+        # Add quantization parameters if specified
+        if quantization is not None:
+            llm_kwargs["quantization"] = quantization
+            if quantization_param_path is not None:
+                llm_kwargs["quantization_param_path"] = quantization_param_path
+        
+        # Add CPU offloading parameters if specified
+        if cpu_offload_gb is not None:
+            llm_kwargs["cpu_offload_gb"] = cpu_offload_gb
+        if swap_space is not None:
+            llm_kwargs["swap_space"] = swap_space
+            
+        # Add additional memory optimization parameters
+        if max_model_len is not None:
+            llm_kwargs["max_model_len"] = max_model_len
+        if block_size is not None:
+            llm_kwargs["block_size"] = block_size
+        
         # Construct once per run
-        self.llm = LLM(
-            model=model_id,
-            dtype=dtype,
-            tensor_parallel_size=tensor_parallel_size,
-            gpu_memory_utilization=gpu_memory_utilization,
-            enforce_eager=enforce_eager,
-            trust_remote_code=True,
-        )
+        self.llm = LLM(**llm_kwargs)
 
     def generate(self, prompt: str, params: GenerationParams) -> GenerationResult:
         return self.generate_batch([prompt], params)[0]

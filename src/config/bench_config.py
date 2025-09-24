@@ -16,6 +16,18 @@ class BackendDefaults:
     dtype: str = "auto"
     gpu_memory_utilization: float = 0.90
     enforce_eager: bool = True  # safer with some torch stacks; can disable later
+    
+    # Quantization settings
+    quantization: Optional[str] = None  # "awq", "gptq", "squeezellm", "fp8", "marlin", "exl2", "gptq_marlin", "aqlm", "gguf"
+    quantization_param_path: Optional[str] = None  # Path to quantization parameters
+    
+    # CPU offloading settings
+    cpu_offload_gb: Optional[float] = None  # Amount of model to offload to CPU in GB
+    swap_space: Optional[int] = None  # Swap space in GB for CPU offloading
+    
+    # Additional memory optimization
+    max_model_len: Optional[int] = None  # Maximum sequence length
+    block_size: Optional[int] = None  # Block size for PagedAttention
 
 @dataclass
 class GenDefaults:
