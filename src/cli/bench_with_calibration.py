@@ -240,38 +240,43 @@ class FLOPCalibrationRunner:
     
     def _generate_prompt_with_exact_tokens(self, target_tokens: int, tokenizer) -> str:
         """Generate a prompt with exactly the target number of random tokens using tokenizer."""
-        # Get vocabulary for random token selection
-        vocab = list(tokenizer.get_vocab().keys())
+        # Method: Work directly with token IDs to ensure exact token count
+        vocab_size = len(tokenizer.get_vocab())
         
-        # Start with empty prompt
-        current_prompt = ""
-        current_tokens = 0
+        # Get special token IDs to avoid them
+        special_token_ids = set()
+        if tokenizer.bos_token_id is not None:
+            special_token_ids.add(tokenizer.bos_token_id)
+        if tokenizer.eos_token_id is not None:
+            special_token_ids.add(tokenizer.eos_token_id)
+        if tokenizer.pad_token_id is not None:
+            special_token_ids.add(tokenizer.pad_token_id)
+        if tokenizer.unk_token_id is not None:
+            special_token_ids.add(tokenizer.unk_token_id)
         
-        # Add random tokens until we reach target
-        while current_tokens < target_tokens:
-            # Pick a random token from vocabulary
-            random_token = np.random.choice(vocab)
-            
-            # Add token with space if not first token
-            if current_prompt:
-                current_prompt += " " + random_token
-            else:
-                current_prompt = random_token
-            
-            current_tokens = len(tokenizer.encode(current_prompt))
-            
-            # If we went over, remove the last token and try again
-            if current_tokens > target_tokens:
-                # Remove the last token
-                words = current_prompt.split()
-                if len(words) > 1:
-                    current_prompt = " ".join(words[:-1])
-                    current_tokens = len(tokenizer.encode(current_prompt))
-                else:
-                    # If we can't remove more, we're at minimum
-                    break
+        # Create a list of valid token IDs (excluding special tokens)
+        valid_token_ids = [i for i in range(vocab_size) if i not in special_token_ids]
         
-        return current_prompt
+        # Select random token IDs
+        selected_token_ids = np.random.choice(valid_token_ids, size=target_tokens, replace=True)
+        
+        # Decode the token IDs
+        prompt = tokenizer.decode(selected_token_ids, skip_special_tokens=True)
+        
+        # Verify the token count
+        actual_tokens = len(tokenizer.encode(prompt, add_special_tokens=False))
+        
+        # If it doesn't match, keep trying until we get exact count
+        max_attempts = 3
+        attempt = 0
+        
+        while actual_tokens != target_tokens and attempt < max_attempts:
+            selected_token_ids = np.random.choice(valid_token_ids, size=target_tokens, replace=True)
+            prompt = tokenizer.decode(selected_token_ids, skip_special_tokens=True)
+            actual_tokens = len(tokenizer.encode(prompt, add_special_tokens=False))
+            attempt += 1
+        
+        return prompt
     
     def _generate_prompt_with_estimation(self, target_tokens: int) -> str:
         """Fallback method using word estimation with random tokens."""
@@ -348,6 +353,8 @@ class FLOPCalibrationRunner:
                 # Log actual vs target token counts if using tokenizer
                 if tokenizer is not None:
                     actual_tokens = len(tokenizer.encode(full_prompt))
+                    # Always use actual token count for dataset accuracy
+                    prefill_tokens = actual_tokens
                     pbar.set_postfix({
                         'target_prefill': prefill_tokens,
                         'actual_tokens': actual_tokens,
