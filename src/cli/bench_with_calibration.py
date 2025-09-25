@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import itertools
 from tqdm.auto import tqdm
 import numpy as np
+import torch
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
@@ -238,63 +239,57 @@ class FLOPCalibrationRunner:
             return self._generate_prompt_with_estimation(prefill_tokens)
     
     def _generate_prompt_with_exact_tokens(self, target_tokens: int, tokenizer) -> str:
-        """Generate a prompt with exactly the target number of tokens using tokenizer."""
-        base_prompt = "Solve this problem step by step. Show your reasoning clearly and provide a final answer."
+        """Generate a prompt with exactly the target number of random tokens using tokenizer."""
+        # Get vocabulary for random token selection
+        vocab = list(tokenizer.get_vocab().keys())
         
-        # Start with base prompt
-        current_prompt = base_prompt
-        current_tokens = len(tokenizer.encode(current_prompt))
+        # Start with empty prompt
+        current_prompt = ""
+        current_tokens = 0
         
-        # If we need more tokens, add random tokens one by one
-        if current_tokens < target_tokens:
-            # Get vocabulary for random token selection
-            vocab = list(tokenizer.get_vocab().keys())
+        # Add random tokens until we reach target
+        while current_tokens < target_tokens:
+            # Pick a random token from vocabulary
+            random_token = np.random.choice(vocab)
             
-            # Add random tokens until we reach target
-            while current_tokens < target_tokens:
-                # Pick a random token from vocabulary
-                random_token = np.random.choice(vocab)
+            # Add token with space if not first token
+            if current_prompt:
                 current_prompt += " " + random_token
-                current_tokens = len(tokenizer.encode(current_prompt))
+            else:
+                current_prompt = random_token
             
-            # If we went over, remove tokens one by one
-            while current_tokens > target_tokens:
-                # Remove the last word
+            current_tokens = len(tokenizer.encode(current_prompt))
+            
+            # If we went over, remove the last token and try again
+            if current_tokens > target_tokens:
+                # Remove the last token
                 words = current_prompt.split()
                 if len(words) > 1:
                     current_prompt = " ".join(words[:-1])
                     current_tokens = len(tokenizer.encode(current_prompt))
                 else:
+                    # If we can't remove more, we're at minimum
                     break
         
         return current_prompt
     
     def _generate_prompt_with_estimation(self, target_tokens: int) -> str:
         """Fallback method using word estimation with random tokens."""
-        base_prompt = "Solve this problem step by step. Show your reasoning clearly and provide a final answer."
-        
         # Scale the prompt to approximate the target token count
         # Rough estimate: 1 token ≈ 0.75 words
         target_words = int(target_tokens * 0.75)
-        current_words = len(base_prompt.split())
         
-        if target_words > current_words:
-            # Add random words to reach target length
-            words_needed = target_words - current_words
-            random_words = []
-            
-            # Common words for random selection
-            common_words = ["the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "from", "up", "about", "into", "through", "during", "before", "after", "above", "below", "between", "among", "within", "without", "against", "toward", "upon", "across", "behind", "beyond", "under", "over", "around", "near", "far", "here", "there", "where", "when", "why", "how", "what", "which", "who", "whom", "whose", "this", "that", "these", "those", "some", "any", "many", "much", "few", "little", "more", "most", "less", "least", "all", "both", "each", "every", "either", "neither", "one", "two", "three", "first", "second", "last", "next", "other", "another", "such", "same", "different", "new", "old", "good", "bad", "big", "small", "long", "short", "high", "low", "fast", "slow", "hot", "cold", "dry", "wet", "clean", "dirty", "full", "empty", "open", "closed", "right", "wrong", "true", "false", "yes", "no", "always", "never", "sometimes", "often", "rarely", "usually", "probably", "maybe", "certainly", "definitely", "absolutely", "completely", "totally", "entirely", "partly", "mostly", "mainly", "especially", "particularly", "specifically", "generally", "basically", "essentially", "fundamentally", "primarily", "secondarily", "additionally", "furthermore", "moreover", "however", "therefore", "consequently", "thus", "hence", "accordingly", "meanwhile", "simultaneously", "previously", "subsequently", "initially", "finally", "ultimately", "eventually", "immediately", "instantly", "quickly", "slowly", "gradually", "suddenly", "carefully", "carelessly", "easily", "difficultly", "simply", "complexly", "clearly", "obviously", "apparently", "evidently", "supposedly", "allegedly", "reportedly", "presumably", "hopefully", "unfortunately", "fortunately", "luckily", "unluckily", "surprisingly", "unexpectedly", "predictably", "inevitably", "necessarily", "sufficiently", "adequately", "properly", "correctly", "accurately", "precisely", "exactly", "approximately", "roughly", "nearly", "almost", "quite", "very", "extremely", "highly", "greatly", "significantly", "considerably", "substantially", "dramatically", "slightly", "somewhat", "rather", "fairly", "pretty", "quite", "really", "truly", "actually", "literally", "figuratively", "metaphorically", "symbolically", "representatively", "typically", "normally", "usually", "commonly", "frequently", "regularly", "occasionally", "rarely", "seldom", "hardly", "barely", "scarcely", "almost", "nearly", "practically", "virtually", "essentially", "basically", "fundamentally", "primarily", "mainly", "mostly", "largely", "partly", "partially", "completely", "totally", "entirely", "fully", "wholly", "absolutely", "definitely", "certainly", "surely", "undoubtedly", "indeed", "truly", "really", "actually", "genuinely", "honestly", "sincerely", "seriously", "literally", "figuratively", "metaphorically", "symbolically", "representatively", "typically", "normally", "usually", "commonly", "frequently", "regularly", "occasionally", "rarely", "seldom", "hardly", "barely", "scarcely", "almost", "nearly", "practically", "virtually", "essentially", "basically", "fundamentally", "primarily", "mainly", "mostly", "largely", "partly", "partially", "completely", "totally", "entirely", "fully", "wholly", "absolutely", "definitely", "certainly", "surely", "undoubtedly", "indeed", "truly", "really", "actually", "genuinely", "honestly", "sincerely", "seriously"]
-            
-            for _ in range(words_needed):
-                random_word = np.random.choice(common_words)
-                random_words.append(random_word)
-            
-            prefill_prompt = base_prompt + " " + " ".join(random_words)
-        else:
-            prefill_prompt = base_prompt
+        # Generate random words to reach target length
+        random_words = []
         
-        return prefill_prompt
+        # Common words for random selection
+        common_words = ["the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "from", "up", "about", "into", "through", "during", "before", "after", "above", "below", "between", "among", "within", "without", "against", "toward", "upon", "across", "behind", "beyond", "under", "over", "around", "near", "far", "here", "there", "where", "when", "why", "how", "what", "which", "who", "whom", "whose", "this", "that", "these", "those", "some", "any", "many", "much", "few", "little", "more", "most", "less", "least", "all", "both", "each", "every", "either", "neither", "one", "two", "three", "first", "second", "last", "next", "other", "another", "such", "same", "different", "new", "old", "good", "bad", "big", "small", "long", "short", "high", "low", "fast", "slow", "hot", "cold", "dry", "wet", "clean", "dirty", "full", "empty", "open", "closed", "right", "wrong", "true", "false", "yes", "no", "always", "never", "sometimes", "often", "rarely", "usually", "probably", "maybe", "certainly", "definitely", "absolutely", "completely", "totally", "entirely", "partly", "mostly", "mainly", "especially", "particularly", "specifically", "generally", "basically", "essentially", "fundamentally", "primarily", "secondarily", "additionally", "furthermore", "moreover", "however", "therefore", "consequently", "thus", "hence", "accordingly", "meanwhile", "simultaneously", "previously", "subsequently", "initially", "finally", "ultimately", "eventually", "immediately", "instantly", "quickly", "slowly", "gradually", "suddenly", "carefully", "carelessly", "easily", "difficultly", "simply", "complexly", "clearly", "obviously", "apparently", "evidently", "supposedly", "allegedly", "reportedly", "presumably", "hopefully", "unfortunately", "fortunately", "luckily", "unluckily", "surprisingly", "unexpectedly", "predictably", "inevitably", "necessarily", "sufficiently", "adequately", "properly", "correctly", "accurately", "precisely", "exactly", "approximately", "roughly", "nearly", "almost", "quite", "very", "extremely", "highly", "greatly", "significantly", "considerably", "substantially", "dramatically", "slightly", "somewhat", "rather", "fairly", "pretty", "quite", "really", "truly", "actually", "literally", "figuratively", "metaphorically", "symbolically", "representatively", "typically", "normally", "usually", "commonly", "frequently", "regularly", "occasionally", "rarely", "seldom", "hardly", "barely", "scarcely", "almost", "nearly", "practically", "virtually", "essentially", "basically", "fundamentally", "primarily", "mainly", "mostly", "largely", "partly", "partially", "completely", "totally", "entirely", "fully", "wholly", "absolutely", "definitely", "certainly", "surely", "undoubtedly", "indeed", "truly", "really", "actually", "genuinely", "honestly", "sincerely", "seriously"]
+        
+        for _ in range(target_words):
+            random_word = np.random.choice(common_words)
+            random_words.append(random_word)
+        
+        return " ".join(random_words)
     
     def run_calibration(self, 
                        model_spec: RunSpec,
@@ -316,6 +311,11 @@ class FLOPCalibrationRunner:
         # Create DeepSpeed engine for calibration
         calibration_spec = copy.deepcopy(model_spec)
         calibration_spec.engine = "deepspeed"
+        
+        # Check GPU memory before creating engine
+        if torch.cuda.is_available():
+            print(f"Pre-calibration GPU memory: {torch.cuda.memory_allocated()/1e9:.2f} GB allocated, {torch.cuda.memory_reserved()/1e9:.2f} GB reserved")
+        
         engine = create_engine(
             calibration_spec.engine,
             model_id=calibration_spec.hf_repo,
@@ -567,6 +567,11 @@ def run_one_with_calibration(spec: RunSpec,
 
     # Build engine (one per run), then tear down afterwards
     print("Specified engine: ", spec.engine)
+    
+    # Check GPU memory before creating main engine
+    if torch.cuda.is_available():
+        print(f"Pre-benchmark GPU memory: {torch.cuda.memory_allocated()/1e9:.2f} GB allocated, {torch.cuda.memory_reserved()/1e9:.2f} GB reserved")
+    
     engine = create_engine(
         spec.engine,
         model_id=spec.hf_repo,
@@ -826,6 +831,17 @@ def run_one_with_calibration(spec: RunSpec,
 
     if wb:
         wb.log_row(row)
+        
+        # Log calibration data and metrics to the same wandb run
+        if calibration_dataset:
+            print("Logging calibration data to wandb...")
+            try:
+                wb.log_calibration_data(calibration_dataset, spec)
+                wb.log_calibration_metrics(calibration_dataset)
+                print("✓ Calibration data logged to wandb successfully")
+            except Exception as e:
+                print(f"Warning: Failed to log calibration data to wandb: {e}")
+        
         wb.finish()
 
     # Tear down engine and free memory between runs
@@ -839,11 +855,11 @@ def main():
     ap.add_argument("--batch_size", type=int, default=None, help="Override batch size from config")
     
     # Calibration options
-    ap.add_argument("--calibration_prefill_ranges", nargs="+", type=int, 
-                   default=[1, 256, 1024],
+    ap.add_argument("--calibration_prefill_ranges", nargs="+", type=int,
+                   default=[1, 2, 4, 8, 16],
                    help="Prefill token ranges for calibration")
     ap.add_argument("--calibration_generation_ranges", nargs="+", type=int,
-                   default=[64, 256, 1024],
+                   default=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
                    help="Generation token ranges for calibration")
     
     args = ap.parse_args()
@@ -880,6 +896,10 @@ def main():
                 )
                 
                 calibration_dataset = calibration_runner.run_calibration(spec, save_path=calibration_file)
+            
+            # Add 5-second sleep between calibration and run to ensure GPU memory is freed
+            print("Waiting 5 seconds for GPU memory cleanup...")
+            time.sleep(5)
             
             # Run the benchmark with calibration
             run_one_with_calibration(

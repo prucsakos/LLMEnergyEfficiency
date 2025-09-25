@@ -1,5 +1,3 @@
-config_name: "prompt_checking_4"
-
 prompts:
   cot_think: |
     You are a worldwide professional problem solver with no mistakes. Analyze this problem systematically. Work through each step methodically until you reach a confident solution.
@@ -86,6 +84,7 @@ prompts:
     <chosen>
 
 datasets: [aime_2025]
+config_name: "prompt_checking_4"
 
 models:
   # --- (kept) Nemotron ---
@@ -96,7 +95,7 @@ models:
     batch_size: 128
     card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
     think_budgets: [256]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: ""
@@ -111,7 +110,7 @@ models_:
     batch_size: 128
     card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
     think_budgets: []
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: ""
@@ -124,7 +123,7 @@ models_:
     batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "262k context; thinking mode (<think>…)." # :contentReference[oaicite:2]{index=2}
@@ -136,7 +135,7 @@ models_:
     batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "262k context; instruct defaults." # :contentReference[oaicite:3]{index=3}
@@ -149,7 +148,7 @@ models_:
     batch_size: 128
     card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "262k context; thinking mode." # :contentReference[oaicite:4]{index=4}
@@ -161,7 +160,7 @@ models_:
     batch_size: 128
     card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "" # :contentReference[oaicite:5]{index=5}
@@ -174,7 +173,7 @@ models_:
     batch_size: 8
     card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (32E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128." # :contentReference[oaicite:6]{index=6}
@@ -187,7 +186,7 @@ models_:
     batch_size: 64
     card: { params_B: 8.2, layers: 36, hidden_dim: 4096, heads: 32, arch: decoder-only (Qwen3; GQA 32Q×8KV) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Same arch as Qwen3-8B; recommended T=0.6, top_p=0.95; tokenizer from DeepSeek repo." # :contentReference[oaicite:8]{index=8}
@@ -200,7 +199,7 @@ models_:
     batch_size: 128
     card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only (GQA kv_heads=8) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Fields taken from Meta-Llama-3.1-8B mirrors (identical arch dims)." # :contentReference[oaicite:10]{index=10}
@@ -213,7 +212,7 @@ models_:
     batch_size: 8
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
@@ -225,7 +224,7 @@ models_:
     batch_size: 4
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Dims via Unsloth config; 128E per model naming; multimodal text+vision." # :contentReference[oaicite:13]{index=13}
@@ -238,7 +237,7 @@ models_:
     batch_size: 256
     card: { params_B: 1, layers: 26, hidden_dim: 1152, heads: 4, arch: gemma3_text (decoder-only) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Gated repo; 32k input context per card; let loader resolve dims." # :contentReference[oaicite:14]{index=14}
@@ -250,7 +249,7 @@ models_:
     batch_size: 128
     card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3_text (decoder-only) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:15]{index=15}
@@ -262,7 +261,7 @@ models_:
     batch_size: 32
     card: { params_B: 12, layers: 40, hidden_dim: 3072, heads: 24, arch: gemma3_text (decoder-only) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:16]{index=16}
@@ -274,7 +273,7 @@ models_:
     batch_size: 8
     card: { params_B: 27, layers: 62, hidden_dim: 5376, heads: 32, arch: gemma3_text (decoder-only; kv_heads=16) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Dims via MLX community mirror; official repo gated." # :contentReference[oaicite:17]{index=17}
@@ -287,7 +286,7 @@ models_:
     batch_size: 256
     card: { params_B: 2, layers: 28, hidden_dim: 1536, heads: 12, arch: gemma3n (multimodal; selective activation) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Gated repo; Together AI lists E-series selective activation for edge." # :contentReference[oaicite:18]{index=18}
@@ -299,7 +298,7 @@ models_:
     batch_size: 128
     card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3n (multimodal; selective activation) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Gated repo; Together AI model page for E4B." # :contentReference[oaicite:19]{index=19}
@@ -312,7 +311,7 @@ models_:
     batch_size: 32
     card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "14B dense transformer; 16k context; defaults per model card." # :contentReference[oaicite:20]{index=20}
@@ -324,7 +323,7 @@ models_:
     batch_size: 128
     card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: decoder-only (dense) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "4.9B parameters; 128k context; reasoning-optimized variant." # :contentReference[oaicite:21]{index=21}
@@ -336,7 +335,7 @@ models_:
     batch_size: 32
     card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
     think_budgets: [128]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "13.6B parameters; reasoning-optimized variant with enhanced capabilities." # :contentReference[oaicite:22]{index=22}

@@ -122,10 +122,9 @@ def self_evaluate_batched(
     )
     outs: List[Tuple[bool, str, str]] = []
     for prompt, txt in zip(judge_prompts, texts):
-        # Extract judgement from <judgement> tags
-        judgement = _cut_at_end_tag(txt, "</judgement>")
-        low = (judgement or "").strip().lower()
-        is_yes = ("yes" in low) or (low == "1")
+        # Extract judgement from response (expecting YES or NO)
+        judgement = txt.strip().lower()
+        is_yes = ("yes" in judgement) or (judgement == "1")
         outs.append((is_yes, prompt, txt))
 
 

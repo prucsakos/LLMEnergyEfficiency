@@ -8,6 +8,43 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from ..interfaces import GenerationParams, GenerationResult
 from .base import BaseEngine
 
+def debug_gpu_memory():
+    """Debug function to help identify what's using GPU memory."""
+    if not torch.cuda.is_available():
+        return
+    
+    print("=== GPU Memory Debug Info ===")
+    print(f"Allocated: {torch.cuda.memory_allocated()/1e9:.2f} GB")
+    print(f"Reserved: {torch.cuda.memory_reserved()/1e9:.2f} GB")
+    print(f"Max allocated: {torch.cuda.max_memory_allocated()/1e9:.2f} GB")
+    print(f"Max reserved: {torch.cuda.max_memory_reserved()/1e9:.2f} GB")
+    
+    # Try to get memory summary
+    try:
+        memory_summary = torch.cuda.memory_summary()
+        print("Memory summary:")
+        print(memory_summary)
+    except Exception as e:
+        print(f"Could not get memory summary: {e}")
+    
+    # Check for any tensors on GPU
+    try:
+        gpu_tensors = []
+        for obj in gc.get_objects():
+            if isinstance(obj, torch.Tensor) and obj.is_cuda:
+                gpu_tensors.append((type(obj).__name__, obj.shape, obj.dtype, obj.device))
+        
+        if gpu_tensors:
+            print(f"Found {len(gpu_tensors)} tensors on GPU:")
+            for tensor_info in gpu_tensors[:10]:  # Show first 10
+                print(f"  {tensor_info}")
+        else:
+            print("No tensors found on GPU")
+    except Exception as e:
+        print(f"Could not scan for GPU tensors: {e}")
+    
+    print("=== End GPU Memory Debug ===")
+
 @dataclass
 class DeepSpeedFLOPs:
     """Container for DeepSpeed FLOP measurements."""
@@ -218,15 +255,117 @@ class DeepSpeedLocalEngine(BaseEngine):
     
     def close(self):
         """Tear down and free GPU memory after each benchmark run."""
+        print(f"Starting DeepSpeed cleanup...")
+        print(f"Pre-cleanup GPU memory: {torch.cuda.memory_allocated()/1e9:.2f} GB allocated, {torch.cuda.memory_reserved()/1e9:.2f} GB reserved")
+        
         try:
+            # Step 1: Clean up FLOP profiler
             if hasattr(self, 'flops_profiler') and self.flops_profiler is not None:
                 try:
+                    print("Cleaning up FLOP profiler...")
                     self.flops_profiler.end_profile()
-                except:
-                    pass  # Ignore errors during cleanup
-            del self.ds_engine
-            del self.tokenizer
+                    del self.flops_profiler
+                    self.flops_profiler = None
+                except Exception as e:
+                    print(f"Warning: FLOP profiler cleanup failed: {e}")
+            
+            # Step 2: More aggressive cleanup for DeepSpeed engine
+            if hasattr(self, 'ds_engine') and self.ds_engine is not None:
+                try:
+                    print("Cleaning up DeepSpeed engine...")
+                    
+                    # Try to access the underlying model and clean it up
+                    if hasattr(self.ds_engine, 'module'):
+                        print("Cleaning up DeepSpeed module...")
+                        # Move model to CPU first to free GPU memory
+                        if hasattr(self.ds_engine.module, 'cpu'):
+                            self.ds_engine.module.cpu()
+                        del self.ds_engine.module
+                    
+                    # Try to destroy the DeepSpeed engine
+                    if hasattr(self.ds_engine, 'destroy'):
+                        print("Calling DeepSpeed destroy...")
+                        self.ds_engine.destroy()
+                    
+                    # Try to destroy DeepSpeed context
+                    try:
+                        import deepspeed
+                        if hasattr(deepspeed, 'destroy'):
+                            print("Calling DeepSpeed global destroy...")
+                            deepspeed.destroy()
+                    except Exception as e:
+                        print(f"DeepSpeed global destroy failed: {e}")
+                    
+                    del self.ds_engine
+                    self.ds_engine = None
+                    
+                except Exception as e:
+                    print(f"Warning: DeepSpeed engine cleanup failed: {e}")
+            
+            # Step 3: Clean up tokenizer
+            if hasattr(self, 'tokenizer') and self.tokenizer is not None:
+                try:
+                    print("Cleaning up tokenizer...")
+                    del self.tokenizer
+                    self.tokenizer = None
+                except Exception as e:
+                    print(f"Warning: Tokenizer cleanup failed: {e}")
+            
+            # Step 4: Clean up device reference
+            if hasattr(self, 'device'):
+                del self.device
+                
+        except Exception as e:
+            print(f"Warning: General cleanup failed: {e}")
+                
         finally:
-            gc.collect()
+            # Step 5: Force garbage collection multiple times
+            print("Running garbage collection...")
+            for i in range(5):
+                collected = gc.collect()
+                print(f"GC cycle {i+1}: collected {collected} objects")
+            
             if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+                # Step 6: Clear CUDA cache multiple times
+                print("Clearing CUDA cache...")
+                for i in range(5):
+                    torch.cuda.empty_cache()
+                    print(f"CUDA cache clear {i+1}: {torch.cuda.memory_allocated()/1e9:.2f} GB allocated, {torch.cuda.memory_reserved()/1e9:.2f} GB reserved")
+                
+                # Step 7: Force synchronization to ensure cleanup is complete
+                torch.cuda.synchronize()
+                
+                # Step 8: Check process memory usage
+                try:
+                    import psutil
+                    import os
+                    process = psutil.Process(os.getpid())
+                    memory_info = process.memory_info()
+                    print(f"Process memory usage: {memory_info.rss / 1024 / 1024 / 1024:.2f} GB RSS, {memory_info.vms / 1024 / 1024 / 1024:.2f} GB VMS")
+                except Exception as e:
+                    print(f"Could not get process memory info: {e}")
+                
+                # Step 9: Final memory check
+                final_allocated = torch.cuda.memory_allocated()/1e9
+                final_reserved = torch.cuda.memory_reserved()/1e9
+                print(f"Final GPU memory after cleanup: {final_allocated:.2f} GB allocated, {final_reserved:.2f} GB reserved")
+                
+                # Step 10: Additional cleanup if memory is still high
+                if final_allocated > 1.0:  # If more than 1GB is still allocated
+                    print("High memory usage detected, attempting additional cleanup...")
+                    
+                    # Debug what's using memory
+                    debug_gpu_memory()
+                    
+                    # Try to reset CUDA context (nuclear option)
+                    try:
+                        torch.cuda.reset_peak_memory_stats()
+                        torch.cuda.empty_cache()
+                        torch.cuda.synchronize()
+                        print(f"After CUDA reset: {torch.cuda.memory_allocated()/1e9:.2f} GB allocated, {torch.cuda.memory_reserved()/1e9:.2f} GB reserved")
+                    except Exception as e:
+                        print(f"Warning: CUDA reset failed: {e}")
+                else:
+                    print("Memory cleanup successful - low memory usage detected.")
+                
+                print("DeepSpeed cleanup completed.")

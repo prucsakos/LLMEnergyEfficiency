@@ -67,7 +67,7 @@ class Prompts:
         "<question>\n{question}\n</question>\n"
         "<gold>\n{gold}\n</gold>\n"
         "<candidate>\n{candidate}\n</candidate>\n"
-        "<judgement>"
+        "Judgement: "
     )
     direct: str = (
         "Answer the question. Output ONLY the final answer inside <final>...</final>.\n"
