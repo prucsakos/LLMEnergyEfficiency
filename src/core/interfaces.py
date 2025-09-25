@@ -22,6 +22,7 @@ class GenerationParams:
     temperature: float = 0.0
     top_p: float = 1.0
     top_k: Optional[int] = None
+    do_sample: Optional[bool] = None  # If None, auto-determined by temperature > 0
     stop: Optional[List[str]] = None
     seed: Optional[int] = None
     dtype: str = "auto"

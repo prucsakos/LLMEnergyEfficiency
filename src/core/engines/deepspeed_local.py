@@ -189,7 +189,7 @@ class DeepSpeedLocalEngine(BaseEngine):
             "max_new_tokens": params.max_new_tokens,
             "temperature": params.temperature,
             "top_p": params.top_p,
-            "do_sample": params.temperature > 0,
+            "do_sample": params.do_sample if params.do_sample is not None else (params.temperature > 0),
             "pad_token_id": self.tokenizer.pad_token_id,
             "eos_token_id": self.tokenizer.eos_token_id,
         }

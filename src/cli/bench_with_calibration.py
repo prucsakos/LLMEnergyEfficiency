@@ -605,6 +605,7 @@ def run_one_with_calibration(spec: RunSpec,
         temperature=spec.generation.temperature,
         top_p=spec.generation.top_p,
         top_k=spec.generation.top_k,
+        do_sample=spec.generation.do_sample,
         stop=spec.generation.stop,
         seed=spec.generation.seed,
         use_kv_cache=spec.generation.use_kv_cache,
@@ -631,6 +632,7 @@ def run_one_with_calibration(spec: RunSpec,
             "temperature": spec.generation.temperature,
             "top_p": spec.generation.top_p,
             "top_k": spec.generation.top_k,
+            "do_sample": spec.generation.do_sample,
             "max_new_tokens": spec.generation.max_new_tokens,
             "stop": spec.generation.stop,
             "seed": spec.generation.seed,
@@ -878,10 +880,10 @@ def main():
     
     # Calibration options
     ap.add_argument("--calibration_prefill_ranges", nargs="+", type=int,
-                   default=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
+                   default=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
                    help="Prefill token ranges for calibration")
     ap.add_argument("--calibration_generation_ranges", nargs="+", type=int,
-                   default=[1, 2, 4, 8, 16, 32, 64],
+                   default=[1, 2, 4, 8, 16, 32],
                    help="Generation token ranges for calibration")
     
     args = ap.parse_args()

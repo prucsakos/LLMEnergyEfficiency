@@ -42,16 +42,12 @@ prompts:
     <final>
   self_eval: |-
     You are a strict judge. Reply ONLY YES if the candidate answer equals the gold answer, else NO.
-
-    RULES:
-    - Compare trimmed strings exactly, case-sensitive.
-    - If either side is empty, ambiguous, or contains multiple answers, reply NO.
-    - Output MUST be non-empty: write YES or NO after "Judgement: ".
+    Two possible responses: YES or NO
 
     <question>{question}</question>
     <gold>{gold}</gold>
     <candidate>{candidate}</candidate>
-    Judgement: 
+    Judgement:
   direct: |
     Answer the question. Output ONLY inside <final>...</final>. Do not include any reasoning or explanation anywhere.
 

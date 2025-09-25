@@ -90,7 +90,7 @@ prompts:
     <chosen>
 
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]
-datasets: [aime_2025]
+datasets: [aime_2025, hmmt_feb_2025]
 
 models:
 
@@ -104,7 +104,7 @@ models:
     think_budgets: []
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: ""
 
   # --- Qwen3 30B (A3B) ---
@@ -117,7 +117,7 @@ models:
     think_budgets: [32, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; thinking mode (<think>…)." # :contentReference[oaicite:2]{index=2}
 
   - name: Qwen3-30B-A3B-Instruct-2507
@@ -129,7 +129,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; instruct defaults." # :contentReference[oaicite:3]{index=3}
 
   # --- Qwen3 4B ---
@@ -142,7 +142,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; thinking mode." # :contentReference[oaicite:4]{index=4}
 
   - name: Qwen3-4B-Instruct-2507
@@ -154,7 +154,7 @@ models:
     think_budgets: [0, 256, 512, 1024, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "" # :contentReference[oaicite:5]{index=5}
 
   # --- OpenAI GPT-OSS (Harmony format) ---
@@ -167,7 +167,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128." # :contentReference[oaicite:6]{index=6}
 
   # --- DeepSeek-R1 distilled to Qwen3-8B ---
@@ -180,7 +180,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Same arch as Qwen3-8B; recommended T=0.6, top_p=0.95; tokenizer from DeepSeek repo." # :contentReference[oaicite:8]{index=8}
 
   # --- Llama 3.1 (public mirrors for config fields) ---
@@ -193,7 +193,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Fields taken from Meta-Llama-3.1-8B mirrors (identical arch dims)." # :contentReference[oaicite:10]{index=10}
 
   # --- Gemma 3 (gated; values from official or mirrored configs) ---
@@ -206,7 +206,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Gated repo; 32k input context per card; let loader resolve dims." # :contentReference[oaicite:14]{index=14}
 
   - name: gemma-3-4b-it
@@ -218,7 +218,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:15]{index=15}
 
   - name: gemma-3-12b-it
@@ -230,7 +230,7 @@ models:
     think_budgets: [0, 512, 2048, 8192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:16]{index=16}
 
   - name: gemma-3-27b-it
@@ -242,7 +242,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via MLX community mirror; official repo gated." # :contentReference[oaicite:17]{index=17}
 
   # --- Gemma 3N (edge, selective activation) ---
@@ -255,7 +255,7 @@ models:
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Gated repo; Together AI lists E-series selective activation for edge." # :contentReference[oaicite:18]{index=18}
 
   - name: gemma-3n-E4B-it
@@ -266,8 +266,8 @@ models:
     card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3n (multimodal; selective activation) }
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    generation: { temperature: 0.6, top_p: 0.95, top_k: 64, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Gated repo; Together AI model page for E4B." # :contentReference[oaicite:19]{index=19}
 
   # --- Microsoft Phi-4 family ---
@@ -279,8 +279,8 @@ models:
     card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    generation: { temperature: 0.8, top_p: 0.95, top_k: 50, do_sample: true, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "14B dense transformer; 16k context; defaults per model card." # :contentReference[oaicite:20]{index=20}
 
   - name: Phi-4-mini-reasoning
@@ -291,8 +291,8 @@ models:
     card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: decoder-only (dense) }
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    generation: { temperature: 0.8, top_p: 0.95, top_k: 50, do_sample: true, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "4.9B parameters; 128k context; reasoning-optimized variant." # :contentReference[oaicite:21]{index=21}
 
   - name: Phi-4-reasoning-plus
@@ -303,8 +303,8 @@ models:
     card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
     think_budgets: [0, 512, 2048, 8192, 12000, 16192]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    generation: { temperature: 0.8, top_p: 0.95, top_k: 50, do_sample: true, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "13.6B parameters; reasoning-optimized variant with enhanced capabilities." # :contentReference[oaicite:22]{index=22}
 
 # Large models (>40B parameters) - excluded from calculations for now
