@@ -43,7 +43,8 @@ class GenDefaults:
 class ReasoningDefaults:
     style: str = "cot"          # none | cot | plan_solve
     self_consistency_k: int = 1
-    self_eval: bool = False     # model judges YES/NO after answering
+    self_eval: bool = True      # model judges YES/NO after answering (always true)
+    openai_eval: bool = False   # use OpenAI API for evaluation instead of model
 
 @dataclass
 class Prompts:

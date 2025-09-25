@@ -104,6 +104,7 @@ def self_evaluate_batched(
     golds: List[str],
     gen: GenerationParams,
     prompts: Prompts,
+    eval_engine: Optional[TextEngine] = None,
 ) -> List[Tuple[bool, str, str]]:
     """Batched judge for correctness. Returns list of (is_yes, prompt, raw_text)."""
     n = len(questions)
@@ -114,10 +115,14 @@ def self_evaluate_batched(
         prompts.self_eval.format(question=q, candidate=c, gold=g)
         for q, c, g in zip(questions, candidates, golds)
     ]
+    
+    # Use evaluation engine if provided, otherwise use main engine
+    evaluation_engine = eval_engine if eval_engine is not None else engine
+    
     texts, _tok, _ms, _raw = _engine_generate_batch(
-        engine,
+        evaluation_engine,
         judge_prompts,
-        GenerationParams(**{**gen.__dict__, "max_new_tokens": 4, "temperature": 0.0}),
+        GenerationParams(**{**gen.__dict__, "max_new_tokens": 150, "temperature": 1.0}),
         extra_stop=None,
     )
     outs: List[Tuple[bool, str, str]] = []

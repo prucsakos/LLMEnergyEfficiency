@@ -5,6 +5,10 @@ from typing import Iterable, List, Optional, Tuple, Callable
 import itertools
 from tqdm.auto import tqdm
 
+# Load environment variables from .env file
+from ..utils import load_env_variables
+load_env_variables()
+
 from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Prompts
 from ..core.interfaces import GenerationParams
 from ..core.engines import create_engine
@@ -164,7 +168,18 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     # Optional batched self-evaluation (YES/NO judge)
     judge_batch_results: Optional[List[Tuple[bool, str, str]]] = None
     if spec.reasoning.self_eval:
-        judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts)
+        # Use OpenAI engine for evaluation if specified
+        eval_engine = None
+        if spec.reasoning.openai_eval:
+            try:
+                from ..core.engines import create_openai_engine
+                eval_engine = create_openai_engine()
+                print("Using OpenAI API for evaluation")
+            except Exception as e:
+                print(f"Failed to create OpenAI evaluation engine: {e}")
+                print("Falling back to main engine for evaluation")
+        
+        judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts, eval_engine)
 
     # Accumulate metrics for the single batch
     for j, ex in enumerate(batch):

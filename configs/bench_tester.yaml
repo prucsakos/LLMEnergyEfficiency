@@ -84,7 +84,7 @@ prompts:
     <chosen>
 
 datasets: [aime_2025]
-config_name: "prompt_checking_4"
+config_name: "OpenAIJudge1"
 
 models:
   # --- (kept) Nemotron ---
@@ -94,11 +94,11 @@ models:
     model_family: nemotron
     batch_size: 128
     card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
-    think_budgets: [256]
+    think_budgets: [5000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
-    notes: ""
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Uses OpenAI API for evaluation"
 
 models_:
 

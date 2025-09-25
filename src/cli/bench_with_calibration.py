@@ -11,6 +11,10 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
+# Load environment variables from .env file
+from ..utils import load_env_variables
+load_env_variables()
+
 from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Prompts
 from ..core.interfaces import GenerationParams
 from ..core.engines import create_engine
@@ -680,7 +684,18 @@ def run_one_with_calibration(spec: RunSpec,
         # Optional batched self-evaluation (YES/NO judge)
         judge_batch_results: Optional[List[Tuple[bool, str, str]]] = None
         if spec.reasoning.self_eval:
-            judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts)
+            # Use OpenAI engine for evaluation if specified
+            eval_engine = None
+            if spec.reasoning.openai_eval:
+                try:
+                    from ..core.engines import create_openai_engine
+                    eval_engine = create_openai_engine()
+                    print("Using OpenAI API for evaluation")
+                except Exception as e:
+                    print(f"Failed to create OpenAI evaluation engine: {e}")
+                    print("Falling back to main engine for evaluation")
+            
+            judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts, eval_engine)
 
         # Accumulate metrics
         for j, ex in enumerate(batch):
@@ -863,10 +878,10 @@ def main():
     
     # Calibration options
     ap.add_argument("--calibration_prefill_ranges", nargs="+", type=int,
-                   default=[1, 2, 4, 8, 16],
+                   default=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
                    help="Prefill token ranges for calibration")
     ap.add_argument("--calibration_generation_ranges", nargs="+", type=int,
-                   default=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+                   default=[1, 2, 4, 8, 16, 32, 64],
                    help="Generation token ranges for calibration")
     
     args = ap.parse_args()
