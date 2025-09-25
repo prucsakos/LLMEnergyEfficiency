@@ -11,3 +11,5 @@ wheels/
 
 # Experiment Tracking logs
 wandb/*
+
+.env
