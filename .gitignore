@@ -12,4 +12,27 @@ wheels/
 # Experiment Tracking logs
 wandb/*
 
+# Environment files
 .env
+.env.example
+
+# Documentation and guides
+PLOTTING_GUIDE.md
+
+# Scripts and utilities
+scripts/who_gpu.sh
+scripts/resources.sh
+
+# Calibration models and data
+calibration_models/
+
+# Log files
+error.log
+nohup.out
+
+# Generated plots and analysis
+plots/
+interesting/
+
+# Lock files (keep uv.lock for reproducibility)
+# uv.lock
