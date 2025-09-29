@@ -301,7 +301,10 @@ class TestFLOPCalibrationRunner:
         
         assert runner.prefill_ranges == [64, 128, 256]
         assert runner.generation_ranges == [32, 64]
-        assert len(runner.combinations) == 6  # 3 * 2
+        # Calculate combinations manually since it's no longer stored as an attribute
+        import itertools
+        combinations = list(itertools.product(runner.prefill_ranges, runner.generation_ranges))
+        assert len(combinations) == 6  # 3 * 2
     
     def test_initialization_defaults(self):
         """Test calibration runner with default parameters."""
@@ -309,7 +312,10 @@ class TestFLOPCalibrationRunner:
         
         assert len(runner.prefill_ranges) > 0
         assert len(runner.generation_ranges) > 0
-        assert len(runner.combinations) > 0
+        # Calculate combinations manually since it's no longer stored as an attribute
+        import itertools
+        combinations = list(itertools.product(runner.prefill_ranges, runner.generation_ranges))
+        assert len(combinations) > 0
     
     def test_generate_test_prompts(self):
         """Test test prompt generation."""
@@ -320,9 +326,21 @@ class TestFLOPCalibrationRunner:
         assert isinstance(prompt, str)
         assert len(prompt) > 0
     
-    @patch('src.cli.bench_with_calibration.create_engine')
-    def test_run_calibration_mock(self, mock_create_engine, mock_model_spec):
+    @patch('src.calibration.runners.create_engine')
+    @patch('transformers.AutoTokenizer')
+    def test_run_calibration_mock(self, mock_tokenizer, mock_create_engine, mock_model_spec):
         """Test calibration run with mocked engine."""
+        # Mock the tokenizer with proper methods
+        mock_tokenizer_instance = Mock()
+        mock_tokenizer_instance.get_vocab.return_value = {str(i): i for i in range(1000)}
+        mock_tokenizer_instance.bos_token_id = None
+        mock_tokenizer_instance.eos_token_id = None
+        mock_tokenizer_instance.pad_token_id = None
+        mock_tokenizer_instance.unk_token_id = None
+        mock_tokenizer_instance.decode.return_value = "test prompt"
+        mock_tokenizer_instance.encode.return_value = [1, 2, 3, 4, 5]  # Mock token IDs
+        mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
+        
         # Mock the engine and its methods
         mock_engine = Mock()
         mock_engine.generate.return_value = Mock(
