@@ -30,6 +30,7 @@ calibration_models/
 error.log
 nohup.out
 logs/
+!src/logs/
 
 # Generated plots and analysis
 plots/
