@@ -10,3 +10,4 @@ uv pip install deepspeed
 uv pip install bitsandbytes
 uv pip install xformers
 uv pip install scikit-learn
+uv pip install datasets transformers
