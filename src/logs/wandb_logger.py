@@ -26,7 +26,7 @@ class WandbRunLogger:
         table = wandb.Table(columns=columns, data=data)
         self.run.log({table_name: table})
     
-    def log_calibration_data(self, calibration_dataset, model_spec) -> None:
+    def log_calibration_data(self, calibration_dataset, model_spec, estimation_data=None) -> None:
         """Log calibration dataset and model estimations to wandb."""
         if not calibration_dataset or not calibration_dataset.points:
             return
@@ -48,23 +48,8 @@ class WandbRunLogger:
             calibration_data
         )
         
-        # Generate linspace with exponential steps for model estimations
-        if calibration_dataset.extrapolation_model:
-            # Create exponential steps from 1 to 16000
-            prefill_steps = np.geomspace(1, 16000, num=50, dtype=int)
-            generation_steps = np.geomspace(1, 16000, num=50, dtype=int)
-            
-            # Create all combinations
-            estimation_data = []
-            for prefill in prefill_steps:
-                for gen in generation_steps:
-                    try:
-                        estimated_flops = calibration_dataset.extrapolation_model.predict(prefill, gen)
-                        estimation_data.append([prefill, gen, estimated_flops])
-                    except Exception as e:
-                        print(f"Warning: Failed to predict FLOPs for P={prefill}, G={gen}: {e}")
-                        continue
-            
+        # Log pre-generated estimation data if provided
+        if estimation_data:
             self.log_table(
                 "calibration_model_estimations",
                 ["prefill_tokens", "generation_tokens", "estimated_flops"],
