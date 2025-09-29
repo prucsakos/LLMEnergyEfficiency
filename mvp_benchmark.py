@@ -23,6 +23,9 @@ except Exception:
 
 import mlflow
 
+# Import logging system
+from src.logs.benchmark_logger import setup_logging, get_logger
+
 # ----------------------------
 # Toy dataset (tiny, deterministic)
 # Multiple-choice with single correct option letter (A/B/C/D)
@@ -286,6 +289,9 @@ def log_to_mlflow(model_name: str, backend: str, results: Dict, run_name: Option
 # Main
 # ----------------------------
 def main():
+    # Setup logging first
+    logger = setup_logging(name="mvp_benchmark")
+    
     parser = argparse.ArgumentParser(description="MVP CoT evaluator with MLflow logging")
     parser.add_argument("--model", type=str, default="Qwen/Qwen2.5-0.5B-Instruct",
                         help="HF model id (chat/instruct model recommended)")
@@ -294,13 +300,21 @@ def main():
     parser.add_argument("--max_new_tokens", type=int, default=128)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
+    
+    logger.info(f"Starting MVP benchmark")
+    logger.info(f"Model: {args.model}")
+    logger.info(f"Backend: {args.backend}")
+    logger.info(f"Device: {args.device}")
+    logger.info(f"Max new tokens: {args.max_new_tokens}")
 
     if args.backend == "vllm" and not _VLLM_AVAILABLE:
+        logger.error("vLLM backend selected but vLLM is not available. Install vllm or use --backend hf.")
         raise SystemExit("vLLM backend selected but vLLM is not available. Install vllm or use --backend hf.")
 
-    print(f"Running MVP: model={args.model} backend={args.backend} device={args.device}")
+    logger = get_logger()
+    logger.info(f"Running MVP: model={args.model} backend={args.backend} device={args.device}")
     results = evaluate_run(args.model, args.backend, args.device, max_new_tokens=args.max_new_tokens)
-    print("Results:", json.dumps(results, indent=2))
+    logger.info("Results: " + json.dumps(results, indent=2))
 
     # Log to MLflow
     log_to_mlflow(args.model, args.backend, results, run_name=f"{args.model}-{args.backend}-cot-toy")

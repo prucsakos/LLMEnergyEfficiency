@@ -29,6 +29,7 @@ calibration_models/
 # Log files
 error.log
 nohup.out
+logs/
 
 # Generated plots and analysis
 plots/

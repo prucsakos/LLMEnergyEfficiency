@@ -277,6 +277,8 @@ def plot_accuracy_vs_metric(df: pd.DataFrame, metric: str, metric_label: str,
         
         # Set log scale for x-axis
         ax.set_xscale('log')
+
+        # ax.set_yscale('log')
         
         # Set reasonable axis limits
         if len(dataset_df) > 0:

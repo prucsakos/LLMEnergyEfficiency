@@ -9,6 +9,9 @@ from tqdm.auto import tqdm
 from ..utils import load_env_variables
 load_env_variables()
 
+# Import logging system
+from ..logs.benchmark_logger import setup_logging, get_logger
+
 from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Prompts
 from ..core.interfaces import GenerationParams
 from ..core.engines import create_engine
@@ -67,7 +70,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     bs = int(batch_size or getattr(spec, "batch_size", 1) or 1)
 
     # Build engine (one per run), then tear down afterwards
-    print("Specified engine: ", spec.engine)
+    logger = get_logger()
+    logger.info(f"Specified engine: {spec.engine}")
     engine = create_engine(
         spec.engine,
         model_id=spec.hf_repo,
@@ -149,7 +153,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     qs = [ex.question for ex in batch]
     gts = [ex.gold for ex in batch]
 
-    print(f"Processing single batch of {len(batch)} examples...")
+    logger.info(f"Processing single batch of {len(batch)} examples...")
 
     if spec.reasoning.self_consistency_k and spec.reasoning.self_consistency_k > 1:
         outs = self_consistency_batch(
@@ -172,14 +176,14 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     if spec.reasoning.self_eval:
         # Use OpenAI engine for evaluation if specified
         eval_engine = None
-        if spec.reasoning.openai_eval:
-            try:
-                from ..core.engines import create_openai_engine
-                eval_engine = create_openai_engine()
-                print("Using OpenAI API for evaluation")
-            except Exception as e:
-                print(f"Failed to create OpenAI evaluation engine: {e}")
-                print("Falling back to main engine for evaluation")
+            if spec.reasoning.openai_eval:
+                try:
+                    from ..core.engines import create_openai_engine
+                    eval_engine = create_openai_engine()
+                    logger.info("Using OpenAI API for evaluation")
+                except Exception as e:
+                    logger.warning(f"Failed to create OpenAI evaluation engine: {e}")
+                    logger.info("Falling back to main engine for evaluation")
         
         judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts, eval_engine)
 
@@ -380,9 +384,10 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     if spec.engine == "deepspeed":
         flops_info += f" | avg_deepspeed_tFLOPs≈{deepspeed_flops_str}"
     
-    print(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
-          f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
-          f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
+    logger.log_metrics(row['accuracy'], avg_gen_tokens, row['latency_ms'], flops_info)
+    logger.info(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
+                f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
+                f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
 
     if wb:
         wb.log_row(row)
@@ -392,12 +397,21 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     engine.close()
 
 def main():
+    # Setup logging first
+    logger = setup_logging(name="bench_single_config")
+    
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True, help="Path to YAML bench config")
     ap.add_argument("--wandb_project", default=None)
     ap.add_argument("--notes", default="")
     ap.add_argument("--batch_size", type=int, default=None, help="Override batch size from config")
     args = ap.parse_args()
+    
+    logger.info(f"Starting single config benchmark")
+    logger.info(f"Config: {args.config}")
+    logger.info(f"W&B Project: {args.wandb_project}")
+    logger.info(f"Notes: {args.notes}")
+    logger.info(f"Batch size: {args.batch_size}")
 
     cfg = load_bench_config(args.config)
 
@@ -405,17 +419,14 @@ def main():
         try:
             run_one(spec, batch_size=args.batch_size, wandb_project=args.wandb_project, notes=args.notes)
         except Exception as e:
-            err_msg = f"[ERROR] model={spec.model_name}, dataset={spec.dataset}: {e}\n"
-            traceback_str = traceback.format_exc()
+            logger = get_logger()
+            err_msg = f"[ERROR] model={spec.model_name}, dataset={spec.dataset}: {e}"
+            logger.log_error(err_msg, e)
             
             # Write to error log file
             with open("error.log", "a", encoding="utf-8") as f:
-                f.write(err_msg)
-                f.write(traceback_str + "\n")
-            
-            # Print error message and full traceback to stdout
-            print(err_msg.strip())
-            print(traceback_str)
+                f.write(err_msg + "\n")
+                f.write(traceback.format_exc() + "\n")
 
 if __name__ == "__main__":
     main()

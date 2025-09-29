@@ -15,6 +15,9 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from ..utils import load_env_variables
 load_env_variables()
 
+# Import logging system
+from ..logs.benchmark_logger import setup_logging, get_logger
+
 from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Prompts
 from ..core.interfaces import GenerationParams
 from ..core.engines import create_engine
@@ -221,7 +224,8 @@ class FLOPCalibrationRunner:
         
         # Create all combinations
         self.combinations = list(itertools.product(self.prefill_ranges, self.generation_ranges))
-        print(f"Calibration will test {len(self.combinations)} combinations")
+        logger = get_logger()
+        logger.info(f"Calibration will test {len(self.combinations)} combinations")
     
     def _generate_test_prompts(self, prefill_tokens: int, generation_tokens: int, tokenizer=None) -> str:
         """
@@ -313,9 +317,10 @@ class FLOPCalibrationRunner:
         Returns:
             CalibrationDataset with all measurements and fitted model
         """
-        print(f"\n=== Starting FLOP Calibration for {model_spec.model_name} ===")
-        print(f"Model: {model_spec.hf_repo}")
-        print(f"Engine: {model_spec.engine}")
+        logger = get_logger()
+        logger.info(f"\n=== Starting FLOP Calibration for {model_spec.model_name} ===")
+        logger.info(f"Model: {model_spec.hf_repo}")
+        logger.info(f"Engine: {model_spec.engine}")
         
         # Create DeepSpeed engine for calibration
         calibration_spec = copy.deepcopy(model_spec)
@@ -323,7 +328,9 @@ class FLOPCalibrationRunner:
         
         # Check GPU memory before creating engine
         if torch.cuda.is_available():
-            print(f"Pre-calibration GPU memory: {torch.cuda.memory_allocated()/1e9:.2f} GB allocated, {torch.cuda.memory_reserved()/1e9:.2f} GB reserved")
+            allocated_gb = torch.cuda.memory_allocated()/1e9
+            reserved_gb = torch.cuda.memory_reserved()/1e9
+            logger.log_gpu_memory("Pre-calibration", allocated_gb, reserved_gb)
         
         engine = create_engine(
             calibration_spec.engine,
@@ -338,9 +345,9 @@ class FLOPCalibrationRunner:
         try:
             from transformers import AutoTokenizer
             tokenizer = AutoTokenizer.from_pretrained(calibration_spec.hf_repo)
-            print(f"✓ Loaded tokenizer for exact token counting")
+            logger.info("✓ Loaded tokenizer for exact token counting")
         except Exception as e:
-            print(f"⚠ Could not load tokenizer ({e}), falling back to estimation")
+            logger.warning(f"⚠ Could not load tokenizer ({e}), falling back to estimation")
             tokenizer = None
         
         calibration_points = []
@@ -397,7 +404,7 @@ class FLOPCalibrationRunner:
                         'FLOPs': f"{total_flops/1e12:.2f}T"
                     })
                 else:
-                    print(f"Warning: No FLOP data for {prefill_tokens}P/{generation_tokens}G")
+                    logger.warning(f"No FLOP data for {prefill_tokens}P/{generation_tokens}G")
                 
                 pbar.update(1)
         
@@ -426,13 +433,13 @@ class FLOPCalibrationRunner:
             calibration_dataset.extrapolation_model = extrapolation_model
             calibration_dataset.model_accuracy = accuracy_metrics
             
-            print(f"\n=== Calibration Complete ===")
-            print(f"Valid measurements: {len(calibration_points)}")
-            print(f"Model R²: {accuracy_metrics['r2_score']:.4f}")
-            print(f"Model MAE: {accuracy_metrics['mae']/1e12:.2f} TFLOPs")
-            print(f"Model RMSE: {accuracy_metrics['rmse']/1e12:.2f} TFLOPs")
+            logger.info(f"\n=== Calibration Complete ===")
+            logger.info(f"Valid measurements: {len(calibration_points)}")
+            logger.info(f"Model R²: {accuracy_metrics['r2_score']:.4f}")
+            logger.info(f"Model MAE: {accuracy_metrics['mae']/1e12:.2f} TFLOPs")
+            logger.info(f"Model RMSE: {accuracy_metrics['rmse']/1e12:.2f} TFLOPs")
         else:
-            print(f"Warning: Insufficient calibration points ({len(calibration_points)}) for model fitting")
+            logger.warning(f"Insufficient calibration points ({len(calibration_points)}) for model fitting")
         
         # Save calibration data if requested
         if save_path:
@@ -468,7 +475,8 @@ class FLOPCalibrationRunner:
         with open(save_path, 'w') as f:
             json.dump(data, f, indent=2)
         
-        print(f"Calibration data saved to: {save_path}")
+        logger = get_logger()
+        logger.info(f"Calibration data saved to: {save_path}")
 
 def load_calibration_dataset(filepath: str) -> CalibrationDataset:
     """Load calibration dataset from disk."""
@@ -577,11 +585,14 @@ def run_one_with_calibration(spec: RunSpec,
     bs = int(batch_size or getattr(spec, "batch_size", 1) or 1)
 
     # Build engine (one per run), then tear down afterwards
-    print("Specified engine: ", spec.engine)
+    logger = get_logger()
+    logger.info(f"Specified engine: {spec.engine}")
     
     # Check GPU memory before creating main engine
     if torch.cuda.is_available():
-        print(f"Pre-benchmark GPU memory: {torch.cuda.memory_allocated()/1e9:.2f} GB allocated, {torch.cuda.memory_reserved()/1e9:.2f} GB reserved")
+        allocated_gb = torch.cuda.memory_allocated()/1e9
+        reserved_gb = torch.cuda.memory_reserved()/1e9
+        logger.log_gpu_memory("Pre-benchmark", allocated_gb, reserved_gb)
     
     engine = create_engine(
         spec.engine,
@@ -692,10 +703,10 @@ def run_one_with_calibration(spec: RunSpec,
                 try:
                     from ..core.engines import create_openai_engine
                     eval_engine = create_openai_engine()
-                    print("Using OpenAI API for evaluation")
+                    logger.info("Using OpenAI API for evaluation")
                 except Exception as e:
-                    print(f"Failed to create OpenAI evaluation engine: {e}")
-                    print("Falling back to main engine for evaluation")
+                    logger.warning(f"Failed to create OpenAI evaluation engine: {e}")
+                    logger.info("Falling back to main engine for evaluation")
             
             judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts, eval_engine)
 
@@ -728,7 +739,7 @@ def run_one_with_calibration(spec: RunSpec,
                     )
                     datapoint_flops['extrapolated'] = extrapolated_flops
                 except Exception as e:
-                    print(f"Warning: FLOP extrapolation failed: {e}")
+                    logger.warning(f"FLOP extrapolation failed: {e}")
                     datapoint_flops['extrapolated'] = None
             else:
                 datapoint_flops['extrapolated'] = None
@@ -849,22 +860,23 @@ def run_one_with_calibration(spec: RunSpec,
     
     flops_info = f"avg_extrapolated_tFLOPs≈{extrapolated_flops_str}"
     
-    print(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
-          f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
-          f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
+    logger.log_metrics(row['accuracy'], avg_gen_tokens, row['latency_ms'], flops_info)
+    logger.info(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
+                f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
+                f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
 
     if wb:
         wb.log_row(row)
         
         # Log calibration data and metrics to the same wandb run
         if calibration_dataset:
-            print("Logging calibration data to wandb...")
+            logger.info("Logging calibration data to wandb...")
             try:
                 wb.log_calibration_data(calibration_dataset, spec)
                 wb.log_calibration_metrics(calibration_dataset)
-                print("✓ Calibration data logged to wandb successfully")
+                logger.info("✓ Calibration data logged to wandb successfully")
             except Exception as e:
-                print(f"Warning: Failed to log calibration data to wandb: {e}")
+                logger.warning(f"Failed to log calibration data to wandb: {e}")
         
         wb.finish()
 
@@ -872,6 +884,9 @@ def run_one_with_calibration(spec: RunSpec,
     engine.close()
 
 def main():
+    # Setup logging first
+    logger = setup_logging(name="bench_with_calibration")
+    
     ap = argparse.ArgumentParser(description="Benchmark with FLOP calibration")
     ap.add_argument("--config", required=True, help="Path to YAML bench config")
     ap.add_argument("--wandb_project", default=None)
@@ -887,6 +902,14 @@ def main():
                    help="Generation token ranges for calibration")
     
     args = ap.parse_args()
+    
+    logger.info(f"Starting benchmark with calibration")
+    logger.info(f"Config: {args.config}")
+    logger.info(f"W&B Project: {args.wandb_project}")
+    logger.info(f"Notes: {args.notes}")
+    logger.info(f"Batch size: {args.batch_size}")
+    logger.info(f"Calibration prefill ranges: {args.calibration_prefill_ranges}")
+    logger.info(f"Calibration generation ranges: {args.calibration_generation_ranges}")
 
     cfg = load_bench_config(args.config)
 
@@ -901,19 +924,19 @@ def main():
             calibration_dataset = None
             
             if os.path.exists(calibration_file):
-                print(f"Loading existing calibration from: {calibration_file}")
+                logger.info(f"Loading existing calibration from: {calibration_file}")
                 try:
                     calibration_dataset = load_calibration_dataset(calibration_file)
-                    print(f"✓ Loaded calibration with {len(calibration_dataset.points)} points")
+                    logger.info(f"✓ Loaded calibration with {len(calibration_dataset.points)} points")
                     if calibration_dataset.model_accuracy:
-                        print(f"  Model R²: {calibration_dataset.model_accuracy.get('r2_score', 'N/A'):.4f}")
+                        logger.info(f"  Model R²: {calibration_dataset.model_accuracy.get('r2_score', 'N/A'):.4f}")
                 except Exception as e:
-                    print(f"Warning: Failed to load calibration: {e}")
+                    logger.warning(f"Failed to load calibration: {e}")
                     calibration_dataset = None
             
             if calibration_dataset is None:
                 # Run new calibration
-                print(f"Running new calibration for {spec.model_name}")
+                logger.info(f"Running new calibration for {spec.model_name}")
                 calibration_runner = FLOPCalibrationRunner(
                     prefill_ranges=args.calibration_prefill_ranges,
                     generation_ranges=args.calibration_generation_ranges
@@ -922,7 +945,7 @@ def main():
                 calibration_dataset = calibration_runner.run_calibration(spec, save_path=calibration_file)
             
             # Add 5-second sleep between calibration and run to ensure GPU memory is freed
-            print("Waiting 5 seconds for GPU memory cleanup...")
+            logger.info("Waiting 5 seconds for GPU memory cleanup...")
             time.sleep(5)
             
             # Run the benchmark with calibration
@@ -935,17 +958,14 @@ def main():
             )
             
         except Exception as e:
-            err_msg = f"[ERROR] model={spec.model_name}, dataset={spec.dataset}: {e}\n"
-            traceback_str = traceback.format_exc()
+            logger = get_logger()
+            err_msg = f"[ERROR] model={spec.model_name}, dataset={spec.dataset}: {e}"
+            logger.log_error(err_msg, e)
             
             # Write to error log file
             with open("error.log", "a", encoding="utf-8") as f:
-                f.write(err_msg)
-                f.write(traceback_str + "\n")
-            
-            # Print error message and full traceback to stdout
-            print(err_msg.strip())
-            print(traceback_str)
+                f.write(err_msg + "\n")
+                f.write(traceback.format_exc() + "\n")
 
 if __name__ == "__main__":
     main()
