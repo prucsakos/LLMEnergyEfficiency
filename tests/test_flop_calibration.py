@@ -15,7 +15,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from cli.bench_with_calibration import (
+from src.cli.bench_with_calibration import (
     CalibrationPoint, 
     CalibrationDataset, 
     FLOPExtrapolationModel, 
@@ -296,15 +296,11 @@ class TestFLOPCalibrationRunner:
         """Test calibration runner initialization."""
         runner = FLOPCalibrationRunner(
             prefill_ranges=[64, 128, 256],
-            generation_ranges=[32, 64],
-            num_repeats=2,
-            warmup_runs=1
+            generation_ranges=[32, 64]
         )
         
         assert runner.prefill_ranges == [64, 128, 256]
         assert runner.generation_ranges == [32, 64]
-        assert runner.num_repeats == 2
-        assert runner.warmup_runs == 1
         assert len(runner.combinations) == 6  # 3 * 2
     
     def test_initialization_defaults(self):
@@ -313,24 +309,18 @@ class TestFLOPCalibrationRunner:
         
         assert len(runner.prefill_ranges) > 0
         assert len(runner.generation_ranges) > 0
-        assert runner.num_repeats == 3
-        assert runner.warmup_runs == 2
         assert len(runner.combinations) > 0
     
     def test_generate_test_prompts(self):
         """Test test prompt generation."""
         runner = FLOPCalibrationRunner()
         
-        prefill_prompt, generation_instruction = runner._generate_test_prompts(128, 64)
+        prompt = runner._generate_test_prompts(128, 64)
         
-        assert isinstance(prefill_prompt, str)
-        assert isinstance(generation_instruction, str)
-        assert len(prefill_prompt) > 0
-        assert len(generation_instruction) > 0
-        assert "step by step" in prefill_prompt.lower()
-        assert "64 tokens" in generation_instruction
+        assert isinstance(prompt, str)
+        assert len(prompt) > 0
     
-    @patch('cli.bench_with_calibration.create_engine')
+    @patch('src.cli.bench_with_calibration.create_engine')
     def test_run_calibration_mock(self, mock_create_engine, mock_model_spec):
         """Test calibration run with mocked engine."""
         # Mock the engine and its methods
@@ -344,9 +334,7 @@ class TestFLOPCalibrationRunner:
         # Create a small calibration runner for testing
         runner = FLOPCalibrationRunner(
             prefill_ranges=[64, 128],
-            generation_ranges=[32, 64],
-            num_repeats=1,
-            warmup_runs=0
+            generation_ranges=[32, 64]
         )
         
         with tempfile.TemporaryDirectory() as temp_dir:

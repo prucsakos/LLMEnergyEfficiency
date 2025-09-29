@@ -21,12 +21,12 @@ class DummyEngine:
         self.calls.append(prompt)
         if "<think>" in prompt and "<final>" not in prompt:
             return GenerationResult(text="<think>think</think>", completion_tokens=5, latency_ms=10)
-        elif "<judgement>" in prompt:
+        elif "Judgement:" in prompt:
             # say YES if candidate equals gold
             if "<candidate>\n42" in prompt and "<gold>\n42" in prompt:
-                return GenerationResult(text="<judgement>YES</judgement>", completion_tokens=3, latency_ms=1)
+                return GenerationResult(text="YES", completion_tokens=1, latency_ms=1)
             else:
-                return GenerationResult(text="<judgement>NO</judgement>", completion_tokens=3, latency_ms=1)
+                return GenerationResult(text="NO", completion_tokens=1, latency_ms=1)
         elif "majority vote counter" in prompt:
             # Return the chosen answer for consistency evaluation
             return GenerationResult(text="<chosen>42</chosen>", completion_tokens=3, latency_ms=5)
@@ -39,12 +39,12 @@ class DummyEngine:
         for prompt in prompts:
             if "<think>" in prompt and "<final>" not in prompt:
                 results.append(GenerationResult(text="<think>think</think>", completion_tokens=5, latency_ms=10))
-            elif "<judgement>" in prompt:
+            elif "Judgement:" in prompt:
                 # say YES if candidate equals gold
                 if "<candidate>\n42" in prompt and "<gold>\n42" in prompt:
-                    results.append(GenerationResult(text="<judgement>YES</judgement>", completion_tokens=3, latency_ms=1))
+                    results.append(GenerationResult(text="YES", completion_tokens=1, latency_ms=1))
                 else:
-                    results.append(GenerationResult(text="<judgement>NO</judgement>", completion_tokens=3, latency_ms=1))
+                    results.append(GenerationResult(text="NO", completion_tokens=1, latency_ms=1))
             elif "majority vote counter" in prompt:
                 # Return the chosen answer for consistency evaluation
                 results.append(GenerationResult(text="<chosen>42</chosen>", completion_tokens=3, latency_ms=5))
