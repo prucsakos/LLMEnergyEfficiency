@@ -146,7 +146,9 @@ def run_one_with_calibration(spec: RunSpec,
                 logger.debug(f"P={prompt_tokens}, G={generated_tokens} → {extrapolated_flops/1e12:.2f} TFLOPs")
             else:
                 # Fallback to simple estimation
-                total_flops += result.get("tokens_generated", 0) * 1e12  # Rough estimate
+                fallback_flops = result.get("tokens_generated", 0) * 1e12  # Rough estimate
+                total_flops += fallback_flops
+                logger.debug(f"Using fallback FLOP estimation: {fallback_flops/1e12:.2f} TFLOPs")
             
             total_latency += result.get("latency_ms", 0)
         
@@ -157,6 +159,12 @@ def run_one_with_calibration(spec: RunSpec,
         logger.info(f"Accuracy: {accuracy:.3f} ({correct}/{len(results)})")
         logger.info(f"Total FLOPs: {total_flops/1e12:.2f} TFLOPs")
         logger.info(f"Average Latency: {avg_latency:.1f} ms")
+        
+        # Log FLOP estimation method used
+        if calibration_dataset and calibration_dataset.extrapolation_model:
+            logger.info("FLOP estimation: Using calibrated extrapolation model")
+        else:
+            logger.info("FLOP estimation: Using fallback estimation (tokens_generated * 1e12)")
         
         # Log to wandb
         if wb:
@@ -574,6 +582,8 @@ def main():
                    help="Prefill token ranges for next-token calibration (default method)")
     ap.add_argument("--estimation_points", type=int, default=64,
                    help="Number of estimation points for extrapolation evaluation (default: 50)")
+    ap.add_argument("--skip-calibration", action="store_true",
+                   help="Skip calibration and run benchmark directly (will use fallback FLOP estimation if no calibration data exists)")
     
     args = ap.parse_args()
     
@@ -582,6 +592,7 @@ def main():
     logger.info(f"W&B Project: {args.wandb_project}")
     logger.info(f"Notes: {args.notes}")
     logger.info(f"Batch size: {args.batch_size}")
+    logger.info(f"Skip calibration: {args.skip_calibration}")
     logger.info(f"Use legacy calibration: {args.use_legacy_calibration}")
     if args.use_legacy_calibration:
         logger.info(f"Legacy calibration prefill ranges: {args.calibration_prefill_ranges}")
@@ -594,52 +605,56 @@ def main():
 
     for spec in expand_runs(cfg):
         try:
-            # Check for existing calibration
-            calibration_base_dir = "calibration_models"
-            model_dir = spec.hf_repo.replace("/", "_")
-            calibration_dir = os.path.join(calibration_base_dir, model_dir)
-            
-            # Choose calibration file name based on method
-            if args.use_legacy_calibration:
-                calibration_file = os.path.join(calibration_dir, "legacy_calibration.json")
-            else:
-                calibration_file = os.path.join(calibration_dir, "next_token_calibration.json")
-            
             calibration_dataset = None
             
-            if os.path.exists(calibration_file):
-                logger.info(f"Loading existing calibration from: {calibration_file}")
-                try:
-                    calibration_dataset = load_calibration_dataset(calibration_file)
-                    logger.info(f"✓ Loaded calibration with {len(calibration_dataset.points)} points")
-                    if calibration_dataset.model_accuracy:
-                        logger.info(f"  Model R²: {calibration_dataset.model_accuracy.get('r2_score', 'N/A'):.4f}")
-                except Exception as e:
-                    logger.warning(f"Failed to load calibration: {e}")
-                    calibration_dataset = None
-            
-            if calibration_dataset is None:
-                # Run new calibration
-                if args.use_legacy_calibration:
-                    logger.info(f"Running new legacy calibration for {spec.model_name}")
-                    calibration_runner = FLOPCalibrationRunner(
-                        prefill_ranges=args.calibration_prefill_ranges,
-                        generation_ranges=args.calibration_generation_ranges
-                    )
-                else:
-                    logger.info(f"Running new next-token calibration for {spec.model_name}")
-                    calibration_runner = NextTokenCalibrationRunner(
-                        prefill_ranges=args.next_token_prefill_ranges,
-                        generation_tokens=1
-                    )
+            if args.skip_calibration:
+                logger.info(f"Skipping calibration for {spec.model_name} - running benchmark directly")
+                logger.info("Will use fallback FLOP estimation if no existing calibration data found")
+            else:
+                # Check for existing calibration
+                calibration_base_dir = "calibration_models"
+                model_dir = spec.hf_repo.replace("/", "_")
+                calibration_dir = os.path.join(calibration_base_dir, model_dir)
                 
-                calibration_dataset = calibration_runner.run_calibration(spec, save_path=calibration_file, estimation_points=args.estimation_points)
+                # Choose calibration file name based on method
+                if args.use_legacy_calibration:
+                    calibration_file = os.path.join(calibration_dir, "legacy_calibration.json")
+                else:
+                    calibration_file = os.path.join(calibration_dir, "next_token_calibration.json")
+                
+                if os.path.exists(calibration_file):
+                    logger.info(f"Loading existing calibration from: {calibration_file}")
+                    try:
+                        calibration_dataset = load_calibration_dataset(calibration_file)
+                        logger.info(f"✓ Loaded calibration with {len(calibration_dataset.points)} points")
+                        if calibration_dataset.model_accuracy:
+                            logger.info(f"  Model R²: {calibration_dataset.model_accuracy.get('r2_score', 'N/A'):.4f}")
+                    except Exception as e:
+                        logger.warning(f"Failed to load calibration: {e}")
+                        calibration_dataset = None
+                
+                if calibration_dataset is None:
+                    # Run new calibration
+                    if args.use_legacy_calibration:
+                        logger.info(f"Running new legacy calibration for {spec.model_name}")
+                        calibration_runner = FLOPCalibrationRunner(
+                            prefill_ranges=args.calibration_prefill_ranges,
+                            generation_ranges=args.calibration_generation_ranges
+                        )
+                    else:
+                        logger.info(f"Running new next-token calibration for {spec.model_name}")
+                        calibration_runner = NextTokenCalibrationRunner(
+                            prefill_ranges=args.next_token_prefill_ranges,
+                            generation_tokens=1
+                        )
+                    
+                    calibration_dataset = calibration_runner.run_calibration(spec, save_path=calibration_file, estimation_points=args.estimation_points)
+                
+                # Add 5-second sleep between calibration and run to ensure GPU memory is freed
+                logger.info("Waiting 5 seconds for GPU memory cleanup...")
+                time.sleep(5)
             
-            # Add 5-second sleep between calibration and run to ensure GPU memory is freed
-            logger.info("Waiting 5 seconds for GPU memory cleanup...")
-            time.sleep(5)
-            
-            # Run the benchmark with calibration
+            # Run the benchmark with calibration (or without if skipped)
             run_one_with_calibration(
                 spec, 
                 calibration_dataset=calibration_dataset,

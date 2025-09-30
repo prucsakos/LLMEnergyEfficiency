@@ -13,3 +13,4 @@ uv pip install scikit-learn
 uv pip install datasets transformers
 uv pip install accelerate
 uv pip install wandb
+uv pip install huggingface_hub[cli]

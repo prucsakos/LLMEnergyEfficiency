@@ -107,8 +107,8 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
-       quantization: "awq",  # Specify AWQ quantization
-       cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
+       #quantization: "awq",  # Specify AWQ quantization
+       #cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
      }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }

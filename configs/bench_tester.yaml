@@ -83,6 +83,27 @@ datasets: [aime_2025]
 config_name: "OpenAIJudge1"
 
 models:
+
+  # --- Llama 4 (public config mirrors; multimodal MoE) ---
+  - name: Llama-4-Scout-17B-16E-Instruct-AWQ
+    hf_repo: kishizaki-sci/Llama-4-Scout-17B-16E-Instruct-AWQ
+    engine: vllm
+    model_family: llama
+    batch_size: 8
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
+    think_budgets: [2048]
+    backend: { 
+       dtype: "auto",  # Let vLLM auto-detect for quantized models
+       gpu_memory_utilization: 0.95, 
+       enforce_eager: true,
+       #quantization: "awq",  # Specify AWQ quantization
+       #cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
+     }
+    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
+
+models__:
   # --- (kept) Nemotron ---
   - name: Nemotron-Nano-9B-v2
     hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
