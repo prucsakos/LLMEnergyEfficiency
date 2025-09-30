@@ -14,7 +14,6 @@ wandb/*
 
 # Environment files
 .env
-.env.example
 
 # Documentation and guides
 PLOTTING_GUIDE.md
@@ -30,6 +29,7 @@ calibration_models/
 error.log
 nohup.out
 logs/
+!src/logs/
 
 # Generated plots and analysis
 plots/
