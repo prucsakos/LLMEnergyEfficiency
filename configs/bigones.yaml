@@ -107,6 +107,7 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
+       swap_space: 60,
        #quantization: "awq",  # Specify AWQ quantization
        #cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
      }
@@ -125,8 +126,9 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
-       quantization: "awq",  # Specify AWQ quantization
-       cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
+       swap_space: 60,
+       #quantization: "awq",  # Specify AWQ quantization
+       #cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
      }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
@@ -143,9 +145,9 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
-       quantization: "awq_marlin",  # Specify AWQ quantization
-       cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
-       swap_space: 20,        # CPU RAM as Virtual VRAM
+       #quantization: "awq_marlin",  # Specify AWQ quantization
+       #cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
+       swap_space: 60,        # CPU RAM as Virtual VRAM
        block_size: 16
      }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
@@ -164,9 +166,9 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
-       quantization: "bitsandbytes",  # Specify AWQ quantization
-       cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
-       swap_space: 20,        # CPU RAM as Virtual VRAM
+       #quantization: "bitsandbytes",  # Specify AWQ quantization
+       #cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
+       swap_space: 60,        # CPU RAM as Virtual VRAM
        block_size: 16
      }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
@@ -185,9 +187,9 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
-       quantization: "awq",  # Specify AWQ quantization
-       cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
-       swap_space: 20,        # CPU RAM as Virtual VRAM
+       #quantization: "awq",  # Specify AWQ quantization
+       #cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
+       swap_space: 60,        # CPU RAM as Virtual VRAM
        block_size: 16
      }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
@@ -206,9 +208,9 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
-       quantization: "bitsandbytes",  # Specify AWQ quantization
-       cpu_offload_gb: 40,  # Reduced since AWQ uses less memory
-       swap_space: 20,        # CPU RAM as Virtual VRAM
+       #quantization: "bitsandbytes",  # Specify AWQ quantization
+       #cpu_offload_gb: 40,  # Reduced since AWQ uses less memory
+       swap_space: 60,        # CPU RAM as Virtual VRAM
        block_size: 16
      }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
@@ -227,11 +229,11 @@ models:
        dtype: "auto",  # Let vLLM auto-detect for quantized models
        gpu_memory_utilization: 0.95, 
        enforce_eager: true,
-       quantization: "awq_marlin",  # Specify AWQ quantization
-       cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
-       swap_space: 20,        # CPU RAM as Virtual VRAM
+       #quantization: "awq_marlin",  # Specify AWQ quantization
+       #cpu_offload_gb: 70,  # Reduced since AWQ uses less memory
+       swap_space: 60,        # CPU RAM as Virtual VRAM
        block_size: 16
      }
-    generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
+    generation: { temperature: 0.8, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
     notes: "Native thinking mode (<think>…); 262k context; enable vLLM: --enable-reasoning --reasoning-parser deepseek_r1." # :contentReference[oaicite:0]{index=0}
