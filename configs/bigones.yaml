@@ -90,7 +90,7 @@ prompts:
     <chosen>
 
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]
-datasets: [aime_2025]
+datasets: [aime_2025, hmmt_feb_2025]
 
 # Large models (>40B parameters) - excluded from calculations for now
 models:
