@@ -18,10 +18,6 @@ wandb/*
 # Documentation and guides
 PLOTTING_GUIDE.md
 
-# Scripts and utilities
-scripts/who_gpu.sh
-scripts/resources.sh
-
 # Calibration models and data
 calibration_models/
 
