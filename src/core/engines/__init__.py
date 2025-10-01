@@ -40,7 +40,10 @@ def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_uti
             dtype=dtype,
             gpu_memory_utilization=float(gpu_memory_utilization or 0.9),
             enforce_eager=bool(enforce_eager if enforce_eager is not None else True),
-            enable_flop_profiling=True,
+            enable_flop_profiling=True,  # Always enabled for calibration
+            # Pass quantization parameters
+            quantization=quantization,
+            quantization_param_path=quantization_param_path,
         )
     if name == "openai":
         print("Detected OpenAI API")

@@ -7,6 +7,7 @@ import deepspeed
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from ..interfaces import GenerationParams, GenerationResult
 from .base import BaseEngine
+from ...logs.benchmark_logger import get_logger
 
 def debug_gpu_memory():
     """Debug function to help identify what's using GPU memory."""
@@ -61,7 +62,10 @@ class DeepSpeedLocalEngine(BaseEngine):
                  dtype: str = "auto",
                  gpu_memory_utilization: float = 0.90,
                  enforce_eager: bool = True,
-                 enable_flop_profiling: bool = True):
+                 enable_flop_profiling: bool = True,
+                 # Quantization parameters
+                 quantization: Optional[str] = None,
+                 quantization_param_path: Optional[str] = None):
         """
         Initialize DeepSpeed engine with FLOP profiling.
         
@@ -71,10 +75,26 @@ class DeepSpeedLocalEngine(BaseEngine):
             gpu_memory_utilization: GPU memory utilization fraction
             enforce_eager: Whether to use eager execution
             enable_flop_profiling: Whether to enable FLOP measurement
+            quantization: Quantization method (deepspeedfp, int8, int4, etc.)
+            quantization_param_path: Path to quantization parameters
         """
         self.model_id = model_id
         self.dtype = dtype
         self.enable_flop_profiling = enable_flop_profiling
+        
+        # Log DeepSpeed calibration model loading with quantization info
+        logger = get_logger()
+        logger.info(f"🔧 Loading DeepSpeed calibration model: {model_id}")
+        logger.info(f"   dtype: {dtype}")
+        logger.info(f"   gpu_memory_utilization: {gpu_memory_utilization}")
+        logger.info(f"   enforce_eager: {enforce_eager}")
+        logger.info(f"   enable_flop_profiling: {enable_flop_profiling} (always enabled for calibration)")
+        if quantization is not None:
+            logger.info(f"   quantization: {quantization}")
+            if quantization_param_path is not None:
+                logger.info(f"   quantization_param_path: {quantization_param_path}")
+        else:
+            logger.info(f"   quantization: None (no quantization)")
         
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
@@ -108,6 +128,8 @@ class DeepSpeedLocalEngine(BaseEngine):
         # Enable FLOP profiling if requested
         if self.enable_flop_profiling:
             self._setup_flop_profiling()
+        
+        logger.info(f"✅ DeepSpeed calibration model loaded successfully: {model_id}")
     
     def _get_torch_dtype(self, dtype: str) -> torch.dtype:
         """Convert string dtype to torch dtype."""

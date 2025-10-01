@@ -278,7 +278,7 @@ def plot_accuracy_vs_metric(df: pd.DataFrame, metric: str, metric_label: str,
         # Set log scale for x-axis
         ax.set_xscale('log')
 
-        # ax.set_yscale('log')
+        #ax.set_yscale('log')
         
         # Set reasonable axis limits
         if len(dataset_df) > 0:
@@ -287,7 +287,7 @@ def plot_accuracy_vs_metric(df: pd.DataFrame, metric: str, metric_label: str,
             y_margin = (dataset_df['self_eval_acc'].max() - dataset_df['self_eval_acc'].min()) * 0.1
             
             # For log scale, use multiplicative margins
-            ax.set_xlim(x_min * 0.8, x_max * 1.2)
+            ax.set_xlim(x_min, x_max)
             ax.set_ylim(dataset_df['self_eval_acc'].min() - y_margin, 
                        dataset_df['self_eval_acc'].max() + y_margin)
     

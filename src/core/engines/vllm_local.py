@@ -6,6 +6,7 @@ import torch
 from vllm import LLM, SamplingParams
 from ..interfaces import GenerationParams, GenerationResult
 from .base import BaseEngine
+from ...logs.benchmark_logger import get_logger
 
 class VLLMLocalEngine(BaseEngine):
     """In-process vLLM engine for offline benchmarking."""
@@ -52,8 +53,22 @@ class VLLMLocalEngine(BaseEngine):
         if block_size is not None:
             llm_kwargs["block_size"] = block_size
         
+        # Log vLLM model loading with quantization info
+        logger = get_logger()
+        logger.info(f"🚀 Loading vLLM model: {model_id}")
+        logger.info(f"   dtype: {dtype}")
+        logger.info(f"   gpu_memory_utilization: {gpu_memory_utilization}")
+        logger.info(f"   enforce_eager: {enforce_eager}")
+        if quantization is not None:
+            logger.info(f"   quantization: {quantization}")
+            if quantization_param_path is not None:
+                logger.info(f"   quantization_param_path: {quantization_param_path}")
+        else:
+            logger.info(f"   quantization: None (no quantization)")
+        
         # Construct once per run
         self.llm = LLM(**llm_kwargs)
+        logger.info(f"✅ vLLM model loaded successfully: {model_id}")
 
     def generate(self, prompt: str, params: GenerationParams) -> GenerationResult:
         return self.generate_batch([prompt], params)[0]

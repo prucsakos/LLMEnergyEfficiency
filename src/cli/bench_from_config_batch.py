@@ -126,6 +126,16 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             "stop": spec.generation.stop,
             "seed": spec.generation.seed,
             "use_kv_cache": spec.generation.use_kv_cache,
+            # Backend parameters
+            "engine": spec.engine,
+            "gpu_memory_utilization": spec.backend.gpu_memory_utilization,
+            "enforce_eager": spec.backend.enforce_eager,
+            "quantization": spec.backend.quantization or "none",
+            "quantization_param_path": spec.backend.quantization_param_path or "none",
+            "cpu_offload_gb": spec.backend.cpu_offload_gb or "none",
+            "swap_space": spec.backend.swap_space or "none",
+            "max_model_len": spec.backend.max_model_len or "none",
+            "block_size": spec.backend.block_size or "none",
         }
         wb = WandbRunLogger(project=wandb_project, run_name=run_name, config=cfg)
 

@@ -156,11 +156,13 @@ class NextTokenCalibrationRunner:
             logger.log_gpu_memory("Pre-calibration", allocated_gb, reserved_gb)
         
         engine = create_engine(
-            calibration_spec.engine,
+            "deepspeed",  # Always use DeepSpeed for calibration
             model_id=calibration_spec.hf_repo,
-            dtype=calibration_spec.backend.dtype,
-            gpu_memory_utilization=calibration_spec.backend.gpu_memory_utilization,
-            enforce_eager=calibration_spec.backend.enforce_eager,
+            dtype=calibration_spec.calibration_backend.dtype,
+            gpu_memory_utilization=calibration_spec.calibration_backend.gpu_memory_utilization,
+            enforce_eager=calibration_spec.calibration_backend.enforce_eager,
+            quantization=calibration_spec.calibration_backend.quantization,
+            quantization_param_path=calibration_spec.calibration_backend.quantization_param_path,
         )
         
         # Try to load tokenizer for exact token counting
@@ -339,7 +341,6 @@ class NextTokenCalibrationRunner:
         logger = get_logger()
         logger.info(f"Next-token calibration data saved to: {save_path}")
 
-
 class FLOPCalibrationRunner:
     """
     Systematic calibration runner that tests different token combinations
@@ -473,11 +474,13 @@ class FLOPCalibrationRunner:
             logger.log_gpu_memory("Pre-calibration", allocated_gb, reserved_gb)
         
         engine = create_engine(
-            calibration_spec.engine,
+            "deepspeed",  # Always use DeepSpeed for calibration
             model_id=calibration_spec.hf_repo,
-            dtype=calibration_spec.backend.dtype,
-            gpu_memory_utilization=calibration_spec.backend.gpu_memory_utilization,
-            enforce_eager=calibration_spec.backend.enforce_eager,
+            dtype=calibration_spec.calibration_backend.dtype,
+            gpu_memory_utilization=calibration_spec.calibration_backend.gpu_memory_utilization,
+            enforce_eager=calibration_spec.calibration_backend.enforce_eager,
+            quantization=calibration_spec.calibration_backend.quantization,
+            quantization_param_path=calibration_spec.calibration_backend.quantization_param_path,
         )
         
         # Try to load tokenizer for exact token counting
@@ -658,3 +661,4 @@ class FLOPCalibrationRunner:
         
         logger = get_logger()
         logger.info(f"Calibration data saved to: {save_path}")
+

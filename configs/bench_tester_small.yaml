@@ -1,0 +1,121 @@
+prompts:
+  cot_think: |
+    You are a worldwide professional problem solver with no mistakes. Analyze this problem systematically. Work through each step methodically until you reach a confident solution.
+
+    HARD FORMAT RULES:
+    - Your ENTIRE output must be EXACTLY one well-formed <think>...</think> block.
+    - Nothing (not even whitespace) may appear before <think> or after </think>.
+    - The block MUST be non-empty, closed properly, and contain only reasoning steps.
+    - Do NOT restate the question or include the final answer here.
+    - Keep the reasoning concise (≤150 tokens), no filler, no meta-comments.
+
+    <question>
+    {question}
+    </question>
+    <think>
+  plan_think: |
+    Devise a brief high-level plan ONLY inside <think>...</think>.
+
+    HARD FORMAT RULES:
+    - Your ENTIRE output must be EXACTLY one well-formed <think>...</think> block.
+    - Nothing may appear before <think> or after </think>.
+    - The block MUST be non-empty and contain 1–5 short bullet points.
+    - Do NOT include calculations, reasoning chains, or the final answer here.
+
+    <question>
+    {question}
+    </question>
+    <think>
+  answer: |
+    Based on your analysis above, provide ONLY the final answer inside <final>...</final>.
+
+    HARD FORMAT RULES:
+    - Your ENTIRE output must be EXACTLY one well-formed <final>...</final> block.
+    - Allowed text: <final>, </final>, Short answer string.
+    - Nothing may appear before <final> or after </final>.
+    - After <final>, write down the exact short answer and the closing </final> tag.
+
+    <question>
+    {question}
+    </question>
+    {deliberate}
+    <final>
+  self_eval: |-
+    You are a strict judge. Reply ONLY YES if the candidate answer equals the gold answer, else NO.
+    Two possible responses: YES or NO
+
+    <question>{question}</question>
+    <gold>{gold}</gold>
+    <candidate>{candidate}</candidate>
+    Judgement:
+  direct: |
+    Answer the question. Output ONLY inside <final>...</final>. Do not include any reasoning or explanation anywhere.
+
+    HARD FORMAT RULES:
+    - Your ENTIRE output must be EXACTLY one well-formed <final>...</final> block.
+    - Nothing may appear before <final> or after </final>.
+    - The block MUST be non-empty and contain only the minimal answer string.
+
+    <question>
+    {question}
+    </question>
+    <final>
+  consistency_eval: |
+    You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.
+
+    COUNTING RULES:
+    - Count exact-string matches after trimming whitespace.
+    - If there is a tie, pick the earliest occurring answer in the provided list.
+    - Your ENTIRE output must be EXACTLY one well-formed <chosen>...</chosen> block, containing the chosen answer copied verbatim.
+    - Nothing may appear before <chosen> or after </chosen>.
+
+    <question>
+    {question}
+    </question>
+    <candidate_answers>
+    {candidate_answers}
+    </candidate_answers>
+
+    Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
+    <chosen>
+
+datasets: [aime_2025]
+config_name: "bitquanzs2"
+
+models:
+  - name: gemma-3-1b-it
+    hf_repo: google/gemma-3-1b-it
+    engine: vllm
+    model_family: gemma
+    batch_size: 128
+    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
+    think_budgets: [128]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
+       quantization: "bitsandbytes"
+        }
+    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
+       quantization: "deepspeedfp"
+        }
+    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Uses OpenAI API for evaluation"
+
+models_:
+
+  - name: gemma-3-1b-it-bnb-4bit
+    hf_repo: unsloth/gemma-3-1b-it-bnb-4bit
+    engine: vllm
+    model_family: gemma
+    batch_size: 128
+    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
+    think_budgets: [128]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
+       quantization: "bitsandbytes", 
+       #cpu_offload_gb: 40, swap_space: 20, block_size: 16
+        }
+    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
+       quantization: "deepspeedfp"
+        }
+    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Uses OpenAI API for evaluation"
