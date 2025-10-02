@@ -373,11 +373,28 @@ class DeepSpeedLocalEngine(BaseEngine):
                 print(f"Final GPU memory after cleanup: {final_allocated:.2f} GB allocated, {final_reserved:.2f} GB reserved")
                 
                 # Step 10: Additional cleanup if memory is still high
-                if final_allocated > 1.0:  # If more than 1GB is still allocated
-                    print("High memory usage detected, attempting additional cleanup...")
+                if final_allocated > 1.0 or final_reserved > 10.0:  # If more than 1GB allocated or 10GB reserved
+                    print(f"High memory usage detected (allocated: {final_allocated:.2f} GB, reserved: {final_reserved:.2f} GB), attempting additional cleanup...")
                     
                     # Debug what's using memory
                     debug_gpu_memory()
+                    
+                    # More aggressive cleanup for reserved memory
+                    if final_reserved > 10.0:
+                        print("High reserved memory detected, attempting aggressive cleanup...")
+                        for i in range(10):  # More aggressive cleanup cycles
+                            gc.collect()
+                            torch.cuda.empty_cache()
+                            torch.cuda.synchronize()
+                            
+                            current_allocated = torch.cuda.memory_allocated()/1e9
+                            current_reserved = torch.cuda.memory_reserved()/1e9
+                            print(f"Aggressive cleanup cycle {i+1}: {current_allocated:.2f} GB allocated, {current_reserved:.2f} GB reserved")
+                            
+                            # If we've made good progress, break early
+                            if current_reserved < 5.0:
+                                print("Reserved memory successfully reduced, stopping aggressive cleanup")
+                                break
                     
                     # Try to reset CUDA context (nuclear option)
                     try:

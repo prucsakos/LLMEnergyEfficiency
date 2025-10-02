@@ -1,4 +1,8 @@
 from __future__ import annotations
+
+import os
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 import traceback
 import argparse, math, time, json, os, copy
 from typing import Iterable, List, Optional, Tuple, Callable, Dict, Any
@@ -33,6 +37,7 @@ from ..calibration import (
 
 # Optional direct import from vLLM for batched generation
 from vllm import SamplingParams
+
 
 # ============================================================================
 # BENCHMARKING FUNCTIONS
