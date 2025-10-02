@@ -94,7 +94,7 @@ models:
        quantization: "bitsandbytes"
         }
     calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       qantization: "deepspeedfp"
+       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
