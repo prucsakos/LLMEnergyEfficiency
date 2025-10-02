@@ -177,13 +177,13 @@ def run_one_with_calibration(spec: RunSpec,
             "benchmark_swap_space": spec.backend.swap_space or "none",
             "benchmark_max_model_len": spec.backend.max_model_len or "none",
             "benchmark_block_size": spec.backend.block_size or "none",
-            # Calibration backend (DeepSpeed) parameters
+            # Calibration backend (DeepSpeed) parameters - using same backend config
             "calibration_engine": "deepspeed",
-            "calibration_dtype": spec.calibration_backend.dtype,
-            "calibration_gpu_memory_utilization": spec.calibration_backend.gpu_memory_utilization,
-            "calibration_enforce_eager": spec.calibration_backend.enforce_eager,
-            "calibration_quantization": spec.calibration_backend.quantization or "none",
-            "calibration_quantization_param_path": spec.calibration_backend.quantization_param_path or "none",
+            "calibration_dtype": spec.backend.dtype,
+            "calibration_gpu_memory_utilization": spec.backend.gpu_memory_utilization,
+            "calibration_enforce_eager": spec.backend.enforce_eager,
+            "calibration_quantization": spec.backend.quantization or "none",
+            "calibration_quantization_param_path": spec.backend.quantization_param_path or "none",
             "calibration_enable_flop_profiling": True,  # Always enabled for calibration
             # Calibration info
             "has_calibration": calibration_dataset is not None,

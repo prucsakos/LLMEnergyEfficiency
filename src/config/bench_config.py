@@ -29,17 +29,6 @@ class BackendDefaults:
     max_model_len: Optional[int] = None  # Maximum sequence length
     block_size: Optional[int] = None  # Block size for PagedAttention
 
-@dataclass
-class CalibrationBackendDefaults:
-    """Separate backend configuration for calibration runs using DeepSpeed."""
-    dtype: str = "auto"
-    gpu_memory_utilization: float = 0.90
-    enforce_eager: bool = True
-    # Note: enable_flop_profiling is always True for calibration (removed as parameter)
-    
-    # Quantization settings - only deepspeedfp or None
-    quantization: Optional[str] = None  # Only "deepspeedfp" or None
-    quantization_param_path: Optional[str] = None  # Path to quantization parameters
 
 @dataclass
 class GenDefaults:
@@ -110,7 +99,6 @@ class ModelSpec:
     engine: str = "vllm"  # 'vllm' | 'transformers'
     batch_size: int = 1
     backend: BackendDefaults = field(default_factory=BackendDefaults)
-    calibration_backend: CalibrationBackendDefaults = field(default_factory=CalibrationBackendDefaults)
     generation: GenDefaults = field(default_factory=GenDefaults)
     reasoning: ReasoningDefaults = field(default_factory=ReasoningDefaults)
     prompts_override: Dict[str, str] = field(default_factory=dict)
@@ -149,7 +137,6 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
     for m in data["models"]:
         card = _dict_to_dataclass(Card, m["card"])
         backend = _dict_to_dataclass(BackendDefaults, m.get("backend", {}))
-        calibration_backend = _dict_to_dataclass(CalibrationBackendDefaults, m.get("calibration_backend", {}))
         gen = _dict_to_dataclass(GenDefaults, m.get("generation", {}))
         reason = _dict_to_dataclass(ReasoningDefaults, m.get("reasoning", {}))
         spec = ModelSpec(
@@ -161,7 +148,6 @@ def load_bench_config(path: str | pathlib.Path) -> BenchConfig:
             engine=m.get("engine", "vllm"),
             batch_size=m.get("batch_size", 1),
             backend=backend,
-            calibration_backend=calibration_backend,
             generation=gen,
             reasoning=reason,
             prompts_override=m.get("prompts_override", {}),
@@ -180,7 +166,6 @@ class RunSpec:
     think_budget: int
     batch_size: int
     backend: BackendDefaults
-    calibration_backend: CalibrationBackendDefaults
     generation: GenDefaults
     reasoning: ReasoningDefaults
     prompts: Prompts
@@ -218,7 +203,6 @@ def expand_runs(cfg: BenchConfig) -> Iterable[RunSpec]:
                     think_budget=budget,
                     batch_size=m.batch_size,
                     backend=m.backend,
-                    calibration_backend=m.calibration_backend,
                     generation=m.generation,
                     reasoning=m.reasoning,
                     prompts=prompts,

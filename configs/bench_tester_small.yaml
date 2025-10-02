@@ -91,10 +91,7 @@ models:
     card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
     think_budgets: [128]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "bitsandbytes"
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
+       #quantization: "bitsandbytes"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -112,9 +109,6 @@ models_:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
        quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }

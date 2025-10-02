@@ -96,9 +96,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Uses OpenAI API for evaluation"
@@ -115,9 +112,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; thinking mode (<think>…)." # :contentReference[oaicite:2]{index=2}
@@ -132,9 +126,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -152,9 +143,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; thinking mode." # :contentReference[oaicite:4]{index=4}
@@ -169,9 +157,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -189,9 +174,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128." # :contentReference[oaicite:6]{index=6}
@@ -207,9 +189,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -227,9 +206,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Fields taken from Meta-Llama-3.1-8B mirrors (identical arch dims)." # :contentReference[oaicite:10]{index=10}
@@ -246,9 +222,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
@@ -263,9 +236,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -283,9 +253,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Gated repo; 32k input context per card; let loader resolve dims." # :contentReference[oaicite:14]{index=14}
@@ -300,9 +267,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -319,9 +283,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:16]{index=16}
@@ -336,9 +297,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -356,9 +314,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Gated repo; Together AI lists E-series selective activation for edge." # :contentReference[oaicite:18]{index=18}
@@ -373,9 +328,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -393,9 +345,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "14B dense transformer; 16k context; defaults per model card." # :contentReference[oaicite:20]{index=20}
@@ -411,9 +360,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "4.9B parameters; 128k context; reasoning-optimized variant." # :contentReference[oaicite:21]{index=21}
@@ -428,9 +374,6 @@ models:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }

@@ -107,9 +107,6 @@ models:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       #quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
@@ -126,9 +123,6 @@ asd:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; 128E per model naming; multimodal text+vision." # :contentReference[oaicite:13]{index=13}
@@ -143,9 +137,6 @@ asd:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -163,9 +154,6 @@ asd:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Harmony chat template required; 131k max_position; MoE MXFP4 weights." # :contentReference[oaicite:7]{index=7}
@@ -181,9 +169,6 @@ asd:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -201,9 +186,6 @@ asd:
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
-        }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Fields from Llama-3.1-70B public config mirrors." # :contentReference[oaicite:11]{index=11}
@@ -219,9 +201,6 @@ asd:
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
         }
     generation: { temperature: 0.8, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
