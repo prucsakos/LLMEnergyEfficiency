@@ -110,8 +110,56 @@ models:
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
-
 asd:
+  # --- OpenAI GPT-OSS (Harmony format) ---
+  - name: gpt-oss-120b-BitsAndBytes-4bit
+    hf_repo: unsloth/gpt-oss-120b-unsloth-bnb-4bit
+    engine: vllm
+    model_family: gpt
+    batch_size: 1
+    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
+    think_budgets: [2048]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
+       #quantization: "bitsandbytes", 
+       #cpu_offload_gb: 40, swap_space: 20, block_size: 16
+        }
+    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Harmony chat template required; 131k max_position; MoE MXFP4 weights." # :contentReference[oaicite:7]{index=7}
+
+  # --- GLM-4.5 Air (MoE) ---
+  - name: GLM-4.5-Air-FP4
+    hf_repo: OnFinanceAI/GLM-4.5-Air-FP4
+    engine: vllm
+    model_family: glm
+    batch_size: 2
+    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: decoder-only MoE (n_routed_experts=128, 8 active) }
+    think_budgets: [0, 512, 2048, 4096]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
+       #quantization: "bitsandbytes", 
+       #cpu_offload_gb: 40, swap_space: 20, block_size: 16
+        }
+    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Hybrid reasoning modes; 131k context per config." # :contentReference[oaicite:9]{index=9}
+
+  # --- Llama 3.1 (public mirrors for config fields) ---
+  - name: Llama-3.1-70B-Instruct-bitsandbytes-4bit
+    hf_repo: unsloth/Meta-Llama-3.1-70B-Instruct-bnb-4bit
+    engine: vllm
+    model_family: llama
+    batch_size: 2
+    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only (GQA kv_heads=8) }
+    think_budgets: [0, 512, 2048, 4096]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
+       #quantization: "bitsandbytes", 
+       #cpu_offload_gb: 40, swap_space: 20, block_size: 16
+        }
+    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Fields from Llama-3.1-70B public config mirrors." # :contentReference[oaicite:11]{index=11}
+
+_models:
   - name: Llama-4-Maverick-17B-128E-Instruct-AWQ
     hf_repo: kishizaki-sci/Llama-4-Maverick-17B-128E-Instruct-AWQ
     engine: vllm
@@ -141,54 +189,6 @@ asd:
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; non-thinking (no <think>) variant." # :contentReference[oaicite:1]{index=1}
-
-  # --- OpenAI GPT-OSS (Harmony format) ---
-  - name: gpt-oss-120b-BitsAndBytes-4bit
-    hf_repo: unsloth/gpt-oss-120b-unsloth-bnb-4bit
-    engine: vllm
-    model_family: gpt
-    batch_size: 1
-    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
-       #quantization: "bitsandbytes", 
-       #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Harmony chat template required; 131k max_position; MoE MXFP4 weights." # :contentReference[oaicite:7]{index=7}
-
-  # --- GLM-4.5 Air (MoE) ---
-  - name: GLM-4.5-Air-AWQ-4bit
-    hf_repo: cpatonn/GLM-4.5-Air-AWQ-4bit
-    engine: vllm
-    model_family: glm
-    batch_size: 2
-    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: decoder-only MoE (n_routed_experts=128, 8 active) }
-    think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
-       #quantization: "bitsandbytes", 
-       #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Hybrid reasoning modes; 131k context per config." # :contentReference[oaicite:9]{index=9}
-
-  # --- Llama 3.1 (public mirrors for config fields) ---
-  - name: Llama-3.1-70B-Instruct-bitsandbytes-4bit
-    hf_repo: unsloth/Meta-Llama-3.1-70B-Instruct-bnb-4bit
-    engine: vllm
-    model_family: llama
-    batch_size: 2
-    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only (GQA kv_heads=8) }
-    think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
-       #quantization: "bitsandbytes", 
-       #cpu_offload_gb: 40, swap_space: 20, block_size: 16
-        }
-    generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Fields from Llama-3.1-70B public config mirrors." # :contentReference[oaicite:11]{index=11}
 
       # --- Qwen3 235B (A22B) ---
   - name: Qwen3-235B-A22B-Thinking-2507-AWQ
