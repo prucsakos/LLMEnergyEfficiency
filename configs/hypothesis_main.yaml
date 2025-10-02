@@ -83,9 +83,9 @@ prompts:
     Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
     <chosen>
 
-config_name: "main_>40B_models_small_benchmarks_09252025"
+config_name: "smalls"
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]
-datasets: [aime_2025, hmmt_feb_2025]
+datasets: [aime_2025, hmmt_feb_2025, gpqa, prontoqa, proofwriter]
 
 models:
 

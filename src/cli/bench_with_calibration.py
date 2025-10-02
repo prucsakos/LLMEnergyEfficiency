@@ -440,7 +440,7 @@ def main():
     
     # Calibration options
     ap.add_argument("--calibration_prefill_ranges", nargs="+", type=int,
-                   default=np.geomspace(1, 1024, 64, dtype=int).tolist(),
+                   default=np.geomspace(1, 2024, 64, dtype=int).tolist(),
                    help="Prefill token ranges for next-token calibration")
     ap.add_argument("--estimation_points", type=int, default=64,
                    help="Number of estimation points for extrapolation evaluation (default: 64)")

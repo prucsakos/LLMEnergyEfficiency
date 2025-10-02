@@ -20,6 +20,8 @@ def iter_dataset(name: str, split: str = "test"):
     if name == "hmmt_feb_2025": return load_hmmt_feb_2025(split="train" if split == "test" else split)
     if name == "gpqa": return load_gpqa(split="train" if split == "test" else split)
     if name == "mmlu_pro": return load_mmlu_pro(split=split)
+    if name == "prontoqa": return load_prontoqa(split="validation" if split == "test" else split)
+    if name == "proofwriter": return load_proofwriter(split=split)
     raise ValueError(f"Unknown dataset {name}")
 
 # ---------- GSM8K (free-form numeric/text answers) ----------
@@ -125,6 +127,64 @@ def load_mmlu_pro(split: str = "test") -> Iterable[Sample]:
             idx = ord(str(gold_label).strip().upper()) - ord('A')
             gold = choices[idx]
         yield Sample(id=f"mmlu_pro-{split}-{i}", question=q, gold=normalize_freeform(gold), choices=choices)
+
+# ---------- ProntoQA (MCQ with context) ----------
+def load_prontoqa(split: str = "validation") -> Iterable[Sample]:
+    """Yield ProntoQA samples. Fields: 'context', 'question', 'options', 'answer'."""
+    ds = load_dataset("renma/ProntoQA")[split]
+    for i, row in enumerate(ds):
+        context = row["context"]
+        question = row["question"]
+        options = row["options"]  # ['A) True', 'B) False']
+        answer = row["answer"]  # 'A' or 'B'
+        
+        # Combine context and question
+        full_question = f"{context}\n\n{question}"
+        
+        # Format choices
+        choices_text = "\n".join(options)
+        formatted_question = f"{full_question}\n\nChoose the best answer from the following options:\n{choices_text}"
+        
+        # Map answer to choice text
+        if answer == "A":
+            gold = options[0]  # "A) True"
+        elif answer == "B":
+            gold = options[1]  # "B) False"
+        else:
+            gold = answer  # fallback
+        
+        yield Sample(
+            id=f"prontoqa-{split}-{i}",
+            question=formatted_question,
+            gold=normalize_freeform(gold),
+            choices=options,
+            meta={"original_id": row["id"], "context": context}
+        )
+
+# ---------- ProofWriter (True/False/Uncertain) ----------
+def load_proofwriter(split: str = "test") -> Iterable[Sample]:
+    """Yield ProofWriter samples. Fields: 'theory', 'question', 'answer'."""
+    ds = load_dataset("theoxo/proofwriter-deduction-balanced")[split]
+    for i, row in enumerate(ds):
+        theory = row["theory"]
+        question = row["question"]
+        answer = row["answer"]  # 'True', 'False', or 'Uncertain'
+        
+        # Combine theory and question
+        full_question = f"{theory}\n\nQuestion: {question}"
+        
+        # Format as True/False question
+        formatted_question = f"{full_question}\n\nIs this statement true or false?"
+        
+        # Normalize the answer
+        normalized_answer = normalize_freeform(answer)
+        
+        yield Sample(
+            id=f"proofwriter-{split}-{i}",
+            question=formatted_question,
+            gold=normalized_answer,
+            meta={"original_id": row["id"], "theory": theory, "qdep": row.get("QDep", None)}
+        )
 
 # ---------- Accuracy helpers ----------
 def exact_match(pred: str, gold: str) -> bool:
