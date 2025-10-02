@@ -321,7 +321,7 @@ _models_excluded:
        cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
      }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
 
   - name: Llama-4-Maverick-17B-128E-Instruct-AWQ
@@ -339,7 +339,7 @@ _models_excluded:
        cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
      }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; 128E per model naming; multimodal text+vision." # :contentReference[oaicite:13]{index=13}
 
   # --- Qwen3 235B (A22B) ---
@@ -360,7 +360,7 @@ _models_excluded:
        block_size: 16
      }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Native thinking mode (<think>…); 262k context; enable vLLM: --enable-reasoning --reasoning-parser deepseek_r1." # :contentReference[oaicite:0]{index=0}
 
   - name: Qwen3-235B-A22B-Instruct-2507-AWQ
@@ -380,7 +380,7 @@ _models_excluded:
        block_size: 16
      }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; non-thinking (no <think>) variant." # :contentReference[oaicite:1]{index=1}
 
   # --- OpenAI GPT-OSS (Harmony format) ---
@@ -401,7 +401,7 @@ _models_excluded:
        block_size: 16
      }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Harmony chat template required; 131k max_position; MoE MXFP4 weights." # :contentReference[oaicite:7]{index=7}
 
   # --- GLM-4.5 Air (MoE) ---
@@ -422,7 +422,7 @@ _models_excluded:
        block_size: 16
      }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Hybrid reasoning modes; 131k context per config." # :contentReference[oaicite:9]{index=9}
 
   # --- Llama 3.1 (public mirrors for config fields) ---
@@ -443,5 +443,5 @@ _models_excluded:
        block_size: 16
      }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Fields from Llama-3.1-70B public config mirrors." # :contentReference[oaicite:11]{index=11}

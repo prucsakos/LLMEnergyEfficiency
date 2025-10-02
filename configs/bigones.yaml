@@ -90,30 +90,31 @@ prompts:
     <chosen>
 
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]
-datasets: [aime_2025, hmmt_feb_2025]
+datasets: [aime_2025]
 
 # Large models (>40B parameters) - excluded from calculations for now
 models:
 
   # --- Llama 4 (public config mirrors; multimodal MoE) ---
-  - name: Llama-4-Scout-17B-16E-Instruct-AWQ
-    hf_repo: kishizaki-sci/Llama-4-Scout-17B-16E-Instruct-AWQ
+  - name: Meta-Llama-3.1-70B-Instruct-bnb-4bit
+    hf_repo: unsloth/Meta-Llama-3.1-70B-Instruct-bnb-4bit
     engine: vllm
     model_family: llama
     batch_size: 8
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
     think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, max_model_len: 16000, enforce_eager: true,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
     calibration_backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: false,
-       quantization: "deepspeedfp"
+       #quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
 
+asd:
   - name: Llama-4-Maverick-17B-128E-Instruct-AWQ
     hf_repo: kishizaki-sci/Llama-4-Maverick-17B-128E-Instruct-AWQ
     engine: vllm
@@ -121,7 +122,7 @@ models:
     batch_size: 4
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts) }
     think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
@@ -129,7 +130,7 @@ models:
        quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Dims via Unsloth config; 128E per model naming; multimodal text+vision." # :contentReference[oaicite:13]{index=13}
 
   - name: Qwen3-235B-A22B-Instruct-2507-AWQ
@@ -139,7 +140,7 @@ models:
     batch_size: 1
     card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
     think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
@@ -147,7 +148,7 @@ models:
        quantization: "deepspeedfp"
         }
     generation: { temperature: 0.7, top_p: 0.8, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; non-thinking (no <think>) variant." # :contentReference[oaicite:1]{index=1}
 
   # --- OpenAI GPT-OSS (Harmony format) ---
@@ -158,7 +159,7 @@ models:
     batch_size: 1
     card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
     think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
@@ -166,7 +167,7 @@ models:
        quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Harmony chat template required; 131k max_position; MoE MXFP4 weights." # :contentReference[oaicite:7]{index=7}
 
   # --- GLM-4.5 Air (MoE) ---
@@ -177,7 +178,7 @@ models:
     batch_size: 2
     card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: decoder-only MoE (n_routed_experts=128, 8 active) }
     think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
@@ -185,7 +186,7 @@ models:
        quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Hybrid reasoning modes; 131k context per config." # :contentReference[oaicite:9]{index=9}
 
   # --- Llama 3.1 (public mirrors for config fields) ---
@@ -196,7 +197,7 @@ models:
     batch_size: 2
     card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only (GQA kv_heads=8) }
     think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
@@ -204,7 +205,7 @@ models:
        quantization: "deepspeedfp"
         }
     generation: { temperature: 0.6, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Fields from Llama-3.1-70B public config mirrors." # :contentReference[oaicite:11]{index=11}
 
       # --- Qwen3 235B (A22B) ---
@@ -215,7 +216,7 @@ models:
     batch_size: 1
     card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
     think_budgets: [2048]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true,
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.8, enforce_eager: true, max_model_len: 16384,
        #quantization: "bitsandbytes", 
        #cpu_offload_gb: 40, swap_space: 20, block_size: 16
         }
@@ -223,5 +224,5 @@ models:
        quantization: "deepspeedfp"
         }
     generation: { temperature: 0.8, top_p: 0.95, top_k: 20, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Native thinking mode (<think>…); 262k context; enable vLLM: --enable-reasoning --reasoning-parser deepseek_r1." # :contentReference[oaicite:0]{index=0}

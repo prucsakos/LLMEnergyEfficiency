@@ -96,5 +96,5 @@ models:
     think_budgets: [256]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.98, enforce_eager: true }
     generation: { temperature: 0.1, top_p: 0.9, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 3, self_eval: true }
+    reasoning: { style: cot, self_consistency_k: 3, self_eval: true, openai_eval: true }
     notes: DeepSpeed engine with FLOP measurement
