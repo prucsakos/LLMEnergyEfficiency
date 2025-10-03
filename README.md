@@ -37,3 +37,4 @@
 ## Improvements
 - Use the specified chat template for each model instead of universal prompts. 
 - Better prompts?
+- Currently benchmarks are 0-shot. But we can make it n-shot. 

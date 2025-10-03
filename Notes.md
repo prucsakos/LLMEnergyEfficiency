@@ -4,3 +4,8 @@ vLLM quantization methods:
 # Plan
 - Calib: default deepspeedfp - if bnb 4bit in name then no additional quant
 - Bench: default bitsandbytes - if bnb 4bit in name then no additional qunat
+
+
+TEST 1 - deepspeed quantization:
+Use HF+BnB to load the models as quantized 4bit
+Wrap THAT into deepspeed inference negine.  
