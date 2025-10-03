@@ -15,12 +15,9 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from src.cli.bench_with_calibration import (
-    CalibrationPoint, 
-    CalibrationDataset, 
-    FLOPExtrapolationModel, 
-    FLOPCalibrationRunner
-)
+from src.calibration.data import CalibrationPoint, CalibrationDataset
+from src.calibration.models import FLOPExtrapolationModel
+from src.calibration.runners import FLOPCalibrationRunner
 
 # ============================================================================
 # Test Data and Fixtures
