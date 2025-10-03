@@ -22,6 +22,7 @@ def iter_dataset(name: str, split: str = "test"):
     if name == "mmlu_pro": return load_mmlu_pro(split=split)
     if name == "prontoqa": return load_prontoqa(split="validation" if split == "test" else split)
     if name == "proofwriter": return load_proofwriter(split=split)
+    if name == "arc_challenge": return load_arc_challenge(split="validation" if split == "test" else split)
     raise ValueError(f"Unknown dataset {name}")
 
 # ---------- GSM8K (free-form numeric/text answers) ----------
@@ -184,6 +185,47 @@ def load_proofwriter(split: str = "test") -> Iterable[Sample]:
             question=formatted_question,
             gold=normalized_answer,
             meta={"original_id": row["id"], "theory": theory, "qdep": row.get("QDep", None)}
+        )
+
+# ---------- ARC-Challenge (Science MCQ) ----------
+def load_arc_challenge(split: str = "validation") -> Iterable[Sample]:
+    """Yield ARC-Challenge samples. Fields: 'question', 'choices', 'answerKey'."""
+    ds = load_dataset("allenai/ai2_arc", "ARC-Challenge")[split]
+    for i, row in enumerate(ds):
+        question = row["question"]
+        choices_dict = row["choices"]
+        answer_key = row["answerKey"]
+        
+        # Extract choice texts and labels
+        choice_texts = choices_dict["text"]
+        choice_labels = choices_dict["label"]
+        
+        # Format choices for display
+        formatted_choices = [f"{label}) {text}" for label, text in zip(choice_labels, choice_texts)]
+        
+        # Find the correct answer text
+        try:
+            correct_idx = choice_labels.index(answer_key)
+            gold_answer = choice_texts[correct_idx]
+        except (ValueError, IndexError):
+            # Fallback if answer_key is not found
+            gold_answer = answer_key
+        
+        # Format the question with choices
+        choices_text = "\n".join(formatted_choices)
+        formatted_question = f"{question}\n\nChoose the best answer from the following options:\n{choices_text}"
+        
+        yield Sample(
+            id=f"arc_challenge-{split}-{i}",
+            question=formatted_question,
+            gold=normalize_freeform(gold_answer),
+            choices=choice_texts,
+            meta={
+                "original_id": row["id"],
+                "answer_key": answer_key,
+                "choice_labels": choice_labels,
+                "difficulty": "challenge"
+            }
         )
 
 # ---------- Accuracy helpers ----------
