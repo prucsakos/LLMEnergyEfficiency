@@ -15,6 +15,84 @@ from .base import BaseEngine
 from ..interfaces import GenerationParams, GenerationResult
 
 
+class QuotaExceededError(Exception):
+    """Custom exception for OpenAI quota exceeded errors."""
+    def __init__(self, message, quota_info=None):
+        super().__init__(message)
+        self.quota_info = quota_info or {}
+
+
+def parse_quota_info(error_message):
+    """Parse quota information from OpenAI error message."""
+    import json
+    import re
+    from datetime import datetime, timedelta
+    
+    quota_info = {
+        'error_type': 'unknown',
+        'message': '',
+        'reset_time': None,
+        'remaining_requests': None,
+        'remaining_tokens': None,
+        'limit_requests': None,
+        'limit_tokens': None
+    }
+    
+    try:
+        error_str = str(error_message)
+        
+        # Try to extract dictionary from the error message
+        dict_match = re.search(r'\{.*\}', error_str)
+        if dict_match:
+            dict_str = dict_match.group()
+            try:
+                # First try JSON parsing (double quotes)
+                error_data = json.loads(dict_str)
+            except json.JSONDecodeError:
+                try:
+                    # Try converting single quotes to double quotes
+                    json_str = dict_str.replace("'", '"')
+                    error_data = json.loads(json_str)
+                except json.JSONDecodeError:
+                    try:
+                        # Try using ast.literal_eval for Python dict format
+                        import ast
+                        error_data = ast.literal_eval(dict_str)
+                    except (ValueError, SyntaxError):
+                        error_data = None
+            
+            if error_data and 'error' in error_data:
+                error_obj = error_data['error']
+                quota_info['error_type'] = error_obj.get('type', 'unknown')
+                quota_info['message'] = error_obj.get('message', '')
+        
+        # Look for rate limit headers in the error (if available)
+        # These are typically in the response headers but might be in error context
+        if hasattr(error_message, 'response') and hasattr(error_message.response, 'headers'):
+            headers = error_message.response.headers
+            quota_info.update({
+                'remaining_requests': headers.get('x-ratelimit-remaining-requests'),
+                'remaining_tokens': headers.get('x-ratelimit-remaining-tokens'),
+                'limit_requests': headers.get('x-ratelimit-limit-requests'),
+                'limit_tokens': headers.get('x-ratelimit-limit-tokens'),
+                'reset_time': headers.get('x-ratelimit-reset-requests')
+            })
+        
+        # Parse reset time if available
+        if quota_info['reset_time']:
+            try:
+                reset_timestamp = int(quota_info['reset_time'])
+                quota_info['reset_time'] = datetime.fromtimestamp(reset_timestamp)
+            except (ValueError, TypeError):
+                pass
+                
+    except (AttributeError, KeyError):
+        # If parsing fails, just store the raw message
+        quota_info['message'] = str(error_message)
+    
+    return quota_info
+
+
 @dataclass
 class OpenAIEngineConfig:
     """Configuration for OpenAI API engine."""
@@ -69,7 +147,39 @@ class OpenAIInferenceEngine(BaseEngine):
             print(f"Rate limit: {self.rate_limit_info['requests_remaining']} requests remaining")
         
         # Print all headers for debugging
-        print(f"Response headers: {response_headers}")
+
+    def _log_quota_info(self, quota_info: Dict[str, Any]) -> None:
+        """Log detailed quota information."""
+        print("📊 OpenAI Quota Information:")
+        print(f"   Error Type: {quota_info.get('error_type', 'unknown')}")
+        print(f"   Message: {quota_info.get('message', 'No message available')}")
+        
+        if quota_info.get('remaining_requests') is not None:
+            print(f"   Remaining Requests: {quota_info['remaining_requests']}")
+        if quota_info.get('remaining_tokens') is not None:
+            print(f"   Remaining Tokens: {quota_info['remaining_tokens']}")
+        if quota_info.get('limit_requests') is not None:
+            print(f"   Request Limit: {quota_info['limit_requests']}")
+        if quota_info.get('limit_tokens') is not None:
+            print(f"   Token Limit: {quota_info['limit_tokens']}")
+        
+        if quota_info.get('reset_time'):
+            if isinstance(quota_info['reset_time'], str):
+                print(f"   Reset Time: {quota_info['reset_time']}")
+            else:
+                from datetime import datetime
+                now = datetime.now()
+                reset_time = quota_info['reset_time']
+                if isinstance(reset_time, datetime):
+                    time_diff = reset_time - now
+                    if time_diff.total_seconds() > 0:
+                        hours = int(time_diff.total_seconds() // 3600)
+                        minutes = int((time_diff.total_seconds() % 3600) // 60)
+                        print(f"   Quota Resets In: {hours}h {minutes}m ({reset_time.strftime('%Y-%m-%d %H:%M:%S')})")
+                    else:
+                        print(f"   Quota Reset Time: {reset_time.strftime('%Y-%m-%d %H:%M:%S')} (may have already reset)")
+        
+        print("   🔄 Falling back to main engine for evaluation...")
     
     def _make_request_with_retry(self, messages: List[Dict[str, str]], params: GenerationParams) -> Dict[str, Any]:
         """Make OpenAI API request with retry logic."""
@@ -122,6 +232,14 @@ class OpenAIInferenceEngine(BaseEngine):
                 last_exception = e
                 print(f"Rate limit hit (attempt {attempt + 1}/{self.config.max_retries}): {e}")
                 
+                # Check if this is a quota exceeded error (429 with insufficient_quota)
+                error_str = str(e).lower()
+                if "insufficient_quota" in error_str or "quota" in error_str:
+                    print("Quota exceeded - raising QuotaExceededError for fallback")
+                    quota_info = parse_quota_info(e)
+                    self._log_quota_info(quota_info)
+                    raise QuotaExceededError(f"OpenAI quota exceeded: {e}", quota_info)
+                
                 # Try next model if available
                 if len(self.config.models) > 1:
                     model = self._get_current_model()
@@ -136,6 +254,14 @@ class OpenAIInferenceEngine(BaseEngine):
             except openai.APIError as e:
                 last_exception = e
                 print(f"API error (attempt {attempt + 1}/{self.config.max_retries}): {e}")
+                
+                # Check if this is a quota exceeded error (429 with insufficient_quota)
+                error_str = str(e).lower()
+                if "insufficient_quota" in error_str or "quota" in error_str or "429" in error_str:
+                    print("Quota exceeded - raising QuotaExceededError for fallback")
+                    quota_info = parse_quota_info(e)
+                    self._log_quota_info(quota_info)
+                    raise QuotaExceededError(f"OpenAI quota exceeded: {e}", quota_info)
                 
                 if attempt < self.config.max_retries - 1:
                     wait_time = self.config.retry_delay * (2 ** attempt)

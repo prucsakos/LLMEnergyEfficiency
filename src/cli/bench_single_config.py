@@ -186,14 +186,14 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     if spec.reasoning.self_eval:
         # Use OpenAI engine for evaluation if specified
         eval_engine = None
-            if spec.reasoning.openai_eval:
-                try:
-                    from ..core.engines import create_openai_engine
-                    eval_engine = create_openai_engine()
-                    logger.info("Using OpenAI API for evaluation")
-                except Exception as e:
-                    logger.warning(f"Failed to create OpenAI evaluation engine: {e}")
-                    logger.info("Falling back to main engine for evaluation")
+        if spec.reasoning.openai_eval:
+            try:
+                from ..core.engines import create_openai_engine
+                eval_engine = create_openai_engine()
+                logger.info("Using OpenAI API for evaluation")
+            except Exception as e:
+                logger.warning(f"Failed to create OpenAI evaluation engine: {e}")
+                logger.info("Falling back to main engine for evaluation")
         
         judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts, eval_engine)
 

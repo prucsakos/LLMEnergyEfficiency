@@ -119,19 +119,58 @@ def self_evaluate_batched(
     # Use evaluation engine if provided, otherwise use main engine
     evaluation_engine = eval_engine if eval_engine is not None else engine
     
-    texts, _tok, _ms, _raw = _engine_generate_batch(
-        evaluation_engine,
-        judge_prompts,
-        GenerationParams(**{**gen.__dict__, "max_new_tokens": 150, "temperature": 1.0}),
-        extra_stop=None,
-    )
+    try:
+        texts, _tok, _ms, _raw = _engine_generate_batch(
+            evaluation_engine,
+            judge_prompts,
+            GenerationParams(**{**gen.__dict__, "max_new_tokens": 150, "temperature": 1.0}),
+            extra_stop=None,
+        )
+    except Exception as e:
+        # Check if this is a quota exceeded error from OpenAI
+        error_str = str(e).lower()
+        if ("quota" in error_str or "insufficient_quota" in error_str or 
+            "429" in error_str or "quotaexceedederror" in error_str):
+            print(f"OpenAI quota exceeded during evaluation: {e}")
+            
+            # Log additional quota information if available
+            if hasattr(e, 'quota_info') and e.quota_info:
+                quota_info = e.quota_info
+                print("📊 Quota Details:")
+                if quota_info.get('reset_time'):
+                    from datetime import datetime
+                    if isinstance(quota_info['reset_time'], datetime):
+                        now = datetime.now()
+                        time_diff = quota_info['reset_time'] - now
+                        if time_diff.total_seconds() > 0:
+                            hours = int(time_diff.total_seconds() // 3600)
+                            minutes = int((time_diff.total_seconds() % 3600) // 60)
+                            print(f"   Quota Resets In: {hours}h {minutes}m")
+                        else:
+                            print(f"   Quota may have already reset")
+                if quota_info.get('remaining_requests') is not None:
+                    print(f"   Remaining Requests: {quota_info['remaining_requests']}")
+                if quota_info.get('remaining_tokens') is not None:
+                    print(f"   Remaining Tokens: {quota_info['remaining_tokens']}")
+            
+            print("Falling back to main engine for self-evaluation")
+            # Fallback to main engine
+            texts, _tok, _ms, _raw = _engine_generate_batch(
+                engine,
+                judge_prompts,
+                GenerationParams(**{**gen.__dict__, "max_new_tokens": 150, "temperature": 1.0}),
+                extra_stop=None,
+            )
+        else:
+            # Re-raise if it's not a quota error
+            raise e
+    
     outs: List[Tuple[bool, str, str]] = []
     for prompt, txt in zip(judge_prompts, texts):
         # Extract judgement from response (expecting YES or NO)
         judgement = txt.strip().lower()
         is_yes = ("yes" in judgement) or (judgement == "1")
         outs.append((is_yes, prompt, txt))
-
 
     return outs
 
