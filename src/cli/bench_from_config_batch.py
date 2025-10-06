@@ -24,17 +24,17 @@ from ..logs.wandb_logger import WandbRunLogger
 # Optional direct import from vLLM for batched generation
 from vllm import SamplingParams
 
-def _build_sample_trace_logging(sample_traces: List[dict], sample_idx: int) -> dict:
+def _build_sample_trace_logging(sample_traces: List[dict], sample_idx: int, trace_type: str = "sample") -> dict:
     """Build logging fields for a sample trace, handling both two-pass and self-consistency formats."""
     if sample_idx >= len(sample_traces):
         return {
-            f"sample{sample_idx+1}_question": None,
-            f"sample{sample_idx+1}_golden_answer": None,
-            f"sample{sample_idx+1}_judge_answer": None,
+            f"{trace_type}{sample_idx+1}_question": None,
+            f"{trace_type}{sample_idx+1}_golden_answer": None,
+            f"{trace_type}{sample_idx+1}_judge_answer": None,
         }
     
     trace = sample_traces[sample_idx]
-    sample_prefix = f"sample{sample_idx+1}"
+    sample_prefix = f"{trace_type}{sample_idx+1}"
     
     # Base fields
     result = {
@@ -269,8 +269,26 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                 'deepspeed': deepspeed_flops
             })
 
-            # Save up to 3 sample traces
-            if len(sample_traces) < 3:
+            # Collect traces based on success/failure (up to 2 failed, up to 2 successful)
+            # Determine if this trace is successful or failed using judge evaluation
+            if judge_batch_results is not None:
+                judge_yes, judge_input_prompt, judge_response = judge_batch_results[j]
+                is_successful = judge_yes  # Use judge evaluation instead of exact match
+            else:
+                is_successful = ok  # Fallback to exact match if no judge results
+            
+            # Count current traces by type
+            successful_traces = [t for t in sample_traces if t.get("is_successful", False)]
+            failed_traces = [t for t in sample_traces if not t.get("is_successful", True)]
+            
+            # Only add if we haven't reached the limit for this type
+            should_add = False
+            if is_successful and len(successful_traces) < 2:
+                should_add = True
+            elif not is_successful and len(failed_traces) < 2:
+                should_add = True
+            
+            if should_add:
                 # Handle different output structures (self-consistency vs two-pass)
                 if "think_text" in outs[j]:
                     # Two-pass batch output
@@ -282,6 +300,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                         "think_text": think_text,
                         "answer_text": answer_text,
                         "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                        "is_successful": is_successful,
                     }
                 else:
                     # Self-consistency output - log all K paths
@@ -294,6 +313,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                         "gold": ex.gold,
                         "chosen_answer": chosen_answer,
                         "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                        "is_successful": is_successful,
                     }
                     
                     # Add each path's generated text
@@ -371,10 +391,11 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "avg_flops_attention_kv_tflops": to_tflops(avg_attn_flops) if avg_attn_flops is not None else None,
         "avg_flops_deepspeed_tflops": to_tflops(avg_deepspeed_flops) if avg_deepspeed_flops is not None else None,
 
-        # Sample traces (up to 3) - handles both two-pass and self-consistency
+        # Sample traces - up to 2 failed and up to 2 successful
         **_build_sample_trace_logging(sample_traces, 0),
         **_build_sample_trace_logging(sample_traces, 1),
         **_build_sample_trace_logging(sample_traces, 2),
+        **_build_sample_trace_logging(sample_traces, 3),
         "prompt_cot_think": spec.prompts.cot_think,
         "prompt_answer": spec.prompts.answer,
         "prompt_direct": spec.prompts.direct,
