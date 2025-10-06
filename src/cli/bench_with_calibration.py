@@ -4,7 +4,7 @@ import os
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 import traceback
-import argparse, math, time, json, os, copy
+import argparse, math, time, json, os, copy, subprocess
 from typing import Iterable, List, Optional, Tuple, Callable, Dict, Any
 import itertools
 from tqdm.auto import tqdm
@@ -31,7 +31,6 @@ from ..logs.wandb_logger import WandbRunLogger
 from ..calibration import (
     CalibrationPoint, CalibrationDataset,
     NextTokenFLOPModel,
-    NextTokenCalibrationRunner,
     load_calibration_dataset
 )
 
@@ -88,6 +87,100 @@ def _build_sample_trace_logging(sample_traces: List[dict], sample_idx: int) -> d
         result[f"{sample_prefix}_second_pass"] = trace.get("answer_text")
     
     return result
+
+
+def run_calibration_subprocess(spec: RunSpec, 
+                             calibration_file: str,
+                             prefill_ranges: List[int],
+                             config_file: str,
+                             estimation_points: int = 64) -> Optional[CalibrationDataset]:
+    """
+    Run calibration in a separate subprocess to ensure proper GPU cleanup.
+    
+    Args:
+        spec: Model specification
+        calibration_file: Path to save calibration results
+        prefill_ranges: List of prefill token ranges to test
+        estimation_points: Number of estimation points for extrapolation evaluation
+        
+    Returns:
+        CalibrationDataset if successful, None if failed
+    """
+    logger = get_logger()
+    
+    # Get the path to the calibration script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    calibration_script = os.path.join(script_dir, "calibration", "run_calibration_deepspeed.py")
+    
+    if not os.path.exists(calibration_script):
+        logger.error(f"❌ Calibration script not found: {calibration_script}")
+        return None
+    
+    logger.info(f"🔧 Starting calibration subprocess for {spec.model_name}")
+    logger.info(f"Calibration script: {calibration_script}")
+    logger.info(f"Calibration file: {calibration_file}")
+    
+    try:
+        # Prepare subprocess command
+        cmd = [
+            "python3", calibration_script,
+            "--config", config_file,
+            "--model_name", spec.model_name,
+            "--calibration_file", calibration_file,
+            "--prefill_ranges"] + [str(x) for x in prefill_ranges] + [
+            "--estimation_points", str(estimation_points),
+            "--log_level", "INFO"
+        ]
+        
+        logger.info(f"Running command: {' '.join(cmd)}")
+        
+        # Run the subprocess
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=3600,  # 1 hour timeout
+            cwd=os.getcwd()  # Run in current working directory
+        )
+        
+        # Log subprocess output
+        if result.stdout:
+            logger.info("Calibration subprocess stdout:")
+            for line in result.stdout.strip().split('\n'):
+                logger.info(f"  {line}")
+        
+        if result.stderr:
+            logger.warning("Calibration subprocess stderr:")
+            for line in result.stderr.strip().split('\n'):
+                logger.warning(f"  {line}")
+        
+        if result.returncode == 0:
+            logger.info("✓ Calibration subprocess completed successfully")
+            
+            # Load the calibration data
+            if os.path.exists(calibration_file):
+                try:
+                    calibration_dataset = load_calibration_dataset(calibration_file)
+                    logger.info(f"✓ Loaded calibration data with {len(calibration_dataset.points)} points")
+                    return calibration_dataset
+                except Exception as e:
+                    logger.error(f"❌ Failed to load calibration data: {e}")
+                    return None
+            else:
+                logger.error(f"❌ Calibration file not found: {calibration_file}")
+                return None
+        else:
+            logger.error(f"❌ Calibration subprocess failed with return code: {result.returncode}")
+            return None
+            
+    except subprocess.TimeoutExpired:
+        logger.error("❌ Calibration subprocess timed out after 1 hour")
+        return None
+    except Exception as e:
+        logger.error(f"❌ Failed to run calibration subprocess: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return None
+
 
 def run_one_with_calibration(spec: RunSpec, 
                            calibration_dataset: Optional[CalibrationDataset] = None,
@@ -494,30 +587,25 @@ def main():
                             f.write(traceback.format_exc() + "\n")
                 
                 if calibration_dataset is None:
-                    # Run new next-token calibration with error handling
-                    try:
-                        logger.info(f"Running new next-token calibration for {spec.model_name}")
-                        calibration_runner = NextTokenCalibrationRunner(
-                            prefill_ranges=args.calibration_prefill_ranges,
-                            generation_tokens=1
-                        )
+                    # Run new calibration in subprocess
+                    logger.info(f"Running new calibration in subprocess for {spec.model_name}")
+                    
+                    calibration_dataset = run_calibration_subprocess(
+                        spec=spec,
+                        calibration_file=calibration_file,
+                        prefill_ranges=args.calibration_prefill_ranges,
+                        config_file=args.config,
+                        estimation_points=args.estimation_points
+                    )
+                    
+                    if calibration_dataset is None:
+                        logger.warning("Calibration subprocess failed - continuing benchmark without calibration data...")
                         
-                        calibration_dataset = calibration_runner.run_calibration(spec, save_path=calibration_file, estimation_points=args.estimation_points)
-                        logger.info(f"✓ Calibration completed successfully with {len(calibration_dataset.points)} points")
-                        
-                    except Exception as calibration_error:
-                        logger.error(f"❌ Calibration failed: {calibration_error}")
-                        logger.warning("Continuing benchmark without calibration data...")
-                        calibration_dataset = None
-                        
-                        # Log the calibration error to error log
+                        # Log the calibration failure to error log
                         with open("error.log", "a", encoding="utf-8") as f:
-                            f.write(f"[CALIBRATION_ERROR] model={spec.model_name}: {calibration_error}\n")
-                            f.write(traceback.format_exc() + "\n")
-                
-                # Add 5-second sleep between calibration and run to ensure GPU memory is freed
-                logger.info("Waiting 5 seconds for GPU memory cleanup...")
-                time.sleep(5)
+                            f.write(f"[CALIBRATION_SUBPROCESS_ERROR] model={spec.model_name}: Subprocess failed\n")
+                            f.write(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                            f.write("=" * 50 + "\n")
             
             # Log calibration status before running benchmark
             if calibration_dataset is not None:
