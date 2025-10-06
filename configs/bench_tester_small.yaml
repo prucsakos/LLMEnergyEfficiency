@@ -84,7 +84,7 @@ config_name: "bitquanzs2"
 
 models:
   - name: gemma-3-1b-it
-    hf_repo: unsloth/gemma-3-1b-it-bnb-4bit
+    hf_repo: google/gemma-3-1b-it
     engine: vllm
     model_family: gemma
     batch_size: 128
@@ -96,8 +96,6 @@ models:
     generation: { temperature: 0.6, top_p: 0.95, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Uses OpenAI API for evaluation"
-
-models_:
 
   - name: gemma-3-1b-it-bnb-4bit
     hf_repo: unsloth/gemma-3-1b-it-bnb-4bit

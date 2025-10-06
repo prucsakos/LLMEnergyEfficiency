@@ -9,3 +9,10 @@ vLLM quantization methods:
 TEST 1 - deepspeed quantization:
 Use HF+BnB to load the models as quantized 4bit
 Wrap THAT into deepspeed inference negine.  
+
+
+
+----
+10.06.
+Sometimes small models start to repeat themself. Why? Temperature settings? 
+
