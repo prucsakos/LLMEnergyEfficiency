@@ -782,6 +782,325 @@ def plot_calibration_analysis(project_name: str, output_dir: Path):
     
     print(f"✅ Calibration analysis plot saved: {output_dir / 'calibration_analysis.png'}")
 
+def plot_thinking_budget_utilization(df: pd.DataFrame, output_dir: Path):
+    """
+    Create thinking budget utilization plots.
+    
+    Args:
+        df: DataFrame with wandb data
+        output_dir: Output directory for plots
+    """
+    print("Creating thinking budget utilization plots...")
+    
+    # Filter data to only include runs with thinking budget > 0 and valid token data
+    plot_df = df[(df['think_budget'] > 0) & (df['avg_gen_tokens'].notna())].copy()
+    
+    if plot_df.empty:
+        print("Warning: No data available for thinking budget utilization plots")
+        return
+    
+    # Calculate utilization ratio (avg_gen_tokens / think_budget)
+    plot_df['utilization_ratio'] = plot_df['avg_gen_tokens'] / plot_df['think_budget']
+    
+    # Create subfolder for thinking budget utilization plots
+    thinking_dir = output_dir / 'thinking_budget_utilization'
+    thinking_dir.mkdir(exist_ok=True)
+    
+    # Get unique models and datasets
+    models = sorted(plot_df['model_name'].unique())
+    datasets = sorted(plot_df['dataset'].unique())
+    
+    # Create main figure: all models, multiple plots per dataset
+    print("Creating main figure with all models per dataset...")
+    
+    n_datasets = len(datasets)
+    n_cols = min(3, n_datasets)
+    n_rows = (n_datasets + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+    if n_datasets == 1:
+        axes = [axes]
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    
+    for i, dataset in enumerate(datasets):
+        row = i // n_cols
+        col = i % n_cols
+        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        dataset_data = plot_df[plot_df['dataset'] == dataset]
+        
+        # Plot each model as a separate line
+        for model in models:
+            model_data = dataset_data[dataset_data['model_name'] == model]
+            if not model_data.empty:
+                # Sort by thinking budget
+                model_data = model_data.sort_values('think_budget')
+                
+                ax.plot(model_data['think_budget'], model_data['utilization_ratio'], 
+                       marker='o', linewidth=2, markersize=4, label=model)
+        
+        ax.set_xlabel('Thinking Budget')
+        ax.set_ylabel('Token Utilization Ratio\n(avg_gen_tokens / think_budget)')
+        ax.set_title(f'Thinking Budget Utilization - {dataset}')
+        ax.grid(True, alpha=0.3)
+        ax.set_xscale('log')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=6)
+        
+        # Add model names at the end of lines
+        for model in models:
+            model_data = dataset_data[dataset_data['model_name'] == model]
+            if not model_data.empty:
+                model_data = model_data.sort_values('think_budget')
+                if not model_data.empty:
+                    last_point = model_data.iloc[-1]
+                    ax.annotate(model, 
+                              xy=(last_point['think_budget'], last_point['utilization_ratio']),
+                              xytext=(5, 0), textcoords='offset points',
+                              fontsize=6, ha='left', va='center')
+    
+    # Hide empty subplots
+    for i in range(n_datasets, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        if n_rows > 1:
+            axes[row, col].set_visible(False)
+        else:
+            axes[col].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(thinking_dir / 'all_models_per_dataset.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Main figure saved: {thinking_dir / 'all_models_per_dataset.png'}")
+    
+    # Create single figure with all models in 3xN grid
+    print("Creating single figure with all models in 3xN grid...")
+    
+    n_models = len(models)
+    n_cols = 3
+    n_rows = (n_models + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(6*n_cols, 4*n_rows))
+    if n_models == 1:
+        axes = [axes]
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    
+    for i, model in enumerate(models):
+        row = i // n_cols
+        col = i % n_cols
+        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        model_data = plot_df[plot_df['model_name'] == model]
+        if model_data.empty:
+            ax.set_visible(False)
+            continue
+        
+        # Plot each dataset as a separate line
+        for dataset in datasets:
+            dataset_model_data = model_data[model_data['dataset'] == dataset]
+            if not dataset_model_data.empty:
+                # Sort by thinking budget
+                dataset_model_data = dataset_model_data.sort_values('think_budget')
+                
+                ax.plot(dataset_model_data['think_budget'], dataset_model_data['utilization_ratio'], 
+                       marker='o', linewidth=2, markersize=4, label=dataset)
+        
+        ax.set_xlabel('Thinking Budget')
+        ax.set_ylabel('Token Utilization Ratio\n(avg_gen_tokens / think_budget)')
+        ax.set_title(f'{model}')
+        ax.grid(True, alpha=0.3)
+        ax.set_xscale('log')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=6)
+        
+        # Add dataset names at the end of lines
+        for dataset in datasets:
+            dataset_model_data = model_data[model_data['dataset'] == dataset]
+            if not dataset_model_data.empty:
+                dataset_model_data = dataset_model_data.sort_values('think_budget')
+                if not dataset_model_data.empty:
+                    last_point = dataset_model_data.iloc[-1]
+                    ax.annotate(dataset, 
+                              xy=(last_point['think_budget'], last_point['utilization_ratio']),
+                              xytext=(5, 0), textcoords='offset points',
+                              fontsize=6, ha='left', va='center')
+    
+    # Hide empty subplots
+    for i in range(n_models, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        if n_rows > 1:
+            axes[row, col].set_visible(False)
+        else:
+            axes[col].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(thinking_dir / 'all_models_grid.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ All models grid figure saved: {thinking_dir / 'all_models_grid.png'}")
+    
+    print(f"✅ All thinking budget utilization plots saved to: {thinking_dir}")
+
+def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path):
+    """
+    Create correlation plots between accuracy and thinking budget utilization.
+    
+    Args:
+        df: DataFrame with wandb data
+        output_dir: Output directory for plots
+    """
+    print("Creating accuracy vs utilization correlation plots...")
+    
+    # Filter data to only include runs with thinking budget > 0 and valid data
+    plot_df = df[(df['think_budget'] > 0) & (df['avg_gen_tokens'].notna()) & (df['self_eval_acc'].notna())].copy()
+    
+    if plot_df.empty:
+        print("Warning: No data available for accuracy vs utilization correlation plots")
+        return
+    
+    # Calculate utilization ratio (avg_gen_tokens / think_budget)
+    plot_df['utilization_ratio'] = plot_df['avg_gen_tokens'] / plot_df['think_budget']
+    
+    # Create subfolder for correlation plots
+    correlation_dir = output_dir / 'thinking_budget_utilization'
+    correlation_dir.mkdir(exist_ok=True)
+    
+    # Get unique models and datasets
+    models = sorted(plot_df['model_name'].unique())
+    datasets = sorted(plot_df['dataset'].unique())
+    
+    # Create main figure: all models, multiple plots per dataset
+    print("Creating accuracy vs utilization correlation - all models per dataset...")
+    
+    n_datasets = len(datasets)
+    n_cols = min(3, n_datasets)
+    n_rows = (n_datasets + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+    if n_datasets == 1:
+        axes = [axes]
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    
+    for i, dataset in enumerate(datasets):
+        row = i // n_cols
+        col = i % n_cols
+        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        dataset_data = plot_df[plot_df['dataset'] == dataset]
+        
+        # Plot each model as a separate line
+        for model in models:
+            model_data = dataset_data[dataset_data['model_name'] == model]
+            if not model_data.empty:
+                # Sort by thinking budget
+                model_data = model_data.sort_values('think_budget')
+                
+                ax.plot(model_data['utilization_ratio'], model_data['self_eval_acc'], 
+                       marker='o', linewidth=2, markersize=4, label=model)
+        
+        ax.set_xlabel('Token Utilization Ratio\n(avg_gen_tokens / think_budget)')
+        ax.set_ylabel('Accuracy (self_eval_acc)')
+        ax.set_title(f'Accuracy vs Utilization - {dataset}')
+        ax.grid(True, alpha=0.3)
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=6)
+        
+        # Add model names at the end of lines
+        for model in models:
+            model_data = dataset_data[dataset_data['model_name'] == model]
+            if not model_data.empty:
+                model_data = model_data.sort_values('think_budget')
+                if not model_data.empty:
+                    last_point = model_data.iloc[-1]
+                    ax.annotate(model, 
+                              xy=(last_point['utilization_ratio'], last_point['self_eval_acc']),
+                              xytext=(5, 0), textcoords='offset points',
+                              fontsize=6, ha='left', va='center')
+    
+    # Hide empty subplots
+    for i in range(n_datasets, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        if n_rows > 1:
+            axes[row, col].set_visible(False)
+        else:
+            axes[col].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(correlation_dir / 'accuracy_vs_utilization_per_dataset.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Accuracy vs utilization per dataset figure saved: {correlation_dir / 'accuracy_vs_utilization_per_dataset.png'}")
+    
+    # Create single figure with all models in 3xN grid for accuracy vs utilization
+    print("Creating accuracy vs utilization correlation - all models in 3xN grid...")
+    
+    n_models = len(models)
+    n_cols = 3
+    n_rows = (n_models + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(6*n_cols, 4*n_rows))
+    if n_models == 1:
+        axes = [axes]
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    
+    for i, model in enumerate(models):
+        row = i // n_cols
+        col = i % n_cols
+        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        model_data = plot_df[plot_df['model_name'] == model]
+        if model_data.empty:
+            ax.set_visible(False)
+            continue
+        
+        # Plot each dataset as a separate line
+        for dataset in datasets:
+            dataset_model_data = model_data[model_data['dataset'] == dataset]
+            if not dataset_model_data.empty:
+                # Sort by thinking budget
+                dataset_model_data = dataset_model_data.sort_values('think_budget')
+                
+                ax.plot(dataset_model_data['utilization_ratio'], dataset_model_data['self_eval_acc'], 
+                       marker='o', linewidth=2, markersize=4, label=dataset)
+        
+        ax.set_xlabel('Token Utilization Ratio\n(avg_gen_tokens / think_budget)')
+        ax.set_ylabel('Accuracy (self_eval_acc)')
+        ax.set_title(f'{model}')
+        ax.grid(True, alpha=0.3)
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=6)
+        
+        # Add dataset names at the end of lines
+        for dataset in datasets:
+            dataset_model_data = model_data[model_data['dataset'] == dataset]
+            if not dataset_model_data.empty:
+                dataset_model_data = dataset_model_data.sort_values('think_budget')
+                if not dataset_model_data.empty:
+                    last_point = dataset_model_data.iloc[-1]
+                    ax.annotate(dataset, 
+                              xy=(last_point['utilization_ratio'], last_point['self_eval_acc']),
+                              xytext=(5, 0), textcoords='offset points',
+                              fontsize=6, ha='left', va='center')
+    
+    # Hide empty subplots
+    for i in range(n_models, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        if n_rows > 1:
+            axes[row, col].set_visible(False)
+        else:
+            axes[col].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(correlation_dir / 'accuracy_vs_utilization_per_model.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Accuracy vs utilization per model figure saved: {correlation_dir / 'accuracy_vs_utilization_per_model.png'}")
+    print(f"✅ All accuracy vs utilization correlation plots saved to: {correlation_dir}")
+
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(description='Generate plots from wandb data')
@@ -866,6 +1185,12 @@ def main():
         
         # Calibration analysis plots
         plot_calibration_analysis(args.project_name, output_dir)
+        
+        # Thinking budget utilization plots
+        plot_thinking_budget_utilization(df, output_dir)
+        
+        # Accuracy vs utilization correlation plots
+        plot_accuracy_vs_utilization_correlation(df, output_dir)
         
         print(f"\n✅ All plots and datapoints saved to: {output_dir}")
         
