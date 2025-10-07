@@ -35,21 +35,21 @@ llm_judge: |
   Response format: CORRECT or INCORRECT
   If CORRECT, no explanation needed.
   If INCORRECT, briefly explain what the student got wrong mathematically.
-  consistency_eval: |
-    You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.
+consistency_eval: |
+  You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.
 
-    COUNTING RULES:
-    - Count exact-string matches after trimming whitespace.
-    - If there is a tie, pick the earliest occurring answer in the provided list.
-    - Output the chosen answer directly without any additional formatting.
+  COUNTING RULES:
+  - Count exact-string matches after trimming whitespace.
+  - If there is a tie, pick the earliest occurring answer in the provided list.
+  - Output the chosen answer directly without any additional formatting.
 
-    Question:
-    {question}
-    
-    Candidate Answers:
-    {candidate_answers}
+  Question:
+  {question}
+  
+  Candidate Answers:
+  {candidate_answers}
 
-    Count the frequency of each answer and select the most popular one. Output only the chosen answer:
+  Count the frequency of each answer and select the most popular one. Output only the chosen answer:
 
 config_name: "smalls"
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]

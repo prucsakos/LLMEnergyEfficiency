@@ -189,8 +189,8 @@ def two_pass_batch(engine: TextEngine,
         if deliberate.strip():
             answer_prompts.append(prompts.answer.format(question=q, deliberate=deliberate))
         else:
-            # Remove the trailing newline from deliberate when it's empty
-            base_prompt = prompts.answer.replace("\n{deliberate}", "")
+            # Remove the deliberate placeholder when it's empty
+            base_prompt = prompts.answer.replace("{deliberate}", "")
             answer_prompts.append(base_prompt.format(question=q))
     MAX_ANSWER_TOKENS = 32
     answer_texts, answer_tok_counts, answer_ms, answer_raw_data = _engine_generate_batch(
@@ -329,8 +329,8 @@ def self_consistency_batch(engine: TextEngine,
             if d.strip():
                 answer_prompts_rep.append(prompts.answer.format(question=q, deliberate=d))
             else:
-                # Remove the trailing newline from deliberate when it's empty
-                base_prompt = prompts.answer.replace("\n{deliberate}", "")
+                # Remove the deliberate placeholder when it's empty
+                base_prompt = prompts.answer.replace("{deliberate}", "")
                 answer_prompts_rep.append(base_prompt.format(question=q))
     answer_texts_rep, answer_tok_rep, answer_ms, answer_raw_rep = _engine_generate_batch(
         engine,
