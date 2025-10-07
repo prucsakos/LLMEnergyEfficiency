@@ -16,3 +16,20 @@ Wrap THAT into deepspeed inference negine.
 10.06.
 Sometimes small models start to repeat themself. Why? Temperature settings? 
 
+I did set judge and direct answer to temperature 0 and top_p 1
+
+## 10.07. Conclustions - Possible Improvements
+#### Models do not always utilize the full thinking budget. They stop thinking when they arrived to a final answer - even if it is wrong.
+- This is for simple CoT. It can be improved to double check it's final answer.
+- Try other reasoning methods like multi-pass / self-consistency. Compare their performance.
+#### gpqa: multiple choice task: self-judge declined choosing the right option, but without the text. Ex: "A)" Instead of "A) the answer"
+- Possibly i need to modify the system prompt for the judge llm. 
+
+### Qwen 4b Thinking reaches published performance on AIME2025 at 20k thinking budget!
+
+### Problem> Models are unaware of thinking budget.
+There are two typical cases: 1. The model finishes thinking, concludes to a answer, then succeeds the task.
+2. The thinking is terminated half-ways because thinking buged was exceeded. Therefore the thinking process lacks of conclusions. The model fails to answer the question.
+
+Without the models being aware of their thinking budget, the measurment feels fake. 
+-> Publications about budget aware thinking models exist.
