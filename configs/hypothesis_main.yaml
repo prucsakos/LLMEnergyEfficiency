@@ -1,87 +1,45 @@
 prompts:
   cot_think: |
-    You are a worldwide professional problem solver with no mistakes. Analyze this problem systematically. Work through each step methodically until you reach a confident solution.
+    Think through this problem step by step. Show all your reasoning, calculations, and analysis.
+    Do not provide the final answer - focus only on the thinking process.
 
-    HARD FORMAT RULES:
-    - Your ENTIRE output must be EXACTLY one well-formed <think>...</think> block.
-    - Nothing (not even whitespace) may appear before <think> or after </think>.
-    - The block MUST be non-empty, closed properly, and contain only reasoning steps.
-    - Do NOT restate the question or include the final answer here.
-    - Keep the reasoning concise (≤150 tokens), no filler, no meta-comments.
-
-    <question>
     {question}
-    </question>
-    <think>
-  plan_think: |
-    Devise a brief high-level plan ONLY inside <think>...</think>.
-
-    HARD FORMAT RULES:
-    - Your ENTIRE output must be EXACTLY one well-formed <think>...</think> block.
-    - Nothing may appear before <think> or after </think>.
-    - The block MUST be non-empty and contain 1–5 short bullet points.
-    - Do NOT include calculations, reasoning chains, or the final answer here.
-
-    <question>
-    {question}
-    </question>
-    <think>
   answer: |
-    Based on your analysis above, provide ONLY the final answer inside <final>...</final>.
+    Based on your reasoning, what is the final answer? Provide only the numerical result.
 
-    HARD FORMAT RULES:
-    - Your ENTIRE output must be EXACTLY one well-formed <final>...</final> block.
-    - Allowed text: <final>, </final>, Short answer string.
-    - Nothing may appear before <final> or after </final>.
-    - After <final>, write down the exact short answer and the closing </final> tag.
-
-    <question>
     {question}
-    </question>
+
     {deliberate}
-    <final>
-  self_eval: |-
-    You are a strict judge. Reply ONLY YES if the candidate answer equals the gold answer, else NO.
-
-    RULES:
-    - Compare trimmed strings exactly, case-sensitive.
-    - If either side is empty, ambiguous, or contains multiple answers, reply NO.
-    - Output MUST be non-empty: write YES or NO after "Judgement: ".
-
-    <question>{question}</question>
-    <gold>{gold}</gold>
-    <candidate>{candidate}</candidate>
-    Judgement: 
-  direct: |
-    Answer the question. Output ONLY inside <final>...</final>. Do not include any reasoning or explanation anywhere.
-
-    HARD FORMAT RULES:
-    - Your ENTIRE output must be EXACTLY one well-formed <final>...</final> block.
-    - Nothing may appear before <final> or after </final>.
-    - The block MUST be non-empty and contain only the minimal answer string.
-
-    <question>
-    {question}
-    </question>
-    <final>
+  llm_judge: |
+    You are an expert mathematics evaluator. Compare these two answers:
+    
+    Gold standard: {gold}
+    Student answer: {candidate}
+    
+    Question context: {question}
+    
+    Are these answers mathematically equivalent? Consider:
+    - Same final answer regardless of format
+    - Multiple choice: same letter selection
+    - Numerical: same value (allow minor rounding)
+    - Allow different presentation of same solution
+    
+    Respond: CORRECT or INCORRECT with brief reasoning.
   consistency_eval: |
     You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.
 
     COUNTING RULES:
     - Count exact-string matches after trimming whitespace.
     - If there is a tie, pick the earliest occurring answer in the provided list.
-    - Your ENTIRE output must be EXACTLY one well-formed <chosen>...</chosen> block, containing the chosen answer copied verbatim.
-    - Nothing may appear before <chosen> or after </chosen>.
+    - Output the chosen answer directly without any additional formatting.
 
-    <question>
+    Question:
     {question}
-    </question>
-    <candidate_answers>
+    
+    Candidate Answers:
     {candidate_answers}
-    </candidate_answers>
 
-    Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.
-    <chosen>
+    Count the frequency of each answer and select the most popular one. Output only the chosen answer:
 
 config_name: "smalls"
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]

@@ -497,9 +497,7 @@ def run_one_with_calibration(spec: RunSpec,
         **_build_sample_trace_logging(sample_traces, 3),
         "prompt_cot_think": spec.prompts.cot_think,
         "prompt_answer": spec.prompts.answer,
-        "prompt_direct": spec.prompts.direct,
-        "prompt_plan_think": spec.prompts.plan_think,
-        "prompt_self_eval": spec.prompts.self_eval,
+        "prompt_llm_judge": spec.prompts.llm_judge,
 
         # Notes
         "notes": f"{notes}",

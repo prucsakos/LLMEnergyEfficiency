@@ -52,37 +52,38 @@ class ReasoningDefaults:
 class Prompts:
     # Default prompt templates; can be overridden per model in YAML
     cot_think: str = (
-        "Solve the problem. Write reasoning ONLY inside <think>...</think>.\n"
-        "<question>\n{question}\n</question>\n\n<think>"
-    )
-    plan_think: str = (
-        "Devise a brief plan. Write it ONLY inside <think>...</think>.\n"
-        "<question>\n{question}\n</question>\n\n<think>"
+        "Think through this problem step by step. Show all your reasoning, calculations, and analysis.\n"
+        "Do not provide the final answer - focus only on the thinking process.\n\n"
+        "{question}"
     )
     answer: str = (
-        "Using the information below, produce ONLY the final answer inside <final>...</final>.\n"
-        "<question>\n{question}\n</question>\n"
-        "{deliberate}\n\n<final>"
+        "Based on your reasoning above, what is the final answer? Provide only the numerical result.\n\n"
+        "{question}\n\n"
+        "{deliberate}"
     )
-    self_eval: str = (
-        "You are a strict judge. Given the question, gold answer, and a candidate answer,\n"
-        "reply with ONLY 'YES' if the candidate is correct, otherwise 'NO'.\n\n"
-        "<question>\n{question}\n</question>\n"
-        "<gold>\n{gold}\n</gold>\n"
-        "<candidate>\n{candidate}\n</candidate>\n"
-        "Judgement: "
-    )
-    direct: str = (
-        "Answer the question. Output ONLY the final answer inside <final>...</final>.\n"
-        "<question>\n{question}\n</question>\n<final>"
+    llm_judge: str = (
+        "You are an expert mathematics evaluator. Compare these two answers:\n\n"
+        "Gold standard: {gold}\n"
+        "Student answer: {candidate}\n\n"
+        "Question context: {question}\n\n"
+        "Are these answers mathematically equivalent? Consider:\n"
+        "- Same final answer regardless of format\n"
+        "- Multiple choice: same letter selection\n"
+        "- Numerical: same value (allow minor rounding)\n"
+        "- Allow different presentation of same solution\n\n"
+        "Respond: CORRECT or INCORRECT with brief reasoning."
     )
     consistency_eval: str = (
-        "You are a majority vote counter. Given a question and multiple candidate answers, "
-        "identify which answer appears most frequently and select that one.\n\n"
-        "<question>\n{question}\n</question>\n"
-        "<candidate_answers>\n{candidate_answers}\n</candidate_answers>\n\n"
-        "Count the frequency of each answer and select the most popular one by outputting ONLY the chosen answer inside <chosen>...</chosen>.\n"
-        "<chosen>"
+        "You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.\n\n"
+        "COUNTING RULES:\n"
+        "- Count exact-string matches after trimming whitespace.\n"
+        "- If there is a tie, pick the earliest occurring answer in the provided list.\n"
+        "- Output the chosen answer directly without any additional formatting.\n\n"
+        "Question:\n"
+        "{question}\n"
+        "\nCandidate Answers:\n"
+        "{candidate_answers}\n\n"
+        "Count the frequency of each answer and select the most popular one. Output only the chosen answer:"
     )
     
     def format_prompts(self):

@@ -9,35 +9,6 @@ from .aggregators import majority_vote
 from ..config.bench_config import Prompts
 
 
-def _cut_at_end_tag(s: str, end_tag: str | None) -> str:
-    """Extract content from generated text, cutting at end tag if present.
-    
-    Handles two cases:
-    1. If text contains both start and end tags (like <think>content</think>), extract content between them
-    2. If only end tag is present, cut everything after it
-    3. If no end tag, return entire text
-    
-    This handles cases where thinking budget is cut and model is force-stopped.
-    """
-    if not end_tag:
-        return s.strip()
-    
-    # First try to extract content between tags (case 1)
-    # Look for pattern: <tag>content</tag>
-    start_tag = end_tag.replace("</", "<")
-    if start_tag in s and end_tag in s:
-        start_pos = s.find(start_tag) + len(start_tag)
-        end_pos = s.find(end_tag)
-        if start_pos < end_pos:
-            return s[start_pos:end_pos].strip()
-    
-    # Fallback: cut at end tag if present (case 2)
-    end_pos = s.find(end_tag)
-    if end_pos != -1:
-        return s[:end_pos].strip()
-    
-    # No end tag found, return entire text (case 3)
-    return s.strip()
 
 def _llm_consistency_eval(engine: TextEngine, question: str, candidate_answers: List[str], prompts: Prompts, gen: GenerationParams) -> str:
     """Use LLM to perform majority vote by counting and selecting the most frequent answer."""
@@ -53,43 +24,24 @@ def _llm_consistency_eval(engine: TextEngine, question: str, candidate_answers: 
     # Generate evaluation
     result = engine.generate(eval_prompt, gen)
     
-    # Extract the chosen answer
-    chosen = _cut_at_end_tag(result.text, "</chosen>")
+    # Return the full generated text as the chosen answer
+    chosen = result.text.strip()
     
     # If no valid choice found, fall back to majority vote
     if not chosen:
         return majority_vote(candidate_answers)
     
-    return chosen.strip()
+    return chosen
 
-def _combine_stops(base: Optional[List[str]], extra: Optional[str]) -> Optional[List[str]]:
-    stops: List[str] = list(base) if base else []
-    if extra and extra not in stops:
-        stops.append(extra)
-    return stops or None
 
-def _build_think_prompts(questions: List[str], style: str, prompts: Prompts) -> Tuple[List[str], str, str]:
-    """Return (think_prompts, open_tag, close_tag) for style."""
-    if style in ("plan", "cot"):
-        open_tag, close = "<think>", "</think>"
-        if style == "plan":
-            think_prompts = [prompts.plan_think.format(question=q) for q in questions]
-        else:  # style == "cot"
-            think_prompts = [prompts.cot_think.format(question=q) for q in questions]
-    else:
-        # style "none" -> no think prompts
-        open_tag, close, think_prompts = "", "", []
-    return think_prompts, open_tag, close
 
 def _engine_generate_batch(engine: TextEngine,
                            prompts: List[str],
-                           params: GenerationParams,
-                           extra_stop: Optional[str] = None) -> Tuple[List[str], List[int], float, List[Any]]:
+                           params: GenerationParams) -> Tuple[List[str], List[int], float, List[Any]]:
     if not prompts:
         return [], [], 0.0, []
-    merged = GenerationParams(**{**params.__dict__, "stop": _combine_stops(params.stop, extra_stop)})
     t0 = time.time()
-    outs = engine.generate_batch(prompts, merged)  # type: ignore[attr-defined]
+    outs = engine.generate_batch(prompts, params)  # type: ignore[attr-defined]
     wall_ms = (time.time() - t0) * 1000.0
     texts = [(o.text if o and o.text is not None else "") for o in outs]
     comp_tokens = [int(o.completion_tokens or 0) for o in outs]
@@ -112,7 +64,7 @@ def self_evaluate_batched(
         raise ValueError("self_evaluate_batched: inputs must have equal length")
 
     judge_prompts = [
-        prompts.self_eval.format(question=q, candidate=c, gold=g)
+        prompts.llm_judge.format(question=q, candidate=c, gold=g)
         for q, c, g in zip(questions, candidates, golds)
     ]
     
@@ -124,7 +76,6 @@ def self_evaluate_batched(
             evaluation_engine,
             judge_prompts,
             GenerationParams(**{**gen.__dict__, "max_new_tokens": 150, "temperature": 1.0}),
-            extra_stop=None,
         )
     except Exception as e:
         # Check if this is a quota exceeded error from OpenAI
@@ -158,8 +109,7 @@ def self_evaluate_batched(
             texts, _tok, _ms, _raw = _engine_generate_batch(
                 engine,
                 judge_prompts,
-                GenerationParams(**{**gen.__dict__, "max_new_tokens": 150, "temperature": 1.0}),
-                extra_stop=None,
+                GenerationParams(**{**gen.__dict__, "max_new_tokens": 20, "temperature": 0., "top_p": 1.0}),
             )
         else:
             # Re-raise if it's not a quota error
@@ -167,10 +117,27 @@ def self_evaluate_batched(
     
     outs: List[Tuple[bool, str, str]] = []
     for prompt, txt in zip(judge_prompts, texts):
-        # Extract judgement from response (expecting YES or NO)
-        judgement = txt.strip().lower()
-        is_yes = ("yes" in judgement) or (judgement == "1")
-        outs.append((is_yes, prompt, txt))
+        # Extract judgement from response (expecting CORRECT or INCORRECT)
+        judgement = txt.strip().upper()
+        
+        # Find positions of both keywords
+        correct_pos = judgement.find("CORRECT")
+        incorrect_pos = judgement.find("INCORRECT")
+        
+        if correct_pos != -1 and incorrect_pos != -1:
+            # Both present - use the one that appears first
+            is_correct = correct_pos < incorrect_pos
+        elif incorrect_pos != -1:
+            # Only INCORRECT present
+            is_correct = False
+        elif correct_pos != -1:
+            # Only CORRECT present
+            is_correct = True
+        else:
+            # Neither present - default to False
+            is_correct = False
+            
+        outs.append((is_correct, prompt, txt))
 
     return outs
 
@@ -193,18 +160,18 @@ def two_pass_batch(engine: TextEngine,
     n = len(questions)
     results = [{} for _ in range(n)]
     # Pass 1: "think" (optional)
-    have_think = (style in ("cot", "plan") and think_budget > 0)
+    have_think = (style == "cot" and think_budget > 0)
     if have_think:
-        think_prompts, open_tag, close_tag_ = _build_think_prompts(questions, style, prompts)
+        # Build thinking prompts directly
+        think_prompts = [prompts.cot_think.format(question=q) for q in questions]
         think_texts, think_tok_counts, think_ms, think_raw_data = _engine_generate_batch(
             engine,
             think_prompts,
-            GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget), "stop": [close_tag_]}),
-            extra_stop=None,
+            GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
         )
-        # Extract think content by cutting at end tag
-        think_contents = [_cut_at_end_tag(t, close_tag_) for t in think_texts]
-        deliberate_blocks = [f"{open_tag}{t}{close_tag_}" for t in think_contents]
+        # Use full generated text as thinking content
+        think_contents = [t.strip() for t in think_texts]
+        deliberate_blocks = think_contents
         think_lat_per_item = think_ms / max(n, 1)
     else:
         # No deliberate pass
@@ -217,25 +184,27 @@ def two_pass_batch(engine: TextEngine,
     # Pass 2: answer
     answer_prompts: List[str] = []
     for q, deliberate in zip(questions, deliberate_blocks):
-        if deliberate:
+        # Always use answer format, with deliberate being empty string if no thinking content
+        # Format the prompt to avoid trailing newlines when deliberate is empty
+        if deliberate.strip():
             answer_prompts.append(prompts.answer.format(question=q, deliberate=deliberate))
         else:
-            # "direct" answering when no deliberate content
-            answer_prompts.append(prompts.direct.format(question=q))
+            # Remove the trailing newline from deliberate when it's empty
+            base_prompt = prompts.answer.replace("\n{deliberate}", "")
+            answer_prompts.append(base_prompt.format(question=q))
     MAX_ANSWER_TOKENS = 32
     answer_texts, answer_tok_counts, answer_ms, answer_raw_data = _engine_generate_batch(
         engine,
         answer_prompts,
-        GenerationParams(**{**gen.__dict__, "max_new_tokens": int(MAX_ANSWER_TOKENS), "stop": ["</final>"]}),
-        extra_stop=None,
+        GenerationParams(**{**gen.__dict__, "max_new_tokens": int(MAX_ANSWER_TOKENS), "temperature": 0.0, "top_p": 1.0}),
     )
 
     ans_lat_per_item = answer_ms / max(n, 1)
 
     for i in range(n):
-        # Extract content from tags like the original two_pass function
+        # Use full generated text without cutting
         think_text = think_contents[i].strip() if have_think else ""
-        answer_text = _cut_at_end_tag(answer_texts[i], "</final>")
+        answer_text = answer_texts[i].strip()
         
         results[i] = {
             "answer_prompt": answer_prompts[i].strip(),
@@ -268,9 +237,10 @@ def self_consistency_batch(engine: TextEngine,
 
     # Build repeated lists of prompts
     # Think stage
-    have_think = (style in ("cot", "plan") and think_budget > 0)
+    have_think = (style == "cot" and think_budget > 0)
     if have_think:
-        think_prompts, open_tag, close_tag_ = _build_think_prompts(questions, style, prompts)
+        # Build thinking prompts directly
+        think_prompts = [prompts.cot_think.format(question=q) for q in questions]
         # Define sampling portfolio for diversity
         # Temperature ladder: [0.2, 0.4, 0.6, 0.8, 1.0] - increasing creativity/randomness
         # Top-p ladder: [0.85, 0.9, 0.92, 0.95, 0.97] - paired with temperatures
@@ -324,19 +294,18 @@ def self_consistency_batch(engine: TextEngine,
             batch_results = _engine_generate_batch(
                 engine,
                 batch_prompts,
-                GenerationParams(**{**varied_gen.__dict__, "stop": [close_tag_]}),
-                extra_stop=None,
+                varied_gen,
             )
             
             # Extract results and add to overall results
             for i in range(n):
-                think_text = _cut_at_end_tag(batch_results[0][i], close_tag_)
+                think_text = batch_results[0][i].strip()  # Use full generated text
                 think_texts_rep.append(think_text)
                 think_tok_rep.append(batch_results[1][i])
                 think_raw_rep.append(batch_results[3][i])  # Add raw data
                 think_ms += batch_results[2] / max(n*k, 1) # Average latency per item
         # Build deliberate blocks for answer prompts
-        deliberate_rep = [f"{open_tag}{t}{close_tag_}" for t in think_texts_rep]
+        deliberate_rep = think_texts_rep  # Use full thinking text directly
         # Group deliberate blocks by question
         deliberate_groups = [deliberate_rep[i::n][:k] for i in range(n)]
         think_tok_groups = [think_tok_rep[i::n][:k] for i in range(n)]
@@ -354,15 +323,19 @@ def self_consistency_batch(engine: TextEngine,
     for i in range(n):
         q = questions[i]
         dels = deliberate_groups[i]
-        if dels and dels[0]:
-            answer_prompts_rep.extend([prompts.answer.format(question=q, deliberate=d) for d in dels])
-        else:
-            answer_prompts_rep.extend([prompts.direct.format(question=q) for _ in range(k)])
+        # Always use answer format, with deliberate being empty string if no thinking content
+        # Format the prompt to avoid trailing newlines when deliberate is empty
+        for d in dels:
+            if d.strip():
+                answer_prompts_rep.append(prompts.answer.format(question=q, deliberate=d))
+            else:
+                # Remove the trailing newline from deliberate when it's empty
+                base_prompt = prompts.answer.replace("\n{deliberate}", "")
+                answer_prompts_rep.append(base_prompt.format(question=q))
     answer_texts_rep, answer_tok_rep, answer_ms, answer_raw_rep = _engine_generate_batch(
         engine,
         answer_prompts_rep,
-        GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens), "stop": ["</final>"]}),
-        extra_stop=None,
+        GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),
     )
     ans_lat_per_item = (answer_ms / max(n*k, 1))
 
@@ -373,7 +346,7 @@ def self_consistency_batch(engine: TextEngine,
         think_toks = think_tok_groups[i]
         think_raws = think_raw_groups[i]
         ans_toks = answer_tok_rep[i*k:(i+1)*k]
-        texts = [_cut_at_end_tag(t, "</final>") for t in answer_texts_rep[i*k:(i+1)*k]]
+        texts = [t.strip() for t in answer_texts_rep[i*k:(i+1)*k]]  # Use full generated text
         # Use LLM to perform majority vote by counting frequencies
         chosen = _llm_consistency_eval(engine, questions[i], texts, prompts, gen)
         paths = []
