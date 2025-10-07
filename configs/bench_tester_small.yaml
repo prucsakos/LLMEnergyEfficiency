@@ -5,38 +5,38 @@ prompts:
 
     {question}
   answer: |
-    Based on your reasoning, what is the final answer? Provide only the numerical result.
+    Based on your reasoning, what is the final answer? Provide only the final answer in \boxed{}.
 
     {question}
 
     {deliberate}
-  self_eval: |-
-    You are a strict judge. Reply ONLY YES if the candidate answer equals the gold answer, else NO.
 
-    RULES:
-    - Compare trimmed strings exactly, case-sensitive.
-    - If either side is empty, ambiguous, or contains multiple answers, reply NO.
-    - Output MUST be non-empty: write YES or NO after "Judgement: ".
-
-    Question: {question}
-    Gold Answer: {gold}
-    Candidate Answer: {candidate}
-    Judgement: 
-  llm_judge: |
-    You are an expert mathematics evaluator. Compare these two answers:
-    
-    Gold standard: {gold}
-    Student answer: {candidate}
-    
-    Question context: {question}
-    
-    Are these answers mathematically equivalent? Consider:
-    - Same final answer regardless of format
-    - Multiple choice: same letter selection
-    - Numerical: same value (allow minor rounding)
-    - Allow different presentation of same solution
-    
-    Respond: CORRECT or INCORRECT with brief reasoning.
+    Final answer: 
+llm_judge: |
+  You are an expert evaluator. Your job is to determine if the student found the correct answer, regardless of formatting or extra text.
+  
+  Gold standard answer: {gold}
+  Student response: {candidate}
+  Question: {question}
+  
+  EVALUATION CRITERIA:
+  - Extract the core answer from the student's response
+  - Ignore formatting (bold, boxes, extra text, commentary)
+  - For numbers: Same value (16 = 16, 3.14 ≈ 3.14159)  
+  - For multiple choice: Same letter (A = A, regardless of explanation)
+  - For expressions: Mathematically equivalent (2x = x+x)
+  
+  IGNORE completely:
+  - Markdown formatting (**bold**, \boxed{}, etc.)
+  - Extra explanations or commentary
+  - "Wait, let me recalculate..." type additions
+  - Different presentation styles
+  
+  Focus ONLY on: Did the student get the right mathematical answer?
+  
+  Response format: CORRECT or INCORRECT
+  If CORRECT, no explanation needed.
+  If INCORRECT, briefly explain what the student got wrong mathematically.
   consistency_eval: |
     You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.
 
@@ -54,7 +54,7 @@ prompts:
     Count the frequency of each answer and select the most popular one. Output only the chosen answer:
 
 config_name: "benchmark_validation"
-datasets: [aime_2025, hmmt_feb_2025]
+datasets: [aime_2025]
 
 models:
 
@@ -70,7 +70,7 @@ models:
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, do_sample: true, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; thinking mode." # :contentReference[oaicite:4]{index=4}
-
+asd:
   - name: gpt-oss-20b
     hf_repo: openai/gpt-oss-20b
     engine: vllm

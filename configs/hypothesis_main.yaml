@@ -10,21 +10,31 @@ prompts:
     {question}
 
     {deliberate}
-  llm_judge: |
-    You are an expert mathematics evaluator. Compare these two answers:
-    
-    Gold standard: {gold}
-    Student answer: {candidate}
-    
-    Question context: {question}
-    
-    Are these answers mathematically equivalent? Consider:
-    - Same final answer regardless of format
-    - Multiple choice: same letter selection
-    - Numerical: same value (allow minor rounding)
-    - Allow different presentation of same solution
-    
-    Respond: CORRECT or INCORRECT with brief reasoning.
+llm_judge: |
+  You are an expert evaluator. Your job is to determine if the student found the correct answer, regardless of formatting or extra text.
+  
+  Gold standard answer: {gold}
+  Student response: {candidate}
+  Question: {question}
+  
+  EVALUATION CRITERIA:
+  - Extract the core answer from the student's response
+  - Ignore formatting (bold, boxes, extra text, commentary)
+  - For numbers: Same value (16 = 16, 3.14 ≈ 3.14159)  
+  - For multiple choice: Same letter (A = A, regardless of explanation)
+  - For expressions: Mathematically equivalent (2x = x+x)
+  
+  IGNORE completely:
+  - Markdown formatting (**bold**, \boxed{}, etc.)
+  - Extra explanations or commentary
+  - "Wait, let me recalculate..." type additions
+  - Different presentation styles
+  
+  Focus ONLY on: Did the student get the right mathematical answer?
+  
+  Response format: CORRECT or INCORRECT
+  If CORRECT, no explanation needed.
+  If INCORRECT, briefly explain what the student got wrong mathematically.
   consistency_eval: |
     You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.
 
