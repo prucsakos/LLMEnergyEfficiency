@@ -114,7 +114,6 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             "think_budget": spec.think_budget,
             "K": spec.reasoning.self_consistency_k,
             "dtype": spec.backend.dtype,
-            "batch_size": bs,
             "prompt_set": spec.prompt_set_name,
             "config_name": spec.config_name,
             # Generation parameters
@@ -122,10 +121,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             "top_p": spec.generation.top_p,
             "top_k": spec.generation.top_k,
             "do_sample": spec.generation.do_sample,
-            "max_new_tokens": spec.generation.max_new_tokens,
-            "stop": spec.generation.stop,
             "seed": spec.generation.seed,
-            "use_kv_cache": spec.generation.use_kv_cache,
             # Backend parameters
             "engine": spec.engine,
             "gpu_memory_utilization": spec.backend.gpu_memory_utilization,
@@ -144,7 +140,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     total_n = len(examples)
 
     # Process single batch only
-    total, correct_measured, correct_self = 0, 0, 0
+    total, correct_self = 0, 0
     prompt_tok_sum, gen_tok_sum = 0, 0
     lat_ms_sum = 0.0
 
@@ -198,10 +194,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         judge_batch_results = self_evaluate_batched(engine, qs, preds, gts, gen, spec.prompts, eval_engine)
 
     # Accumulate metrics for the single batch
-    for j, ex in enumerate(batch):
-        total += 1
-        ok = exact_match(preds[j], gts[j])
-        correct_measured += int(ok)
+        for j, ex in enumerate(batch):
+            total += 1
 
         if judge_batch_results is not None:
             judge_yes, judge_input_prompt, judge_response = judge_batch_results[j]
@@ -362,8 +356,6 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "precision": spec.backend.dtype,
         "quant": None,
         "hardware": "NVIDIA RTX 6000 Pro Blackwell",
-        "batch_size": bs,
-        "use_kv_cache": spec.generation.use_kv_cache,
         "reasoning_style": spec.reasoning.style,
         "prompt_set": spec.prompt_set_name,
 
@@ -371,18 +363,14 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "avg_prompt_tokens": prompt_tok_sum / max(total, 1),
         "avg_gen_tokens": avg_gen_tokens,
         "passes": 2,
-        "beam_width": 1,
         "self_consistency_k": spec.reasoning.self_consistency_k,
 
         # Measured
         "latency_ms": lat_ms_sum / max(total, 1),
         "speed_tok_per_s": (gen_tok_sum / (lat_ms_sum / 1000.0)) if lat_ms_sum > 0 else None,
-        "energy_j": None,
 
         # Task metric
         "dataset": spec.dataset,
-        "metric_name": "exact_match",
-        "accuracy": correct_measured / max(total, 1),
 
         # Extras (self-eval + FLOPs)
         "self_eval_acc": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
@@ -413,10 +401,10 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     if spec.engine == "deepspeed":
         flops_info += f" | avg_deepspeed_tFLOPs≈{deepspeed_flops_str}"
     
-    logger.log_metrics(row['accuracy'], avg_gen_tokens, row['latency_ms'], flops_info)
+    logger.log_metrics(row['self_eval_acc'], avg_gen_tokens, row['latency_ms'], flops_info)
     logger.info(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
                 f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
-                f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
+                f"avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
 
     if wb:
         wb.log_row(row)

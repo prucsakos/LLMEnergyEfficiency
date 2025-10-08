@@ -252,7 +252,6 @@ def run_one_with_calibration(spec: RunSpec,
             "think_budget": spec.think_budget,
             "K": spec.reasoning.self_consistency_k,
             "dtype": spec.backend.dtype,
-            "batch_size": bs,
             "prompt_set": spec.prompt_set_name,
             "config_name": spec.config_name,
             # Generation parameters
@@ -260,10 +259,7 @@ def run_one_with_calibration(spec: RunSpec,
             "top_p": spec.generation.top_p,
             "top_k": spec.generation.top_k,
             "do_sample": spec.generation.do_sample,
-            "max_new_tokens": spec.generation.max_new_tokens,
-            "stop": spec.generation.stop,
             "seed": spec.generation.seed,
-            "use_kv_cache": spec.generation.use_kv_cache,
             # Benchmark backend (vLLM) parameters
             "benchmark_engine": "vllm",
             "benchmark_dtype": spec.backend.dtype,
@@ -294,7 +290,7 @@ def run_one_with_calibration(spec: RunSpec,
     total_n = len(examples)
 
     # Iterate dataset in batches
-    total, correct_measured, correct_self = 0, 0, 0
+    total, correct_self = 0, 0
     prompt_tok_sum, gen_tok_sum = 0, 0
     lat_ms_sum = 0.0
 
@@ -348,8 +344,6 @@ def run_one_with_calibration(spec: RunSpec,
         # Accumulate metrics
         for j, ex in enumerate(batch):
             total += 1
-            ok = exact_match(preds[j], gts[j])
-            correct_measured += int(ok)
 
             if judge_batch_results is not None:
                 judge_yes, judge_input_prompt, judge_response = judge_batch_results[j]
@@ -357,7 +351,8 @@ def run_one_with_calibration(spec: RunSpec,
 
             # Calculate tokens for this datapoint
             prompt_tokens = len(ex.question.split())  # Approximate prompt tokens
-            generated_tokens = think_toks[j] + ans_toks[j]
+            # 2025.08.10: Do not include answer tokens anymore. Focus only on tokens burned in thinking.
+            generated_tokens = think_toks[j]
             
             gen_tok_sum += generated_tokens
             prompt_tok_sum += prompt_tokens
@@ -388,7 +383,7 @@ def run_one_with_calibration(spec: RunSpec,
                 judge_yes, judge_input_prompt, judge_response = judge_batch_results[j]
                 is_successful = judge_yes  # Use judge evaluation instead of exact match
             else:
-                is_successful = ok  # Fallback to exact match if no judge results
+                is_successful = False  # Default to failed if no judge results
             
             # Count current traces by type
             successful_traces = [t for t in sample_traces if t.get("is_successful", False)]
@@ -462,8 +457,6 @@ def run_one_with_calibration(spec: RunSpec,
         "precision": spec.backend.dtype,
         "quant": None,
         "hardware": "NVIDIA RTX 6000 Pro Blackwell",
-        "batch_size": bs,
-        "use_kv_cache": spec.generation.use_kv_cache,
         "reasoning_style": spec.reasoning.style,
         "prompt_set": spec.prompt_set_name,
 
@@ -471,18 +464,14 @@ def run_one_with_calibration(spec: RunSpec,
         "avg_prompt_tokens": prompt_tok_sum / max(total, 1),
         "avg_gen_tokens": avg_gen_tokens,
         "passes": 2,
-        "beam_width": 1,
         "self_consistency_k": spec.reasoning.self_consistency_k,
 
         # Measured
         "latency_ms": lat_ms_sum / max(total, 1),
         "speed_tok_per_s": (gen_tok_sum / (lat_ms_sum / 1000.0)) if lat_ms_sum > 0 else None,
-        "energy_j": None,
 
         # Task metric
         "dataset": spec.dataset,
-        "metric_name": "exact_match",
-        "accuracy": correct_measured / max(total, 1),
 
         # Extras (self-eval + FLOPs)
         "self_eval_acc": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
@@ -518,7 +507,7 @@ def run_one_with_calibration(spec: RunSpec,
     logger.log_metrics(row['self_eval_acc'], avg_gen_tokens, row['latency_ms'], flops_info)
     logger.info(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
                 f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
-                f"acc={row['accuracy']:.3f} | avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
+                f"avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
 
     if wb:
         wb.log_row(row)
