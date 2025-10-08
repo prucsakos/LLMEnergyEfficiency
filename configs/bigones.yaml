@@ -1,11 +1,11 @@
 prompts:
   cot_think: |
-    Think through this problem step by step. Show all your reasoning, calculations, and analysis.
-    Do not provide the final answer - focus only on the thinking process.
-
+    Think through this problem step by step. Show your reasoning, calculations, and analysis.
+    Work through the problem systematically until you reach a clear, confident conclusion.
+    
     {question}
-
-    Thinking: 
+    
+    Thinking:
   answer: |
     Based on your reasoning, what is the final answer? Provide only the final answer in \boxed{{}}, followed by a brief explanation only after.
 
