@@ -818,15 +818,28 @@ def plot_thinking_budget_utilization(df: pd.DataFrame, output_dir: Path):
     n_rows = (n_datasets + n_cols - 1) // n_cols
     
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+    
+    # Handle different subplot configurations
     if n_datasets == 1:
         axes = [axes]
-    elif n_rows == 1:
+    elif n_rows == 1 and n_cols > 1:
         axes = axes.reshape(1, -1)
+    elif n_rows > 1 and n_cols == 1:
+        axes = axes.reshape(-1, 1)
     
     for i, dataset in enumerate(datasets):
         row = i // n_cols
         col = i % n_cols
-        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        # Get the correct axes object
+        if n_datasets == 1:
+            ax = axes[0]
+        elif n_rows == 1:
+            ax = axes[0, col] if n_cols > 1 else axes[0]
+        elif n_cols == 1:
+            ax = axes[row, 0] if n_rows > 1 else axes[0]
+        else:
+            ax = axes[row, col]
         
         dataset_data = plot_df[plot_df['dataset'] == dataset]
         
@@ -863,10 +876,18 @@ def plot_thinking_budget_utilization(df: pd.DataFrame, output_dir: Path):
     for i in range(n_datasets, n_rows * n_cols):
         row = i // n_cols
         col = i % n_cols
-        if n_rows > 1:
-            axes[row, col].set_visible(False)
+        
+        # Get the correct axes object
+        if n_datasets == 1:
+            continue  # No empty subplots for single dataset
+        elif n_rows == 1:
+            if n_cols > 1:
+                axes[0, col].set_visible(False)
+        elif n_cols == 1:
+            if n_rows > 1:
+                axes[row, 0].set_visible(False)
         else:
-            axes[col].set_visible(False)
+            axes[row, col].set_visible(False)
     
     plt.tight_layout()
     plt.savefig(thinking_dir / 'all_models_per_dataset.png', dpi=300, bbox_inches='tight')
@@ -882,15 +903,28 @@ def plot_thinking_budget_utilization(df: pd.DataFrame, output_dir: Path):
     n_rows = (n_models + n_cols - 1) // n_cols
     
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(6*n_cols, 4*n_rows))
+    
+    # Handle different subplot configurations
     if n_models == 1:
         axes = [axes]
-    elif n_rows == 1:
+    elif n_rows == 1 and n_cols > 1:
         axes = axes.reshape(1, -1)
+    elif n_rows > 1 and n_cols == 1:
+        axes = axes.reshape(-1, 1)
     
     for i, model in enumerate(models):
         row = i // n_cols
         col = i % n_cols
-        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        # Get the correct axes object
+        if n_models == 1:
+            ax = axes[0]
+        elif n_rows == 1:
+            ax = axes[0, col] if n_cols > 1 else axes[0]
+        elif n_cols == 1:
+            ax = axes[row, 0] if n_rows > 1 else axes[0]
+        else:
+            ax = axes[row, col]
         
         model_data = plot_df[plot_df['model_name'] == model]
         if model_data.empty:
@@ -930,10 +964,18 @@ def plot_thinking_budget_utilization(df: pd.DataFrame, output_dir: Path):
     for i in range(n_models, n_rows * n_cols):
         row = i // n_cols
         col = i % n_cols
-        if n_rows > 1:
-            axes[row, col].set_visible(False)
+        
+        # Get the correct axes object
+        if n_models == 1:
+            continue  # No empty subplots for single model
+        elif n_rows == 1:
+            if n_cols > 1:
+                axes[0, col].set_visible(False)
+        elif n_cols == 1:
+            if n_rows > 1:
+                axes[row, 0].set_visible(False)
         else:
-            axes[col].set_visible(False)
+            axes[row, col].set_visible(False)
     
     plt.tight_layout()
     plt.savefig(thinking_dir / 'all_models_grid.png', dpi=300, bbox_inches='tight')
@@ -979,15 +1021,28 @@ def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path)
     n_rows = (n_datasets + n_cols - 1) // n_cols
     
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+    
+    # Handle different subplot configurations
     if n_datasets == 1:
         axes = [axes]
-    elif n_rows == 1:
+    elif n_rows == 1 and n_cols > 1:
         axes = axes.reshape(1, -1)
+    elif n_rows > 1 and n_cols == 1:
+        axes = axes.reshape(-1, 1)
     
     for i, dataset in enumerate(datasets):
         row = i // n_cols
         col = i % n_cols
-        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        # Get the correct axes object
+        if n_datasets == 1:
+            ax = axes[0]
+        elif n_rows == 1:
+            ax = axes[0, col] if n_cols > 1 else axes[0]
+        elif n_cols == 1:
+            ax = axes[row, 0] if n_rows > 1 else axes[0]
+        else:
+            ax = axes[row, col]
         
         dataset_data = plot_df[plot_df['dataset'] == dataset]
         
@@ -1023,10 +1078,18 @@ def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path)
     for i in range(n_datasets, n_rows * n_cols):
         row = i // n_cols
         col = i % n_cols
-        if n_rows > 1:
-            axes[row, col].set_visible(False)
+        
+        # Get the correct axes object
+        if n_datasets == 1:
+            continue  # No empty subplots for single dataset
+        elif n_rows == 1:
+            if n_cols > 1:
+                axes[0, col].set_visible(False)
+        elif n_cols == 1:
+            if n_rows > 1:
+                axes[row, 0].set_visible(False)
         else:
-            axes[col].set_visible(False)
+            axes[row, col].set_visible(False)
     
     plt.tight_layout()
     plt.savefig(correlation_dir / 'accuracy_vs_utilization_per_dataset.png', dpi=300, bbox_inches='tight')
@@ -1042,15 +1105,28 @@ def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path)
     n_rows = (n_models + n_cols - 1) // n_cols
     
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(6*n_cols, 4*n_rows))
+    
+    # Handle different subplot configurations
     if n_models == 1:
         axes = [axes]
-    elif n_rows == 1:
+    elif n_rows == 1 and n_cols > 1:
         axes = axes.reshape(1, -1)
+    elif n_rows > 1 and n_cols == 1:
+        axes = axes.reshape(-1, 1)
     
     for i, model in enumerate(models):
         row = i // n_cols
         col = i % n_cols
-        ax = axes[row, col] if n_rows > 1 else axes[col]
+        
+        # Get the correct axes object
+        if n_models == 1:
+            ax = axes[0]
+        elif n_rows == 1:
+            ax = axes[0, col] if n_cols > 1 else axes[0]
+        elif n_cols == 1:
+            ax = axes[row, 0] if n_rows > 1 else axes[0]
+        else:
+            ax = axes[row, col]
         
         model_data = plot_df[plot_df['model_name'] == model]
         if model_data.empty:
@@ -1089,10 +1165,18 @@ def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path)
     for i in range(n_models, n_rows * n_cols):
         row = i // n_cols
         col = i % n_cols
-        if n_rows > 1:
-            axes[row, col].set_visible(False)
+        
+        # Get the correct axes object
+        if n_models == 1:
+            continue  # No empty subplots for single model
+        elif n_rows == 1:
+            if n_cols > 1:
+                axes[0, col].set_visible(False)
+        elif n_cols == 1:
+            if n_rows > 1:
+                axes[row, 0].set_visible(False)
         else:
-            axes[col].set_visible(False)
+            axes[row, col].set_visible(False)
     
     plt.tight_layout()
     plt.savefig(correlation_dir / 'accuracy_vs_utilization_per_model.png', dpi=300, bbox_inches='tight')
