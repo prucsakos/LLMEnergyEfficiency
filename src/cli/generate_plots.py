@@ -799,8 +799,9 @@ def plot_thinking_budget_utilization(df: pd.DataFrame, output_dir: Path):
         print("Warning: No data available for thinking budget utilization plots")
         return
     
-    # Calculate utilization ratio (avg_gen_tokens / think_budget)
-    plot_df['utilization_ratio'] = plot_df['avg_gen_tokens'] / plot_df['think_budget']
+    # Use logged budget_utilization_ratio directly
+    # budget_utilization_ratio = avg_gen_tokens / think_budget
+    plot_df['utilization_ratio'] = plot_df['budget_utilization_ratio']
     
     # Create subfolder for thinking budget utilization plots
     thinking_dir = output_dir / 'thinking_budget_utilization'
@@ -1002,8 +1003,9 @@ def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path)
         print("Warning: No data available for accuracy vs utilization correlation plots")
         return
     
-    # Calculate utilization ratio (avg_gen_tokens / think_budget)
-    plot_df['utilization_ratio'] = plot_df['avg_gen_tokens'] / plot_df['think_budget']
+    # Use logged budget_utilization_ratio directly
+    # budget_utilization_ratio = avg_gen_tokens / think_budget
+    plot_df['utilization_ratio'] = plot_df['budget_utilization_ratio']
     
     # Create subfolder for correlation plots
     correlation_dir = output_dir / 'thinking_budget_utilization'

@@ -463,6 +463,7 @@ def run_one_with_calibration(spec: RunSpec,
         # Tokens (averaged per datapoint)
         "avg_prompt_tokens": prompt_tok_sum / max(total, 1),
         "avg_gen_tokens": avg_gen_tokens,
+        "budget_utilization_ratio": avg_gen_tokens / spec.think_budget,
         "passes": 2,
         "self_consistency_k": spec.reasoning.self_consistency_k,
 
