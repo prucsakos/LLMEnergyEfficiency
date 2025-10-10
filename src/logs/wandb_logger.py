@@ -99,8 +99,9 @@ class WandbRunLogger:
         if not traces:
             return
         
-        # Determine if this is self-consistency (SC) or two-pass
+        # Determine the trace type: self-consistency, two-pass, or single-pass
         is_sc = any("chosen_answer" in trace for trace in traces)
+        is_single_pass = spec.reasoning.style == "single_pass"
         max_k = spec.reasoning.self_consistency_k or 1
         
         # Build columns based on the trace type
@@ -109,10 +110,13 @@ class WandbRunLogger:
         if is_sc:
             # Self-consistency: add columns for each path
             for k in range(1, max_k + 1):
-                columns.extend([f"path_{k}_think_text", f"path_{k}_answer_text"])
+                columns.extend([f"path_{k}_think_text", f"path_{k}_answer_text", f"path_{k}_think_tokens", f"path_{k}_answer_tokens"])
+        elif is_single_pass:
+            # Single-pass: extracted solution, full answer text, and token counts
+            columns.extend(["extracted_solution", "full_answer_text", "answer_tokens"])
         else:
-            # Two-pass: single think and answer
-            columns.extend(["think_text", "answer_text"])
+            # Two-pass: single think and answer with token counts
+            columns.extend(["think_text", "answer_text", "think_tokens", "answer_tokens"])
         
         # Build data rows
         data = []
@@ -124,19 +128,32 @@ class WandbRunLogger:
             ]
             
             if is_sc:
-                # Self-consistency: add each path
+                # Self-consistency: add each path with token counts
                 for k in range(1, max_k + 1):
                     think_key = f"path_{k}_think"
                     answer_key = f"path_{k}_answer"
+                    think_tokens_key = f"path_{k}_think_tokens"
+                    answer_tokens_key = f"path_{k}_answer_tokens"
                     row.extend([
                         trace.get(think_key, ""),
-                        trace.get(answer_key, "")
+                        trace.get(answer_key, ""),
+                        trace.get(think_tokens_key, 0),
+                        trace.get(answer_tokens_key, 0)
                     ])
+            elif is_single_pass:
+                # Single-pass: extracted solution, full answer text, and token count
+                row.extend([
+                    trace.get("answer_text", ""),  # extracted solution
+                    trace.get("full_answer_text", ""),  # full answer text
+                    trace.get("answer_tokens", 0)  # token count
+                ])
             else:
-                # Two-pass: single think and answer
+                # Two-pass: single think and answer with token counts
                 row.extend([
                     trace.get("think_text", ""),
-                    trace.get("answer_text", "")
+                    trace.get("answer_text", ""),
+                    trace.get("think_tokens", 0),
+                    trace.get("answer_tokens", 0)
                 ])
             
             data.append(row)
