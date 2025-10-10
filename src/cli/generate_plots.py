@@ -798,10 +798,8 @@ def plot_thinking_budget_utilization(df: pd.DataFrame, output_dir: Path):
     if plot_df.empty:
         print("Warning: No data available for thinking budget utilization plots")
         return
-    
-    # Use logged budget_utilization_ratio directly
-    # budget_utilization_ratio = avg_gen_tokens / think_budget
-    plot_df['utilization_ratio'] = plot_df['budget_utilization_ratio']
+
+    plot_df['utilization_ratio'] = plot_df['avg_gen_tokens'] / plot_df['think_budget']
     
     # Create subfolder for thinking budget utilization plots
     thinking_dir = output_dir / 'thinking_budget_utilization'
@@ -1002,10 +1000,8 @@ def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path)
     if plot_df.empty:
         print("Warning: No data available for accuracy vs utilization correlation plots")
         return
-    
-    # Use logged budget_utilization_ratio directly
-    # budget_utilization_ratio = avg_gen_tokens / think_budget
-    plot_df['utilization_ratio'] = plot_df['budget_utilization_ratio']
+
+    plot_df['utilization_ratio'] = plot_df['avg_gen_tokens'] / plot_df['think_budget']
     
     # Create subfolder for correlation plots
     correlation_dir = output_dir / 'thinking_budget_utilization'
@@ -1187,6 +1183,177 @@ def plot_accuracy_vs_utilization_correlation(df: pd.DataFrame, output_dir: Path)
     print(f"✅ Accuracy vs utilization per model figure saved: {correlation_dir / 'accuracy_vs_utilization_per_model.png'}")
     print(f"✅ All accuracy vs utilization correlation plots saved to: {correlation_dir}")
 
+def plot_accuracy_vs_latency_enhanced(df: pd.DataFrame, output_dir: Path, pareto: bool = True):
+    """
+    Create enhanced accuracy vs latency scatter plots with color by params_B and size by avg_gen_tokens.
+    
+    Args:
+        df: DataFrame with run data
+        output_dir: Directory to save plots
+        pareto: Whether to include pareto frontier
+    """
+    print("Creating enhanced accuracy vs latency scatter plots...")
+    
+    # Filter out runs with missing data
+    plot_df = df.dropna(subset=['self_eval_acc', 'latency_ms', 'params_B', 'avg_gen_tokens']).copy()
+    
+    if len(plot_df) == 0:
+        print("Warning: No data available for enhanced accuracy vs latency plots")
+        return
+    
+    # Get unique datasets
+    datasets = sorted(plot_df['dataset'].unique())
+    
+    # Create figure with subplots for each dataset
+    n_datasets = len(datasets)
+    n_cols = min(3, n_datasets)
+    n_rows = (n_datasets + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(6*n_cols, 5*n_rows))
+    
+    # Handle different subplot configurations
+    if n_datasets == 1:
+        axes = [axes]
+    elif n_rows == 1 and n_cols > 1:
+        axes = axes.reshape(1, -1)
+    elif n_rows > 1 and n_cols == 1:
+        axes = axes.reshape(-1, 1)
+    
+    # Get color and shape mappings
+    family_colors, name_shapes = create_color_mapping(plot_df)
+    
+    for i, dataset in enumerate(datasets):
+        row = i // n_cols
+        col = i % n_cols
+        
+        # Get the correct axes object
+        if n_datasets == 1:
+            ax = axes[0]
+        elif n_rows == 1:
+            ax = axes[0, col] if n_cols > 1 else axes[0]
+        elif n_cols == 1:
+            ax = axes[row, 0] if n_rows > 1 else axes[0]
+        else:
+            ax = axes[row, col]
+        
+        dataset_data = plot_df[plot_df['dataset'] == dataset]
+        
+        # Check if we have multiple different params_B values in the dataset
+        has_multiple_params = len(dataset_data['params_B'].unique()) > 1
+        
+        # Create scatter plot with color by params_B and size by avg_gen_tokens
+        for model_name in sorted(dataset_data['model_name'].unique()):
+            model_data = dataset_data[dataset_data['model_name'] == model_name]
+            
+            # Create scatter plot with linear size scaling
+            # Linear scaling from 25 (0 tokens) to 250 (20k tokens)
+            linear_sizes = 1 + (model_data['avg_gen_tokens'] / 20000) * (200 - 25)
+            
+            scatter = ax.scatter(
+                model_data['latency_ms'], 
+                model_data['self_eval_acc'],
+                c=model_data['params_B'],
+                s=linear_sizes,
+                marker='o',  # Use circles for all models
+                alpha=0.7,
+                edgecolors='black',
+                linewidth=0.5,
+                cmap='viridis' if has_multiple_params else None,
+                vmin=dataset_data['params_B'].min() if has_multiple_params else None,
+                vmax=dataset_data['params_B'].max() if has_multiple_params else None
+            )
+            
+            # Add model name labels below each point and token count above each point
+            for idx, row in model_data.iterrows():
+                # Model name below the circle
+                ax.annotate(model_name, 
+                           xy=(row['latency_ms'], row['self_eval_acc']),
+                           xytext=(0, -8), textcoords='offset points',  # Position below the circle
+                           fontsize=5, alpha=1., ha='center', va='top',  # Smaller font, more transparent
+                           weight='light')
+                
+                # Generated tokens above the circle
+                ax.annotate(f"{int(row['avg_gen_tokens'])}", 
+                           xy=(row['latency_ms'], row['self_eval_acc']),
+                           xytext=(0, 8), textcoords='offset points',  # Position above the circle
+                           fontsize=5, alpha=1., ha='center', va='bottom',  # Smaller font, more transparent
+                           weight='light')
+        
+        # Add pareto frontier if requested
+        if pareto:
+            x_vals = dataset_data['latency_ms'].values
+            y_vals = dataset_data['self_eval_acc'].values
+            
+            # Calculate pareto frontier (minimize latency, maximize accuracy)
+            pareto_indices = calculate_pareto_frontier(x_vals, y_vals, 
+                                                    minimize_x=True, minimize_y=False)
+            
+            if len(pareto_indices) > 1:
+                pareto_x = x_vals[pareto_indices]
+                pareto_y = y_vals[pareto_indices]
+                
+                # Sort for plotting
+                sort_idx = np.argsort(pareto_x)
+                pareto_x = pareto_x[sort_idx]
+                pareto_y = pareto_y[sort_idx]
+                
+                ax.plot(pareto_x, pareto_y, 'r--', linewidth=2, alpha=0.8, 
+                       label='Pareto Frontier (min latency, max accuracy)')
+        
+        ax.set_xlabel('Latency (ms)')
+        ax.set_ylabel('Accuracy (self_eval_acc)')
+        ax.set_title(f'Accuracy vs Latency - {dataset}')
+        ax.grid(True, alpha=0.3)
+        # No model legend - model names are shown as text on each point
+        
+        # Add colorbar for params_B
+        if has_multiple_params:
+            sm = plt.cm.ScalarMappable(cmap='viridis', 
+                                     norm=plt.Normalize(vmin=dataset_data['params_B'].min(), 
+                                                      vmax=dataset_data['params_B'].max()))
+            sm.set_array([])
+            cbar = plt.colorbar(sm, ax=ax, shrink=0.8)
+            cbar.set_label('Model Size (B Params)', fontsize=8)
+    
+    # Hide empty subplots
+    for i in range(n_datasets, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        
+        # Get the correct axes object
+        if n_datasets == 1:
+            continue  # No empty subplots for single dataset
+        elif n_rows == 1:
+            if n_cols > 1:
+                axes[0, col].set_visible(False)
+        elif n_cols == 1:
+            if n_rows > 1:
+                axes[row, 0].set_visible(False)
+        else:
+            axes[row, col].set_visible(False)
+    
+    # Add overall legend for size (avg_gen_tokens) with linear scaling
+    # Create a dummy scatter plot for the size legend using the same linear scaling as the plot
+    token_counts = [0, 1000, 5000, 10000, 20000]  # Example token counts
+    labels = ['0', '1k', '5k', '10k', '20k']  # Corresponding labels
+    legend_elements = []
+    for tokens, label in zip(token_counts, labels):
+        # Apply the same linear scaling as in the plot: 1 + (tokens/20000) * (300-25)
+        linear_size = 1 + (tokens / 20000) * (300 - 25)
+        legend_elements.append(plt.scatter([], [], s=linear_size, c='gray', alpha=0.7, 
+                                         edgecolors='black', linewidth=0.5, label=f'{label} tokens'))
+    
+    # Add size legend to the figure
+    fig.legend(handles=legend_elements, title='Generated Tokens', 
+              loc='center', bbox_to_anchor=(0.5, 0.02), ncol=4, fontsize=8)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.1)  # Make room for size legend
+    plt.savefig(output_dir / 'accuracy_vs_latency_enhanced.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Enhanced accuracy vs latency figure saved: {output_dir / 'accuracy_vs_latency_enhanced.png'}")
+
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(description='Generate plots from wandb data')
@@ -1244,6 +1411,9 @@ def main():
         # Accuracy vs Latency plots
         plot_accuracy_vs_metric(df, 'latency_ms', 'Average Runtime (ms)', 
                                output_dir, pareto=not args.no_pareto)
+        
+        # Enhanced Accuracy vs Latency plots (with color by params_B and size by tokens)
+        plot_accuracy_vs_latency_enhanced(df, output_dir, pareto=not args.no_pareto)
         
         # Accuracy vs Tokens plots  
         plot_accuracy_vs_metric(df, 'avg_gen_tokens', 'Average Generated Tokens',
