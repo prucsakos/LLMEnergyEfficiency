@@ -49,6 +49,87 @@ def _engine_generate_batch(engine: TextEngine,
     return texts, comp_tokens, wall_ms, raw_data
 
 
+def extract_solution_from_trace(trace_text: str) -> str:
+    """
+    Extract the solution from a thinking trace to avoid passing long text to evaluators.
+    
+    Strategy:
+    1. Look for boxed strings (\\boxed{...}) and return the last one if present
+    2. If no boxed strings, return the last 50 tokens of the trace
+    
+    Args:
+        trace_text: The full thinking trace text
+        
+    Returns:
+        Extracted solution string
+    """
+    if not trace_text or not trace_text.strip():
+        return ""
+    
+    # Strategy 1: Look for boxed strings
+    boxed_pattern = r'\\boxed\{([^}]+)\}'
+    boxed_matches = re.findall(boxed_pattern, trace_text)
+    
+    if boxed_matches:
+        # Return the last boxed answer
+        return boxed_matches[-1].strip()
+    
+    # Strategy 2: If no boxed strings, return last 50 words
+    LAST_N_WORDS = 25
+    tokens = trace_text.split()
+    if len(tokens) <= LAST_N_WORDS:
+        return trace_text.strip()
+    else:
+        return " ".join(tokens[-LAST_N_WORDS:]).strip()
+
+
+def single_pass_batch(engine: TextEngine,
+                      questions: List[str],
+                      gen: GenerationParams,
+                      think_budget: int):
+    """
+    Single-pass batch processing: just the question as prompt, no thinking phase.
+    Uses think_budget as max_new_tokens for generation.
+    Returns a list of dicts, one per question:
+    {
+      "answer_text": str,
+      "answer_tokens": int,
+      "latency_ms": float,
+    }
+    """
+    n = len(questions)
+    results = [{} for _ in range(n)]
+    
+    # Use questions directly as prompts (no base prompt)
+    answer_prompts = questions
+    
+    # Generate answers using think_budget as max_new_tokens
+    answer_texts, answer_tok_counts, answer_ms, answer_raw_data = _engine_generate_batch(
+        engine,
+        answer_prompts,
+        GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
+    )
+    
+    answer_lat_per_item = answer_ms / max(n, 1)
+    
+    for i in range(n):
+        full_answer_text = answer_texts[i].strip()
+        # Extract solution from the full generated text
+        extracted_solution = extract_solution_from_trace(full_answer_text)
+        
+        results[i] = {
+            "answer_text": extracted_solution,  # Use extracted solution instead of full text
+            "full_answer_text": full_answer_text,  # Keep full text for reference
+            "answer_tokens": int(answer_tok_counts[i]),
+            "latency_ms": float(answer_lat_per_item),
+            "raw": {
+                "answer_raw": answer_raw_data[i] if i < len(answer_raw_data) else None,
+            }
+        }
+    
+    return results
+
+
 def self_evaluate_batched(
     engine: TextEngine,
     questions: List[str],
