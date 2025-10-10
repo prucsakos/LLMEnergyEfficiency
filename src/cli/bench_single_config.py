@@ -16,7 +16,7 @@ from ..config.bench_config import load_bench_config, expand_runs, RunSpec, Promp
 from ..core.interfaces import GenerationParams
 from ..core.engines import create_engine
 from ..reasoning.aggregators import majority_vote
-from ..reasoning.controller import self_evaluate_batched, self_consistency_batch, two_pass_batch  # use batched judge
+from ..reasoning.controller import self_evaluate_batched, self_consistency_batch, two_pass_batch, single_pass_batch  # use batched judge
 from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample, iter_dataset
 from ..metrics.flop_estimation import flops_dense, flops_attention_kv, to_tflops
 from ..logs.wandb_logger import WandbRunLogger
@@ -130,6 +130,13 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         think_toks = [sum([p["think_tokens"] for p in o["paths"]]) for o in outs]
         ans_toks   = [sum([p["answer_tokens"] for p in o["paths"]]) for o in outs]
         lats       = [float(statistics.mean([p["latency_ms_think"] + p["latency_ms_answer"] for p in o["paths"]])) for o in outs]
+    elif spec.reasoning.style == "single_pass":
+        # Use single-pass method: just the question as prompt, using think_budget as max_new_tokens
+        outs = single_pass_batch(engine, qs, gen, spec.think_budget)
+        preds = [o["answer_text"] for o in outs]
+        think_toks = [0 for _ in outs]  # No thinking tokens in single pass
+        ans_toks   = [o["answer_tokens"] for o in outs]
+        lats       = [o["latency_ms"] for o in outs]
     else:
         outs = two_pass_batch(engine, qs, gen, spec.think_budget, spec.reasoning.style, spec.prompts)
         preds = [o["answer_text"] for o in outs]
@@ -232,20 +239,24 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         else:
             is_successful = False  # Default to failed if no judge results
         
-        # Handle different output structures (self-consistency vs two-pass)
+        # Handle different output structures (self-consistency vs two-pass vs single-pass)
         if "think_text" in outs[j]:
             # Two-pass batch output
             think_text = outs[j]["think_text"]
             answer_text = outs[j]["answer_text"]
+            think_tokens = outs[j].get("think_tokens", 0)
+            answer_tokens = outs[j].get("answer_tokens", 0)
             trace = {
                 "question": ex.question,
                 "gold": ex.gold,
                 "think_text": think_text,
                 "answer_text": answer_text,
+                "think_tokens": think_tokens,
+                "answer_tokens": answer_tokens,
                 "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
                 "is_successful": is_successful,
             }
-        else:
+        elif "chosen_answer" in outs[j]:
             # Self-consistency output - log all K paths
             paths = outs[j]["paths"] if outs[j]["paths"] else []
             chosen_answer = outs[j]["chosen_answer"]
@@ -259,10 +270,26 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                 "is_successful": is_successful,
             }
             
-            # Add each path's generated text
+            # Add each path's generated text and token counts
             for k_idx, path in enumerate(paths):
                 trace[f"path_{k_idx+1}_think"] = path.get("think_text", "")
                 trace[f"path_{k_idx+1}_answer"] = path.get("answer_text", "")
+                trace[f"path_{k_idx+1}_think_tokens"] = path.get("think_tokens", 0)
+                trace[f"path_{k_idx+1}_answer_tokens"] = path.get("answer_tokens", 0)
+        else:
+            # Single-pass output - extracted solution, full answer text, and token count
+            answer_text = outs[j]["answer_text"]  # extracted solution
+            full_answer_text = outs[j].get("full_answer_text", answer_text)  # full text
+            answer_tokens = outs[j].get("answer_tokens", 0)  # token count
+            trace = {
+                "question": ex.question,
+                "gold": ex.gold,
+                "answer_text": answer_text,  # extracted solution
+                "full_answer_text": full_answer_text,  # full answer text
+                "answer_tokens": answer_tokens,  # token count
+                "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                "is_successful": is_successful,
+            }
         
         all_traces.append(trace)
 
