@@ -24,46 +24,6 @@ from ..logs.wandb_logger import WandbRunLogger
 # Optional direct import from vLLM for batched generation
 from vllm import SamplingParams
 
-def _build_sample_trace_logging(sample_traces: List[dict], sample_idx: int, trace_type: str = "sample") -> dict:
-    """Build logging fields for a sample trace, handling both two-pass and self-consistency formats."""
-    if sample_idx >= len(sample_traces):
-        return {
-            f"{trace_type}{sample_idx+1}_question": None,
-            f"{trace_type}{sample_idx+1}_golden_answer": None,
-            f"{trace_type}{sample_idx+1}_judge_answer": None,
-        }
-    
-    trace = sample_traces[sample_idx]
-    sample_prefix = f"{trace_type}{sample_idx+1}"
-    
-    # Base fields
-    result = {
-        f"{sample_prefix}_question": trace.get("question"),
-        f"{sample_prefix}_golden_answer": trace.get("gold"),
-        f"{sample_prefix}_judge_answer": trace.get("judge_text"),
-    }
-    
-    # Check if this is self-consistency (has chosen_answer) or two-pass (has think_text/answer_text)
-    if "chosen_answer" in trace:
-        # Self-consistency format - log chosen answer and all K paths
-        result[f"{sample_prefix}_chosen_answer"] = trace.get("chosen_answer")
-        
-        # Log up to 5 paths (assuming max K=5)
-        for k in range(1, 6):
-            think_key = f"path_{k}_think"
-            answer_key = f"path_{k}_answer"
-            if think_key in trace:
-                result[f"{sample_prefix}_path{k}_think"] = trace.get(think_key, "")
-                result[f"{sample_prefix}_path{k}_answer"] = trace.get(answer_key, "")
-            else:
-                result[f"{sample_prefix}_path{k}_think"] = None
-                result[f"{sample_prefix}_path{k}_answer"] = None
-    else:
-        # Two-pass format - use original fields
-        result[f"{sample_prefix}_first_pass"] = trace.get("think_text")
-        result[f"{sample_prefix}_second_pass"] = trace.get("answer_text")
-    
-    return result
 
 def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str | None = None, notes: str = "", verbose: bool = False) -> None:
     # Use configured batch size unless overridden
@@ -146,8 +106,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     pbar = tqdm(total=bs, desc=run_name, unit="ex")
 
-    # Collect up to 3 sample traces for logging/inspection
-    sample_traces = []  # list of dicts with question, gold, answer_prompt, answer_text, judge_text
+    # Collect all traces for table logging
+    all_traces = []  # list of dicts with question, gold, answer_prompt, answer_text, judge_text
     judge_input_prompt = None
     judge_response = None
     
@@ -264,59 +224,47 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             'deepspeed': deepspeed_flops
         })
 
-        # Collect traces based on success/failure (up to 2 failed, up to 2 successful)
+        # Collect all traces for table logging
         # Determine if this trace is successful or failed using judge evaluation
         if judge_batch_results is not None:
             judge_yes, judge_input_prompt, judge_response = judge_batch_results[j]
             is_successful = judge_yes  # Use judge evaluation instead of exact match
         else:
-            is_successful = ok  # Fallback to exact match if no judge results
+            is_successful = False  # Default to failed if no judge results
         
-        # Count current traces by type
-        successful_traces = [t for t in sample_traces if t.get("is_successful", False)]
-        failed_traces = [t for t in sample_traces if not t.get("is_successful", True)]
-        
-        # Only add if we haven't reached the limit for this type
-        should_add = False
-        if is_successful and len(successful_traces) < 2:
-            should_add = True
-        elif not is_successful and len(failed_traces) < 2:
-            should_add = True
-        
-        if should_add:
-            # Handle different output structures (self-consistency vs two-pass)
-            if "think_text" in outs[j]:
-                # Two-pass batch output
-                think_text = outs[j]["think_text"]
-                answer_text = outs[j]["answer_text"]
-                trace = {
-                    "question": ex.question,
-                    "gold": ex.gold,
-                    "think_text": think_text,
-                    "answer_text": answer_text,
-                    "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
-                    "is_successful": is_successful,
-                }
-            else:
-                # Self-consistency output - log all K paths
-                paths = outs[j]["paths"] if outs[j]["paths"] else []
-                chosen_answer = outs[j]["chosen_answer"]
-                
-                # Create trace with all K paths
-                trace = {
-                    "question": ex.question,
-                    "gold": ex.gold,
-                    "chosen_answer": chosen_answer,
-                    "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
-                    "is_successful": is_successful,
-                }
-                
-                # Add each path's generated text
-                for k_idx, path in enumerate(paths):
-                    trace[f"path_{k_idx+1}_think"] = path.get("think_text", "")
-                    trace[f"path_{k_idx+1}_answer"] = path.get("answer_text", "")
+        # Handle different output structures (self-consistency vs two-pass)
+        if "think_text" in outs[j]:
+            # Two-pass batch output
+            think_text = outs[j]["think_text"]
+            answer_text = outs[j]["answer_text"]
+            trace = {
+                "question": ex.question,
+                "gold": ex.gold,
+                "think_text": think_text,
+                "answer_text": answer_text,
+                "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                "is_successful": is_successful,
+            }
+        else:
+            # Self-consistency output - log all K paths
+            paths = outs[j]["paths"] if outs[j]["paths"] else []
+            chosen_answer = outs[j]["chosen_answer"]
             
-            sample_traces.append(trace)
+            # Create trace with all K paths
+            trace = {
+                "question": ex.question,
+                "gold": ex.gold,
+                "chosen_answer": chosen_answer,
+                "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
+                "is_successful": is_successful,
+            }
+            
+            # Add each path's generated text
+            for k_idx, path in enumerate(paths):
+                trace[f"path_{k_idx+1}_think"] = path.get("think_text", "")
+                trace[f"path_{k_idx+1}_answer"] = path.get("answer_text", "")
+        
+        all_traces.append(trace)
 
     pbar.update(len(batch))
 
@@ -381,11 +329,6 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "avg_flops_attention_kv_tflops": to_tflops(avg_attn_flops) if avg_attn_flops is not None else None,
         "avg_flops_deepspeed_tflops": to_tflops(avg_deepspeed_flops) if avg_deepspeed_flops is not None else None,
 
-        # Sample traces - up to 2 failed and up to 2 successful
-        **_build_sample_trace_logging(sample_traces, 0),
-        **_build_sample_trace_logging(sample_traces, 1),
-        **_build_sample_trace_logging(sample_traces, 2),
-        **_build_sample_trace_logging(sample_traces, 3),
         "prompt_cot_think": spec.prompts.cot_think,
         "prompt_answer": spec.prompts.answer,
         "prompt_llm_judge": spec.prompts.llm_judge,
@@ -409,6 +352,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
 
     if wb:
         wb.log_row(row)
+        # Log all traces to separate tables
+        wb.log_trace_tables(all_traces, spec)
         wb.finish()
 
     # Tear down engine and free memory between runs

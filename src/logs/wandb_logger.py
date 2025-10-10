@@ -77,5 +77,72 @@ class WandbRunLogger:
             if v is not None:
                 self.run.summary[k] = v
 
+    def log_trace_tables(self, all_traces: List[Dict[str, Any]], spec) -> None:
+        """Log all traces to separate wandb tables for successful and failed traces."""
+        if not all_traces:
+            return
+        
+        # Separate successful and failed traces
+        successful_traces = [trace for trace in all_traces if trace.get("is_successful", False)]
+        failed_traces = [trace for trace in all_traces if not trace.get("is_successful", True)]
+        
+        # Log successful traces table
+        if successful_traces:
+            self._log_trace_table("successful_traces", successful_traces, spec)
+        
+        # Log failed traces table
+        if failed_traces:
+            self._log_trace_table("failed_traces", failed_traces, spec)
+    
+    def _log_trace_table(self, table_name: str, traces: List[Dict[str, Any]], spec) -> None:
+        """Log a single trace table to wandb."""
+        if not traces:
+            return
+        
+        # Determine if this is self-consistency (SC) or two-pass
+        is_sc = any("chosen_answer" in trace for trace in traces)
+        max_k = spec.reasoning.self_consistency_k or 1
+        
+        # Build columns based on the trace type
+        columns = ["datapoint_id", "formatted_question", "golden_answer"]
+        
+        if is_sc:
+            # Self-consistency: add columns for each path
+            for k in range(1, max_k + 1):
+                columns.extend([f"path_{k}_think_text", f"path_{k}_answer_text"])
+        else:
+            # Two-pass: single think and answer
+            columns.extend(["think_text", "answer_text"])
+        
+        # Build data rows
+        data = []
+        for i, trace in enumerate(traces):
+            row = [
+                i,  # datapoint_id
+                trace.get("question", ""),  # formatted_question
+                trace.get("gold", ""),  # golden_answer
+            ]
+            
+            if is_sc:
+                # Self-consistency: add each path
+                for k in range(1, max_k + 1):
+                    think_key = f"path_{k}_think"
+                    answer_key = f"path_{k}_answer"
+                    row.extend([
+                        trace.get(think_key, ""),
+                        trace.get(answer_key, "")
+                    ])
+            else:
+                # Two-pass: single think and answer
+                row.extend([
+                    trace.get("think_text", ""),
+                    trace.get("answer_text", "")
+                ])
+            
+            data.append(row)
+        
+        # Log the table
+        self.log_table(table_name, columns, data)
+
     def finish(self) -> None:
         self.run.finish()
