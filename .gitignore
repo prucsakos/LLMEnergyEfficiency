@@ -30,6 +30,6 @@ logs/
 # Generated plots and analysis
 plots/
 interesting/
-
+media/
 # Lock files (keep uv.lock for reproducibility)
 # uv.lock
