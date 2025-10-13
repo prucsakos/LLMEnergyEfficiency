@@ -1,0 +1,127 @@
+prompts:
+  cot_think: |
+    Reason through this problem step by step. Continue your analysis until your reasoning converges on a clear, definitive answer. 
+    State your final answer explicitly at the end.
+    
+    {question}
+    
+    Thinking: 
+  answer: |
+    What is the final answer? Provide only the final answer in \boxed{{}}, followed by a brief explanation only after.
+
+    {question}
+
+    {deliberate}
+
+    Final answer is 
+  llm_judge: |
+    You are an expert evaluator. Your job is to determine if the student found the correct answer, regardless of formatting or extra text.
+    
+    Gold standard answer: {gold}
+    Student response: {candidate}
+    Question: {question}
+    
+    EVALUATION CRITERIA:
+    - Extract the core answer from the student's response
+    - Ignore formatting (bold, boxes, extra text, commentary)
+    - For numbers: Same value (16 = 16, 3.14 ≈ 3.14159)  
+    - For multiple choice: Same letter (A = A, regardless of explanation)
+    - For expressions: Mathematically equivalent (2x = x+x)
+    
+    IGNORE completely:
+    - Markdown formatting (**bold**, \boxed{{}}, etc.)
+    - Extra explanations or commentary
+    - "Wait, let me recalculate..." type additions
+    - Different presentation styles
+    
+    Focus ONLY on: Did the student get the right mathematical answer?
+    
+    Response format: CORRECT or INCORRECT
+
+    Judgement: 
+  consistency_eval: |
+      You are a majority vote counter. Given a question and multiple candidate answers, identify which answer appears most frequently and select that one.
+
+      COUNTING RULES:
+      - Count exact-string matches after trimming whitespace.
+      - If there is a tie, pick the earliest occurring answer in the provided list.
+      - Output the chosen answer directly without any additional formatting.
+
+      Question:
+      {question}
+      
+      Candidate Answers:
+      {candidate_answers}
+
+      Count the frequency of each answer and select the most popular one. Output only the chosen answer:
+
+config_name: "smalls"
+datasets_: [aime_2025, hmmt_feb_2025, gpqa]
+datasets: [aime_2025]
+
+models:
+
+  # --- BPT OSS 20B with different reasoning levels ---
+  - name: gpt-oss-20b-Reasoning-Low
+    hf_repo: openai/gpt-oss-20b
+    engine: vllm
+    model_family: bpt
+    batch_size: 4
+    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer }
+    think_budgets: [32000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.90, enforce_eager: true }
+    generation: 
+      generation_mode: "chat"
+      system_prompt: ""
+      chat_template_params:
+        reasoning_effort: "low"
+      temperature: 0.5
+      top_p: 0.95
+      top_k: 20
+      do_sample: true
+      max_new_tokens: 512
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "gpt-oss-20b with low reasoning system prompt"
+
+  - name: gpt-oss-20b-Reasoning-Medium
+    hf_repo: openai/gpt-oss-20b
+    engine: vllm
+    model_family: bpt
+    batch_size: 4
+    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer }
+    think_budgets: [32000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.90, enforce_eager: true }
+    generation: 
+      generation_mode: "chat"
+      system_prompt: ""
+      chat_template_params:
+        reasoning_effort: "medium"
+      temperature: 0.5
+      top_p: 0.95
+      top_k: 20
+      do_sample: true
+      max_new_tokens: 512
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "gpt-oss-20b with medium reasoning system prompt and high temperature"
+
+  - name: gpt-oss-20b-Reasoning-High
+    hf_repo: openai/gpt-oss-20b
+    engine: vllm
+    model_family: bpt
+    batch_size: 4
+    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer }
+    think_budgets: [32000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.90, enforce_eager: true }
+    generation: 
+      generation_mode: "chat"
+      system_prompt: ""
+      chat_template_params:
+        reasoning_effort: "high"
+      temperature: 0.5
+      top_p: 0.95
+      top_k: 20
+      do_sample: true
+      max_new_tokens: 512
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "gpt-oss-20b with high reasoning system prompt"
+

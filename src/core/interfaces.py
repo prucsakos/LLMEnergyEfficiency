@@ -38,6 +38,7 @@ class GenerationResult:
     ttft_ms: Optional[float] = None
     latency_ms: Optional[float] = None
     raw: Optional[Dict] = None  # backend-specific payload
+    formatted_input: Optional[str] = None  # formatted input text (for chat mode)
 
 class TextEngine(Protocol):
     """Minimal protocol for text engines."""

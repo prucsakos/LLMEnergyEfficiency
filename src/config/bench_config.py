@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Iterable
+from typing import Dict, List, Optional, Iterable, Any
 import itertools, copy, yaml, pathlib
 
 @dataclass
@@ -41,6 +41,8 @@ class GenDefaults:
     seed: Optional[int] = None
     use_kv_cache: bool = True
     generation_mode: str = "casual"  # "casual" or "chat" - determines vLLM generation method
+    system_prompt: Optional[str] = None  # System prompt for chat mode
+    chat_template_kwargs: Optional[Dict[str, Any]] = None  # Custom parameters for chat template
 
 @dataclass
 class ReasoningDefaults:
