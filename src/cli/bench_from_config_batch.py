@@ -49,6 +49,10 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         block_size=spec.backend.block_size,
         # Pass generation mode
         generation_mode=spec.generation.generation_mode,
+        # Pass system prompt
+        system_prompt=spec.generation.system_prompt,
+        # Pass chat template parameters
+        chat_template_kwargs=spec.generation.chat_template_kwargs,
     )
 
     gen = GenerationParams(
@@ -84,6 +88,9 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             "top_k": spec.generation.top_k,
             "do_sample": spec.generation.do_sample,
             "seed": spec.generation.seed,
+            "generation_mode": spec.generation.generation_mode,
+            "system_prompt": spec.generation.system_prompt or "none",
+            "chat_template_kwargs": spec.generation.chat_template_kwargs or {},
             # Backend parameters
             "engine": spec.engine,
             "gpu_memory_utilization": spec.backend.gpu_memory_utilization,
@@ -257,6 +264,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                     "answer_text": answer_text,
                     "think_tokens": think_tokens,
                     "answer_tokens": answer_tokens,
+                    "think_formatted_input": outs[j].get("think_formatted_input", ""),
+                    "answer_formatted_input": outs[j].get("answer_formatted_input", ""),
                     "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
                     "is_successful": is_successful,
                 }
@@ -291,6 +300,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
                     "answer_text": answer_text,  # extracted solution
                     "full_answer_text": full_answer_text,  # full answer text
                     "answer_tokens": answer_tokens,  # token count
+                    "formatted_input": outs[j].get("formatted_input", ""),  # formatted input for chat mode
                     "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
                     "is_successful": is_successful,
                 }
@@ -368,6 +378,10 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "prompt_answer": spec.prompts.answer,
         "prompt_llm_judge": spec.prompts.llm_judge,
 
+        # Generation parameters
+        "generation_mode": spec.generation.generation_mode,
+        "system_prompt": spec.generation.system_prompt or "none",
+        "chat_template_kwargs": spec.generation.chat_template_kwargs or {},
 
         # Notes
         "notes": f"{notes}",
