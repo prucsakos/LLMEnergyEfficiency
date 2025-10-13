@@ -102,6 +102,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     # Iterate dataset in batches
     total, correct_self = 0, 0
     prompt_tok_sum, gen_tok_sum = 0, 0
+    think_tok_sum, ans_tok_sum = 0, 0
     lat_ms_sum = 0.0
 
     pbar = tqdm(total=total_n, desc=run_name, unit="ex")
@@ -171,6 +172,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
             generated_tokens = think_toks[j] + ans_toks[j]
             
             gen_tok_sum += generated_tokens
+            think_tok_sum += think_toks[j]
+            ans_tok_sum += ans_toks[j]
             prompt_tok_sum += prompt_tokens
             lat_ms_sum += float(lats[j])
 
@@ -317,6 +320,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     
     # Average tokens for reference
     avg_gen_tokens = (gen_tok_sum / max(total, 1))
+    avg_think_tokens = (think_tok_sum / max(total, 1))
+    avg_answer_tokens = (ans_tok_sum / max(total, 1))
 
     # Row for logging (one row per run)
     row = {
@@ -336,6 +341,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         # Tokens (averaged per datapoint)
         "avg_prompt_tokens": prompt_tok_sum / max(total, 1),
         "avg_gen_tokens": avg_gen_tokens,
+        "avg_think_tokens": avg_think_tokens,
+        "avg_answer_tokens": avg_answer_tokens,
         "budget_utilization_ratio": avg_gen_tokens / spec.think_budget,
         "passes": 2,
         "self_consistency_k": spec.reasoning.self_consistency_k,
@@ -374,7 +381,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
     logger.log_metrics(row['self_eval_acc'], avg_gen_tokens, row['latency_ms'], flops_info)
     logger.info(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
                 f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
-                f"avg_gen_tokens={avg_gen_tokens:.2f} | {flops_info}")
+                f"avg_gen_tokens={avg_gen_tokens:.2f}, avg_think_tokens={avg_think_tokens:.2f}, avg_answer_tokens={avg_answer_tokens:.2f} | {flops_info}")
 
     if wb:
         wb.log_row(row)
