@@ -5,6 +5,7 @@ from .transformers_local import TransformersLocalEngine
 from .deepspeed_local import DeepSpeedLocalEngine
 from .openai_api import OpenAIInferenceEngine, create_openai_engine
 
+# TODO: Instead of passing params one by one, pass the DataClass
 def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_utilization: float | None = None, enforce_eager: bool | None = None,
                  # Quantization parameters
                  quantization: str | None = None, quantization_param_path: str | None = None,
@@ -13,7 +14,11 @@ def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_uti
                  # Additional memory optimization
                  max_model_len: int | None = None, block_size: int | None = None,
                  # Generation mode
-                 generation_mode: str = "casual"):
+                 generation_mode: str = "casual",
+                 # System prompt for chat mode
+                 system_prompt: str | None = None,
+                 # Chat template parameters
+                 chat_template_kwargs: dict | None = None):
     name = (engine_name or "vllm").lower()
     if name == "vllm":
         print("Detected VLLM")
@@ -33,6 +38,10 @@ def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_uti
             block_size=block_size,
             # Pass generation mode
             generation_mode=generation_mode,
+            # Pass system prompt
+            system_prompt=system_prompt,
+            # Pass chat template parameters
+            chat_template_kwargs=chat_template_kwargs,
         )
     if name in ("hf", "transformers"):
         print("Detected Transformers")
