@@ -37,16 +37,17 @@ def _llm_consistency_eval(engine: TextEngine, question: str, candidate_answers: 
 
 def _engine_generate_batch(engine: TextEngine,
                            prompts: List[str],
-                           params: GenerationParams) -> Tuple[List[str], List[int], float, List[Any]]:
+                           params: GenerationParams) -> Tuple[List[str], List[int], float, List[Any], List[str]]:
     if not prompts:
-        return [], [], 0.0, []
+        return [], [], 0.0, [], []
     t0 = time.time()
     outs = engine.generate_batch(prompts, params)  # type: ignore[attr-defined]
     wall_ms = (time.time() - t0) * 1000.0
     texts = [(o.text if o and o.text is not None else "") for o in outs]
     comp_tokens = [int(o.completion_tokens or 0) for o in outs]
     raw_data = [o.raw if o and hasattr(o, 'raw') else None for o in outs] # DeepSpeed raw data containing FLOPs
-    return texts, comp_tokens, wall_ms, raw_data
+    formatted_inputs = [(o.formatted_input if o and hasattr(o, 'formatted_input') and o.formatted_input is not None else "") for o in outs]
+    return texts, comp_tokens, wall_ms, raw_data, formatted_inputs
 
 
 def extract_solution_from_trace(trace_text: str) -> str:
@@ -104,7 +105,7 @@ def single_pass_batch(engine: TextEngine,
     answer_prompts = questions
     
     # Generate answers using think_budget as max_new_tokens
-    answer_texts, answer_tok_counts, answer_ms, answer_raw_data = _engine_generate_batch(
+    answer_texts, answer_tok_counts, answer_ms, answer_raw_data, answer_formatted_inputs = _engine_generate_batch(
         engine,
         answer_prompts,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
@@ -122,6 +123,7 @@ def single_pass_batch(engine: TextEngine,
             "full_answer_text": full_answer_text,  # Keep full text for reference
             "answer_tokens": int(answer_tok_counts[i]),
             "latency_ms": float(answer_lat_per_item),
+            "formatted_input": answer_formatted_inputs[i] if i < len(answer_formatted_inputs) else "",
             "raw": {
                 "answer_raw": answer_raw_data[i] if i < len(answer_raw_data) else None,
             }
@@ -153,7 +155,7 @@ def self_evaluate_batched(
     evaluation_engine = eval_engine if eval_engine is not None else engine
     
     try:
-        texts, _tok, _ms, _raw = _engine_generate_batch(
+        texts, _tok, _ms, _raw, _formatted = _engine_generate_batch(
             evaluation_engine,
             judge_prompts,
             GenerationParams(**{**gen.__dict__, "max_new_tokens": 150, "temperature": 1.0}),
@@ -187,7 +189,7 @@ def self_evaluate_batched(
             
             print("Falling back to main engine for self-evaluation")
             # Fallback to main engine
-            texts, _tok, _ms, _raw = _engine_generate_batch(
+            texts, _tok, _ms, _raw, _formatted = _engine_generate_batch(
                 engine,
                 judge_prompts,
                 GenerationParams(**{**gen.__dict__, "max_new_tokens": 20, "temperature": 0., "top_p": 1.0}),
@@ -245,7 +247,7 @@ def two_pass_batch(engine: TextEngine,
     if have_think:
         # Build thinking prompts directly
         think_prompts = [prompts.cot_think.format(question=q) for q in questions]
-        think_texts, think_tok_counts, think_ms, think_raw_data = _engine_generate_batch(
+        think_texts, think_tok_counts, think_ms, think_raw_data, think_formatted_inputs = _engine_generate_batch(
             engine,
             think_prompts,
             GenerationParams(**{**gen.__dict__, "max_new_tokens": int(think_budget)}),
@@ -261,6 +263,7 @@ def two_pass_batch(engine: TextEngine,
         think_tok_counts = [0 for _ in questions]
         think_lat_per_item = 0.0
         think_raw_data = [None for _ in questions]
+        think_formatted_inputs = ["" for _ in questions]
 
     # Pass 2: answer
     answer_prompts: List[str] = []
@@ -274,7 +277,7 @@ def two_pass_batch(engine: TextEngine,
             base_prompt = prompts.answer.replace("{deliberate}", "")
             answer_prompts.append(base_prompt.format(question=q))
     MAX_ANSWER_TOKENS = 32
-    answer_texts, answer_tok_counts, answer_ms, answer_raw_data = _engine_generate_batch(
+    answer_texts, answer_tok_counts, answer_ms, answer_raw_data, answer_formatted_inputs = _engine_generate_batch(
         engine,
         answer_prompts,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": int(MAX_ANSWER_TOKENS), "temperature": 0.0, "top_p": 1.0}),
@@ -295,6 +298,8 @@ def two_pass_batch(engine: TextEngine,
             "answer_tokens": int(answer_tok_counts[i]),
             "latency_ms_think": float(think_lat_per_item),
             "latency_ms_answer": float(ans_lat_per_item),
+            "think_formatted_input": think_formatted_inputs[i] if i < len(think_formatted_inputs) else "",
+            "answer_formatted_input": answer_formatted_inputs[i] if i < len(answer_formatted_inputs) else "",
             "raw": {
                 "think_raw": think_raw_data[i] if i < len(think_raw_data) else None,
                 "answer_raw": answer_raw_data[i] if i < len(answer_raw_data) else None,
