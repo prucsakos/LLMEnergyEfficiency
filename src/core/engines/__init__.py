@@ -11,7 +11,9 @@ def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_uti
                  # CPU offloading parameters
                  cpu_offload_gb: float | None = None, swap_space: int | None = None,
                  # Additional memory optimization
-                 max_model_len: int | None = None, block_size: int | None = None):
+                 max_model_len: int | None = None, block_size: int | None = None,
+                 # Generation mode
+                 generation_mode: str = "casual"):
     name = (engine_name or "vllm").lower()
     if name == "vllm":
         print("Detected VLLM")
@@ -29,6 +31,8 @@ def create_engine(engine_name: str, model_id: str, *, dtype: str, gpu_memory_uti
             # Pass additional memory optimization parameters
             max_model_len=max_model_len,
             block_size=block_size,
+            # Pass generation mode
+            generation_mode=generation_mode,
         )
     if name in ("hf", "transformers"):
         print("Detected Transformers")

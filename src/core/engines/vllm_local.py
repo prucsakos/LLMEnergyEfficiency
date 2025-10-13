@@ -24,7 +24,9 @@ class VLLMLocalEngine(BaseEngine):
                  swap_space: Optional[int] = None,
                  # Additional memory optimization
                  max_model_len: Optional[int] = None,
-                 block_size: Optional[int] = None):
+                 block_size: Optional[int] = None,
+                 # Generation mode
+                 generation_mode: str = "casual"):
         # Build LLM initialization parameters
         llm_kwargs = {
             "model": model_id,
@@ -53,12 +55,18 @@ class VLLMLocalEngine(BaseEngine):
         if block_size is not None:
             llm_kwargs["block_size"] = block_size
         
+        # Store generation mode for use in generation methods
+        self.generation_mode = generation_mode.lower()
+        if self.generation_mode not in ["casual", "chat"]:
+            raise ValueError(f"Invalid generation_mode: {generation_mode}. Must be 'casual' or 'chat'")
+        
         # Log vLLM model loading with quantization info
         logger = get_logger()
         logger.info(f"🚀 Loading vLLM model: {model_id}")
         logger.info(f"   dtype: {dtype}")
         logger.info(f"   gpu_memory_utilization: {gpu_memory_utilization}")
         logger.info(f"   enforce_eager: {enforce_eager}")
+        logger.info(f"   generation_mode: {self.generation_mode}")
         if quantization is not None:
             logger.info(f"   quantization: {quantization}")
             if quantization_param_path is not None:
@@ -91,7 +99,20 @@ class VLLMLocalEngine(BaseEngine):
             
         sp = SamplingParams(**sampling_kwargs)
         t0 = time.time()
-        outs = self.llm.generate(prompts, sp, use_tqdm=False)
+        
+        # Use appropriate generation method based on mode
+        if self.generation_mode == "chat":
+            # For chat mode, convert prompts to chat messages format
+            # Each prompt becomes a conversation with one user message
+            chat_messages = []
+            for prompt in prompts:
+                conversation = [{"role": "user", "content": prompt}]
+                chat_messages.append(conversation)
+            outs = self.llm.chat(chat_messages, sp, use_tqdm=False)
+        else:
+            # For casual mode, use standard generate API
+            outs = self.llm.generate(prompts, sp, use_tqdm=False)
+            
         t1 = time.time()
         results: List[GenerationResult] = []
         for out in outs:

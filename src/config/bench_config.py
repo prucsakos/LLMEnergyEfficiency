@@ -40,6 +40,7 @@ class GenDefaults:
     stop: Optional[List[str]] = None
     seed: Optional[int] = None
     use_kv_cache: bool = True
+    generation_mode: str = "casual"  # "casual" or "chat" - determines vLLM generation method
 
 @dataclass
 class ReasoningDefaults:

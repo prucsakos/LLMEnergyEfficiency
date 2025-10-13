@@ -47,6 +47,8 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         # Pass additional memory optimization parameters
         max_model_len=spec.backend.max_model_len,
         block_size=spec.backend.block_size,
+        # Pass generation mode
+        generation_mode=spec.generation.generation_mode,
     )
 
     gen = GenerationParams(
