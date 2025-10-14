@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 
+# Base, always-installed dependencies
 dependencies = [
     "accelerate>=1.10.1",
     "datasets>=4.0.0",
@@ -16,8 +17,26 @@ dependencies = [
     "seaborn>=0.13.2",
     "tqdm>=4.67.1",
     "transformers>=4.56.1",
-    # torch, vllm will be installed via uv pip below, not pinned here
     "wandb>=0.21.4",
+
+    # From your manual installs (now recorded in TOML)
+    "scikit-learn",
+    "nvidia-ml-py",
+    "huggingface_hub[cli]",
+    "timm",
+    "deepspeed",
+    "bitsandbytes",
+    "xformers",
+    "autoawq",
+
+    # LLM engine + Torch
+    # vLLM will pull torch, but we also list torch explicitly so uv can
+    # align build-time deps (see [tool.uv.extra-build-dependencies] below).
+    "vllm",
+    "torch",
+
+    # Only available on Linux; safe-gated by platform marker
+    "flashinfer-python; platform_system == 'Linux'",
 ]
 
 [dependency-groups]
@@ -28,3 +47,41 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+# ---------------------------
+# uv configuration
+# ---------------------------
+
+# (1) Pin packages to their indexes
+[tool.uv.sources]
+# Use PyTorch CUDA 12.8 wheels on Linux/Windows; fall back to PyPI elsewhere (e.g. macOS).
+torch = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+# If you later add these, they will follow the same cu128 index automatically:
+torchvision = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchaudio = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+# vLLM nightly wheels
+vllm = { index = "vllm-nightly" }
+
+# (2) Teach uv how to build CUDA-adjacent packages against the installed Torch
+[tool.uv.extra-build-dependencies]
+deepspeed    = [{ requirement = "torch", match-runtime = true }]
+xformers     = [{ requirement = "torch", match-runtime = true }]
+bitsandbytes = [{ requirement = "torch", match-runtime = true }]
+
+# (3) Define the indexes once by name
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "vllm-nightly"
+url = "https://wheels.vllm.ai/nightly"
+explicit = true
