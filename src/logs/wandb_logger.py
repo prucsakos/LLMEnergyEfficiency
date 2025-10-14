@@ -121,9 +121,11 @@ class WandbRunLogger:
         # Build data rows
         data = []
         for i, trace in enumerate(traces):
+            # Use formatted_input if available (contains special tokens, system prompt, etc.), otherwise fall back to question
+            formatted_question = trace.get("formatted_input", "") or trace.get("question", "")
             row = [
                 i,  # datapoint_id
-                trace.get("question", ""),  # formatted_question
+                formatted_question,  # formatted_question
                 trace.get("gold", ""),  # golden_answer
             ]
             
