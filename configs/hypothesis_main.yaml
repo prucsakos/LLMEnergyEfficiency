@@ -55,9 +55,9 @@ prompts:
 
       Count the frequency of each answer and select the most popular one. Output only the chosen answer:
 
-config_name: "smalls"
+config_name: "smalls1015"
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]
-datasets: [aime_2025, hmmt_feb_2025]
+datasets: [hmmt_feb_2025]
 
 models:
 

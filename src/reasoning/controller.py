@@ -50,38 +50,78 @@ def _engine_generate_batch(engine: TextEngine,
     return texts, comp_tokens, wall_ms, raw_data, formatted_inputs
 
 
+def last_boxed_only_string(s: str) -> Optional[str]:
+    """
+    Return the LAST occurrence of a \boxed{...} or \fbox{...} segment,
+    including the leading command and its balanced-brace payload.
+    No assumptions about math $ delimiters or position in the string.
+    """
+    idx = s.rfind(r"\boxed")
+    if idx < 0:
+        idx = s.rfind(r"\fbox")
+        if idx < 0:
+            return None
+
+    # Move to the first '{' after the command (skip whitespace/newlines)
+    i = idx + len(r"\boxed") if s.startswith(r"\boxed", idx) else idx + len(r"\fbox")
+    while i < len(s) and s[i].isspace():
+        i += 1
+    # Require an opening brace
+    while i < len(s) and s[i] != "{":
+        i += 1
+    if i >= len(s) or s[i] != "{":
+        return None
+
+    # Walk forward balancing braces
+    start = i
+    depth = 0
+    j = i
+    while j < len(s):
+        if s[j] == "{":
+            depth += 1
+        elif s[j] == "}":
+            depth -= 1
+            if depth == 0:
+                # include the closing brace
+                return s[idx : j + 1].replace("fbox", "boxed")
+        j += 1
+
+    return None  # unmatched braces
+
+
+def remove_boxed(s: str) -> str:
+    """
+    Given a string like '\\boxed{...}', return just the inner content.
+    Handles the rare '\\boxed ' (space) form as well.
+    """
+    if s.startswith(r"\boxed "):
+        return s[len(r"\boxed "):].strip()
+
+    left = r"\boxed{"
+    if not s.startswith(left) or not s.endswith("}"):
+        # If it's malformed, just return as-is
+        return s.strip()
+
+    return s[len(left):-1].strip()
+
+
 def extract_solution_from_trace(trace_text: str) -> str:
     """
-    Extract the solution from a thinking trace to avoid passing long text to evaluators.
-    
-    Strategy:
-    1. Look for boxed strings (\\boxed{...}) and return the last one if present
-    2. If no boxed strings, return the last 50 tokens of the trace
-    
-    Args:
-        trace_text: The full thinking trace text
-        
-    Returns:
-        Extracted solution string
+    1) Find the last \\boxed{...}/\\fbox{...} via balanced-brace parsing.
+       If found, return the content inside the box.
+    2) Otherwise, return the last 25 words of the trace.
     """
     if not trace_text or not trace_text.strip():
         return ""
-    
-    # Strategy 1: Look for boxed strings
-    boxed_pattern = r'\\boxed\{([^}]+)\}'
-    boxed_matches = re.findall(boxed_pattern, trace_text)
-    
-    if boxed_matches:
-        # Return the last boxed answer
-        return boxed_matches[-1].strip()
-    
-    # Strategy 2: If no boxed strings, return last 50 words
+
+    boxed_full = last_boxed_only_string(trace_text)
+    if boxed_full:
+        return remove_boxed(boxed_full)
+
+    # Fallback: last 25 words
     LAST_N_WORDS = 25
     tokens = trace_text.split()
-    if len(tokens) <= LAST_N_WORDS:
-        return trace_text.strip()
-    else:
-        return " ".join(tokens[-LAST_N_WORDS:]).strip()
+    return trace_text.strip() if len(tokens) <= LAST_N_WORDS else " ".join(tokens[-LAST_N_WORDS:])
 
 
 def single_pass_batch(engine: TextEngine,
@@ -94,8 +134,11 @@ def single_pass_batch(engine: TextEngine,
     Returns a list of dicts, one per question:
     {
       "answer_text": str,
+      "full_answer_text": str,
       "answer_tokens": int,
       "latency_ms": float,
+      "answer_formatted_input": str,
+      "raw": dict,
     }
     """
     n = len(questions)
@@ -123,7 +166,7 @@ def single_pass_batch(engine: TextEngine,
             "full_answer_text": full_answer_text,  # Keep full text for reference
             "answer_tokens": int(answer_tok_counts[i]),
             "latency_ms": float(answer_lat_per_item),
-            "formatted_input": answer_formatted_inputs[i] if i < len(answer_formatted_inputs) else "",
+            "answer_formatted_input": answer_formatted_inputs[i] if i < len(answer_formatted_inputs) else "",
             "raw": {
                 "answer_raw": answer_raw_data[i] if i < len(answer_raw_data) else None,
             }
@@ -203,18 +246,29 @@ def self_evaluate_batched(
         # Extract judgement from response (expecting CORRECT or INCORRECT)
         judgement = txt.strip().upper()
         
-        # Find positions of both keywords
+        # Find positions of both keywords (check CORRECT/INCORRECT and YES/NO)
         correct_pos = judgement.find("CORRECT")
         incorrect_pos = judgement.find("INCORRECT")
-        
+        yes_pos = judgement.find("YES")
+        no_pos = judgement.find("NO")
+
         if correct_pos != -1 and incorrect_pos != -1:
-            # Both present - use the one that appears first
+            # Both CORRECT and INCORRECT present - use the one that appears first
             is_correct = correct_pos < incorrect_pos
         elif incorrect_pos != -1:
             # Only INCORRECT present
             is_correct = False
         elif correct_pos != -1:
             # Only CORRECT present
+            is_correct = True
+        elif yes_pos != -1 and no_pos != -1:
+            # Both YES and NO present - use the one that appears first
+            is_correct = yes_pos < no_pos
+        elif no_pos != -1:
+            # Only NO present
+            is_correct = False
+        elif yes_pos != -1:
+            # Only YES present
             is_correct = True
         else:
             # Neither present - default to False
@@ -234,10 +288,14 @@ def two_pass_batch(engine: TextEngine,
     Batched variant of the original two_pass(). Returns a list of dicts, one per question:
     {
       "answer_text": str,
+      "think_text": str,
       "think_tokens": int,
       "answer_tokens": int,
       "latency_ms_think": float,
       "latency_ms_answer": float,
+      "think_formatted_input": str,
+      "answer_formatted_input": str,
+      "raw": dict,
     }
     """
     n = len(questions)
@@ -291,7 +349,6 @@ def two_pass_batch(engine: TextEngine,
         answer_text = answer_texts[i].strip()
         
         results[i] = {
-            "answer_prompt": answer_prompts[i].strip(),
             "answer_text": answer_text,
             "think_text": think_text,
             "think_tokens": int(think_tok_counts[i]),
@@ -317,7 +374,23 @@ def self_consistency_batch(engine: TextEngine,
     """
     Batched self-consistency: for each question, run K independent samples and majority-vote.
     Returns a list of dicts:
-      { "chosen_answer": str, "paths": [ {think_tokens, answer_tokens, latency_ms_think, latency_ms_answer}, ...] }
+      {
+        "chosen_answer": str,
+        "paths": [
+          {
+            "think_text": str,
+            "answer_text": str,
+            "think_tokens": int,
+            "answer_tokens": int,
+            "latency_ms_think": float,
+            "latency_ms_answer": float,
+            "think_formatted_input": str,
+            "answer_formatted_input": str,
+            "raw": dict,
+          },
+          ...
+        ]
+      }
     """
     n = len(questions)
 
@@ -355,6 +428,7 @@ def self_consistency_batch(engine: TextEngine,
         think_texts_rep = []
         think_tok_rep = []
         think_raw_rep = []
+        think_formatted_rep = []
         think_ms = 0.0
         
         for j in range(k):
@@ -389,6 +463,7 @@ def self_consistency_batch(engine: TextEngine,
                 think_texts_rep.append(think_text)
                 think_tok_rep.append(batch_results[1][i])
                 think_raw_rep.append(batch_results[3][i])  # Add raw data
+                think_formatted_rep.append(batch_results[4][i])  # Add formatted input
                 think_ms += batch_results[2] / max(n*k, 1) # Average latency per item
         # Build deliberate blocks for answer prompts
         deliberate_rep = think_texts_rep  # Use full thinking text directly
@@ -396,12 +471,14 @@ def self_consistency_batch(engine: TextEngine,
         deliberate_groups = [deliberate_rep[i::n][:k] for i in range(n)]
         think_tok_groups = [think_tok_rep[i::n][:k] for i in range(n)]
         think_raw_groups = [think_raw_rep[i::n][:k] for i in range(n)]
+        think_formatted_groups = [think_formatted_rep[i::n][:k] for i in range(n)]
         think_lat_per_item = (think_ms)
     else:
         deliberate_groups = [[""]*k for _ in range(n)]
         think_texts_rep = [""] * (n * k)
         think_tok_groups = [[0]*k for _ in range(n)]
         think_raw_groups = [[None]*k for _ in range(n)]
+        think_formatted_groups = [[""]*k for _ in range(n)]
         think_lat_per_item = 0.0
 
     # Answer stage
@@ -418,7 +495,7 @@ def self_consistency_batch(engine: TextEngine,
                 # Remove the deliberate placeholder when it's empty
                 base_prompt = prompts.answer.replace("{deliberate}", "")
                 answer_prompts_rep.append(base_prompt.format(question=q))
-    answer_texts_rep, answer_tok_rep, answer_ms, answer_raw_rep = _engine_generate_batch(
+    answer_texts_rep, answer_tok_rep, answer_ms, answer_raw_rep, answer_formatted_rep = _engine_generate_batch(
         engine,
         answer_prompts_rep,
         GenerationParams(**{**gen.__dict__, "max_new_tokens": int(gen.max_new_tokens)}),
@@ -431,6 +508,7 @@ def self_consistency_batch(engine: TextEngine,
         # Slice this question's K paths
         think_toks = think_tok_groups[i]
         think_raws = think_raw_groups[i]
+        think_formatted_inputs_rep = think_formatted_groups[i]
         ans_toks = answer_tok_rep[i*k:(i+1)*k]
         texts = [t.strip() for t in answer_texts_rep[i*k:(i+1)*k]]  # Use full generated text
         # Use LLM to perform majority vote by counting frequencies
@@ -447,6 +525,8 @@ def self_consistency_batch(engine: TextEngine,
                 "answer_tokens": int(ans_toks[j]),
                 "latency_ms_think": float(think_lat_per_item),
                 "latency_ms_answer": float(ans_lat_per_item),
+                "think_formatted_input": think_formatted_inputs_rep[j] if j < len(think_formatted_inputs_rep) else "",
+                "answer_formatted_input": answer_formatted_rep[i*k + j] if i*k + j < len(answer_formatted_rep) else "",
                 "raw": {
                     "think_raw": think_raws[j] if j < len(think_raws) else None,
                     "answer_raw": answer_raw_rep[i*k + j] if i*k + j < len(answer_raw_rep) else None,

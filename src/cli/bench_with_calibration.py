@@ -414,7 +414,7 @@ def run_one_with_calibration(spec: RunSpec,
                     "answer_text": answer_text,  # extracted solution
                     "full_answer_text": full_answer_text,  # full answer text
                     "answer_tokens": answer_tokens,  # token count
-                    "formatted_input": outs[j].get("formatted_input", ""),  # formatted input for chat mode
+                    "formatted_input": outs[j].get("answer_formatted_input", ""),  # formatted input for chat mode
                     "judge_text": (judge_batch_results[j][2] if judge_batch_results is not None else None),
                     "is_successful": is_successful,
                 }
