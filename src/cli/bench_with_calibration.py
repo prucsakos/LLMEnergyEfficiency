@@ -25,6 +25,8 @@ from ..reasoning.aggregators import majority_vote
 from ..reasoning.controller import self_evaluate_batched, self_consistency_batch, two_pass_batch, single_pass_batch  # use batched judge
 from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample, iter_dataset
 from ..metrics.flop_estimation import to_tflops
+from ..metrics.inequality import gini
+from ..metrics.energy import EnergyMeter
 from ..logs.wandb_logger import WandbRunLogger
 
 # Import calibration system
@@ -142,20 +144,28 @@ def run_calibration_subprocess(spec: RunSpec,
         return None
 
 
-def run_one_with_calibration(spec: RunSpec, 
+def run_one_with_calibration(spec: RunSpec,
                            calibration_dataset: Optional[CalibrationDataset] = None,
-                           batch_size: Optional[int] = None, 
-                           wandb_project: str | None = None, 
-                           notes: str = "") -> None:
+                           batch_size: Optional[int] = None,
+                           wandb_project: str | None = None,
+                           notes: str = "",
+                           measure_energy: bool = False,
+                           energy_device: int = 0,
+                           energy_sample_interval_ms: float = 20.0,
+                           skip_evaluation: bool = False) -> None:
     """
     Run a single benchmark with optional FLOP calibration.
-    
+
     Args:
         spec: Benchmark specification
         calibration_dataset: Optional calibration data for FLOP extrapolation
         batch_size: Override batch size from config
         wandb_project: W&B project name
         notes: Additional notes
+        measure_energy: Whether to measure GPU energy
+        energy_device: GPU device index for energy measurement
+        energy_sample_interval_ms: Sampling interval for energy measurement
+        skip_evaluation: Whether to skip evaluation entirely
     """
     # Use configured batch size unless overridden
     bs = int(batch_size or getattr(spec, "batch_size", 1) or 1)
@@ -258,6 +268,18 @@ def run_one_with_calibration(spec: RunSpec,
     examples: List[Sample] = list(iter_dataset(spec.dataset))
     total_n = len(examples)
 
+    # NEW – per-item accounting + energy
+    per_item_total_tokens: List[float] = []
+    per_item_latency_ms: List[float] = []
+    per_item_correct_flags: List[int] = []
+
+    total_energy_j = 0.0
+    meter = EnergyMeter(
+        device_index=energy_device,
+        sample_interval_s=(energy_sample_interval_ms / 1000.0),
+        enabled=measure_energy
+    )
+
     # Iterate dataset in batches
     total, correct_self = 0, 0
     prompt_tok_sum, gen_tok_sum = 0, 0
@@ -278,6 +300,9 @@ def run_one_with_calibration(spec: RunSpec,
         batch = examples[i:i+bs]
         qs = [ex.question for ex in batch]
         gts = [ex.gold for ex in batch]
+
+        # --- start energy window (no-op if not enabled)
+        if meter.enabled: meter.start()
 
         if spec.reasoning.self_consistency_k and spec.reasoning.self_consistency_k > 1:
             outs = self_consistency_batch(
@@ -302,9 +327,14 @@ def run_one_with_calibration(spec: RunSpec,
             ans_toks   = [o["answer_tokens"] for o in outs]
             lats       = [o["latency_ms_think"] + o["latency_ms_answer"] for o in outs]
 
+        # --- stop energy window
+        if meter.enabled:
+            batch_energy_j = meter.stop()
+            total_energy_j += float(batch_energy_j)
+
         # Optional batched self-evaluation (YES/NO judge)
         judge_batch_results: Optional[List[Tuple[bool, str, str]]] = None
-        if spec.reasoning.self_eval:
+        if spec.reasoning.self_eval and not skip_evaluation:
             # Use OpenAI engine for evaluation if specified
             eval_engine = None
             if spec.reasoning.openai_eval:
@@ -336,6 +366,14 @@ def run_one_with_calibration(spec: RunSpec,
             ans_tok_sum += ans_toks[j]
             prompt_tok_sum += prompt_tokens
             lat_ms_sum += float(lats[j])
+
+            # NEW — per-item tracking for inequality/efficiency metrics
+            total_tokens = float(prompt_tokens + generated_tokens)  # prompt + think + answer
+            per_item_total_tokens.append(total_tokens)
+            per_item_latency_ms.append(float(lats[j]))
+            # judged correctness (1/0)
+            is_correct_flag = int(judge_batch_results[j][0]) if judge_batch_results is not None else 0
+            per_item_correct_flags.append(is_correct_flag)
 
             # Calculate FLOPs for this individual datapoint
             datapoint_flops = {}
@@ -437,6 +475,25 @@ def run_one_with_calibration(spec: RunSpec,
     avg_think_tokens = (think_tok_sum / max(total, 1))
     avg_answer_tokens = (ans_tok_sum / max(total, 1))
 
+    # === Extra metrics (Feature 1) ===
+    num_items = max(1, len(per_item_total_tokens))
+    num_correct = max(0, int(sum(per_item_correct_flags)))
+
+    acc_pass1 = (num_correct / num_items)  # Pass@1
+    # Tokens-per-Correct (mean over dataset tokens)
+    tokens_per_correct_mean = (sum(per_item_total_tokens) / max(1, num_correct))
+    # Tokens-per-Correct (median over correct items)
+    correct_tokens = [t for t, c in zip(per_item_total_tokens, per_item_correct_flags) if c]
+    tokens_per_correct_median = (float(np.median(correct_tokens)) if len(correct_tokens) > 0 else None)
+    # Latency-per-Correct (ms)
+    latency_per_correct_ms = (sum(per_item_latency_ms) / max(1, num_correct))
+    # Compute inequality of token allocation
+    compute_gini_total_tokens = gini(per_item_total_tokens)
+
+    # === Energy metrics (Feature 2) ===
+    avg_energy_per_datapoint_j = (total_energy_j / num_items) if total_energy_j > 0 else None
+    energy_per_correct_j = (total_energy_j / max(1, num_correct)) if total_energy_j > 0 else None
+
     # Row for logging (one row per run)
     row = {
         # Model/setup
@@ -473,6 +530,16 @@ def run_one_with_calibration(spec: RunSpec,
 
         # FLOP estimates (averaged per datapoint)
         "avg_flops_extrapolated_tflops": to_tflops(avg_extrapolated_flops) if avg_extrapolated_flops is not None else None,
+
+        # Extra efficiency metrics
+        "acc_pass1": acc_pass1,  # Accuracy (Pass@1)
+        "tokens_per_correct_mean": tokens_per_correct_mean,   # TPC (mean)
+        "tokens_per_correct_median": tokens_per_correct_median,  # TPC (median across correct)
+        "latency_per_correct_ms": latency_per_correct_ms,    # LpC
+        "compute_gini_total_tokens": compute_gini_total_tokens,  # inequality of compute
+        "avg_energy_per_datapoint_j": avg_energy_per_datapoint_j,  # mean J per item
+        "energy_per_correct_j": energy_per_correct_j,  # EpC_J
+        "total_energy_j": total_energy_j,  # full run J (handy for sanity checks)
 
         "prompt_cot_think": spec.prompts.cot_think,
         "prompt_answer": spec.prompts.answer,
@@ -527,6 +594,12 @@ def run_one_with_calibration(spec: RunSpec,
     # Tear down engine and free memory between runs
     engine.close()
 
+    # NEW – gracefully close NVML if we initialized it
+    try:
+        meter.close()
+    except Exception:
+        pass
+
 def main():
     # Setup logging first
     logger = setup_logging(name="bench_with_calibration")
@@ -545,7 +618,17 @@ def main():
                    help="Number of estimation points for extrapolation evaluation (default: 64)")
     ap.add_argument("--skip-calibration", action="store_true",
                    help="Skip calibration and run benchmark directly (will use fallback FLOP estimation if no calibration data exists)")
-    
+
+    # NEW – optional, off by default to avoid any sampling overhead
+    ap.add_argument("--measure_energy", action="store_true", default=True,
+                    help="Measure GPU energy via NVML around generation (adds slight overhead)")
+    ap.add_argument("--energy_device", type=int, default=0,
+                    help="GPU index for NVML energy metering")
+    ap.add_argument("--energy_sample_interval_ms", type=float, default=20.0,
+                    help="Sampling interval (ms) when NVML energy counter is unavailable")
+    ap.add_argument("--skip-evaluation", action="store_true",
+                    help="Skip evaluation entirely (no correctness checking)")
+
     args = ap.parse_args()
     
     logger.info(f"Starting benchmark with next-token calibration")
@@ -554,6 +637,7 @@ def main():
     logger.info(f"Notes: {args.notes}")
     logger.info(f"Batch size: {args.batch_size}")
     logger.info(f"Skip calibration: {args.skip_calibration}")
+    logger.info(f"Skip evaluation: {args.skip_evaluation}")
     logger.info(f"Calibration prefill ranges: {args.calibration_prefill_ranges}")
     logger.info("Using next-token calibration (fast, efficient method)")
 
@@ -621,11 +705,15 @@ def main():
             
             # Run the benchmark with calibration (or without if skipped)
             run_one_with_calibration(
-                spec, 
+                spec,
                 calibration_dataset=calibration_dataset,
-                batch_size=args.batch_size, 
-                wandb_project=args.wandb_project, 
-                notes=args.notes
+                batch_size=args.batch_size,
+                wandb_project=args.wandb_project,
+                notes=args.notes,
+                measure_energy=args.measure_energy,
+                energy_device=args.energy_device,
+                energy_sample_interval_ms=args.energy_sample_interval_ms,
+                skip_evaluation=args.skip_evaluation
             )
             
         except Exception as e:

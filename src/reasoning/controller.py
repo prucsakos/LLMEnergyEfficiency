@@ -123,7 +123,7 @@ def extract_solution_from_trace(trace_text: str) -> str:
     tokens = trace_text.split()
     return trace_text.strip() if len(tokens) <= LAST_N_WORDS else " ".join(tokens[-LAST_N_WORDS:])
 
-
+# TODO: Every controller method shall have a unified return DataClass. 
 def single_pass_batch(engine: TextEngine,
                       questions: List[str],
                       gen: GenerationParams,
