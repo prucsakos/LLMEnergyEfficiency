@@ -69,7 +69,7 @@ models:
     batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
     think_budgets: [3000]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.30, cpu_offload_gb: 50, enforce_eager: true, max_model_len: 3001 }
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.45, cpu_offload_gb: 50, enforce_eager: true, max_model_len: 3001 }
     generation: 
       generation_mode: "chat"
       system_prompt: null
