@@ -151,7 +151,8 @@ def run_one_with_calibration(spec: RunSpec,
                            notes: str = "",
                            measure_energy: bool = False,
                            energy_device: int = 0,
-                           energy_sample_interval_ms: float = 20.0) -> None:
+                           energy_sample_interval_ms: float = 20.0,
+                           skip_evaluation: bool = False) -> None:
     """
     Run a single benchmark with optional FLOP calibration.
 
@@ -164,6 +165,7 @@ def run_one_with_calibration(spec: RunSpec,
         measure_energy: Whether to measure GPU energy
         energy_device: GPU device index for energy measurement
         energy_sample_interval_ms: Sampling interval for energy measurement
+        skip_evaluation: Whether to skip evaluation entirely
     """
     # Use configured batch size unless overridden
     bs = int(batch_size or getattr(spec, "batch_size", 1) or 1)
@@ -332,7 +334,7 @@ def run_one_with_calibration(spec: RunSpec,
 
         # Optional batched self-evaluation (YES/NO judge)
         judge_batch_results: Optional[List[Tuple[bool, str, str]]] = None
-        if spec.reasoning.self_eval:
+        if spec.reasoning.self_eval and not skip_evaluation:
             # Use OpenAI engine for evaluation if specified
             eval_engine = None
             if spec.reasoning.openai_eval:
@@ -624,6 +626,8 @@ def main():
                     help="GPU index for NVML energy metering")
     ap.add_argument("--energy_sample_interval_ms", type=float, default=20.0,
                     help="Sampling interval (ms) when NVML energy counter is unavailable")
+    ap.add_argument("--skip-evaluation", action="store_true",
+                    help="Skip evaluation entirely (no correctness checking)")
 
     args = ap.parse_args()
     
@@ -633,6 +637,7 @@ def main():
     logger.info(f"Notes: {args.notes}")
     logger.info(f"Batch size: {args.batch_size}")
     logger.info(f"Skip calibration: {args.skip_calibration}")
+    logger.info(f"Skip evaluation: {args.skip_evaluation}")
     logger.info(f"Calibration prefill ranges: {args.calibration_prefill_ranges}")
     logger.info("Using next-token calibration (fast, efficient method)")
 
@@ -707,7 +712,8 @@ def main():
                 notes=args.notes,
                 measure_energy=args.measure_energy,
                 energy_device=args.energy_device,
-                energy_sample_interval_ms=args.energy_sample_interval_ms
+                energy_sample_interval_ms=args.energy_sample_interval_ms,
+                skip_evaluation=args.skip_evaluation
             )
             
         except Exception as e:
