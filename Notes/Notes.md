@@ -40,4 +40,5 @@ Without the models being aware of their thinking budget, the measurment feels fa
 - Dynamic Budget Communication (nematron does this?)
 
 # Nemotron avoids thinking or buged - aime2025
-image.png
+ - First pass: ""
+ - Second pass: \<wrong answer\>
