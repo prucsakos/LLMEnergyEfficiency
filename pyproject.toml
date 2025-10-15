@@ -18,23 +18,20 @@ dependencies = [
     "tqdm>=4.67.1",
     "transformers>=4.56.1",
     "wandb>=0.21.4",
-
     # From your manual installs (now recorded in TOML)
     "scikit-learn",
     "nvidia-ml-py",
-    "huggingface_hub[cli]",
+    "huggingface-hub[cli]",
     "timm",
     "deepspeed",
     "bitsandbytes",
     "xformers",
     "autoawq",
-
     # LLM engine + Torch
     # vLLM will pull torch, but we also list torch explicitly so uv can
     # align build-time deps (see [tool.uv.extra-build-dependencies] below).
     "vllm",
     "torch",
-
     # Only available on Linux; safe-gated by platform marker
     "flashinfer-python; platform_system == 'Linux'",
 ]
