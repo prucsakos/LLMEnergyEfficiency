@@ -67,9 +67,9 @@ models:
     engine: vllm
     model_family: qwen
     batch_size: 4
-    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
-    think_budgets: [50000]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true}
+    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-31" }
+    think_budgets: [81920]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: null
@@ -77,18 +77,16 @@ models:
       temperature: 0.6
       top_p: 0.95
       top_k: 20
-      do_sample: true
-      max_new_tokens: 512
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "262k context; thinking mode (<think>…)." # :contentReference[oaicite:2]{index=2}
+    notes: "256K context; thinking mode (<think>…)." 
 
   - name: Qwen3-30B-A3B-Instruct-2507
     hf_repo: Qwen/Qwen3-30B-A3B-Instruct-2507
     engine: vllm
     model_family: qwen
     batch_size: 4
-    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
-    think_budgets: [50000]
+    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-30" }
+    think_budgets: [262144]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -97,10 +95,8 @@ models:
       temperature: 0.7
       top_p: 0.8
       top_k: 20
-      do_sample: true
-      max_new_tokens: 512
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "262k context; instruct defaults." # :contentReference[oaicite:3]{index=3}
+    notes: "262k context; instruct defaults." 
 
   # --- Qwen3 4B ---
   - name: Qwen3-4B-Thinking-2507
@@ -108,8 +104,8 @@ models:
     engine: vllm
     model_family: qwen
     batch_size: 128
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
-    think_budgets: [50000]
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06" }
+    think_budgets: [81920]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -118,18 +114,16 @@ models:
       temperature: 0.6
       top_p: 0.95
       top_k: 20
-      do_sample: true
-      max_new_tokens: 512
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "262k context; thinking mode." # :contentReference[oaicite:4]{index=4}
+    notes: "256K context; thinking mode."
 
   - name: Qwen3-4B-Instruct-2507
     hf_repo: Qwen/Qwen3-4B-Instruct-2507
     engine: vllm
     model_family: qwen
     batch_size: 128
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
-    think_budgets: [50000]
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06" }
+    think_budgets: [262144]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -138,10 +132,8 @@ models:
       temperature: 0.7
       top_p: 0.8
       top_k: 20
-      do_sample: true
-      max_new_tokens: 512
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "" # :contentReference[oaicite:5]{index=5}
+    notes: ""
 
   # --- OpenAI GPT-OSS (Harmony format) ---
   - name: gpt-oss-20b-reason:high
@@ -149,74 +141,66 @@ models:
     engine: vllm
     model_family: gpt
     batch_size: 8
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (32E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [160000]
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [131072]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs:
         reasoning_effort: "high"
-      temperature: 0.2
+      temperature: 1.0
       top_p: 1.0
-      top_k: 40
-      do_sample: true
-      max_new_tokens: 512
+      top_k: 0
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128." # :contentReference[oaicite:6]{index=6}
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
 
-      # --- OpenAI GPT-OSS (Harmony format) ---
   - name: gpt-oss-20b-reason:medium
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: gpt
     batch_size: 8
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (32E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [32000]
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [131072]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs:
         reasoning_effort: "medium"
-      temperature: 0.2
+      temperature: 1.0
       top_p: 1.0
-      top_k: 40
-      do_sample: true
-      max_new_tokens: 512
+      top_k: 0
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128." # :contentReference[oaicite:6]{index=6}
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
 
-      # --- OpenAI GPT-OSS (Harmony format) ---
   - name: gpt-oss-20b-reason:low
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: gpt
     batch_size: 8
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (32E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [32000]
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [131072]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs:
         reasoning_effort: "low"
-      temperature: 0.2
+      temperature: 1.0
       top_p: 1.0
-      top_k: 40
-      do_sample: true
-      max_new_tokens: 512
+      top_k: 0
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128." # :contentReference[oaicite:6]{index=6}
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
 
-  # --- (kept) Nemotron ---
+  # --- Nemotron ---
   - name: Nemotron-Nano-9B-v2
     hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
     engine: vllm
     model_family: nemotron
     batch_size: 128
-    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: hybrid-Mamba-Transformer }
-    think_budgets: [100000]
+    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: "hybrid-mamba-transformer", release_date: "2025-08-18" }
+    think_budgets: [131072]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -224,20 +208,17 @@ models:
       chat_template_kwargs: null
       temperature: 0.6
       top_p: 0.95
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 512
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: ""
-    
+
   # --- DeepSeek-R1 distilled to Qwen3-8B ---
   - name: DeepSeek-R1-0528-Qwen3-8B
     hf_repo: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
     engine: vllm
     model_family: deepseek
     batch_size: 64
-    card: { params_B: 8.2, layers: 36, hidden_dim: 4096, heads: 32, arch: decoder-only (Qwen3; GQA 32Q×8KV) }
-    think_budgets: [100000]
+    card: { params_B: 8.2, layers: 36, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2025-05-28" }
+    think_budgets: [64000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -245,113 +226,85 @@ models:
       chat_template_kwargs: { enable_thinking: true }
       temperature: 0.6
       top_p: 0.95
-      top_k: 20
-      do_sample: true
-      max_new_tokens: 512
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Same arch as Qwen3-8B; recommended T=0.6, top_p=0.95; tokenizer from DeepSeek repo." # :contentReference[oaicite:8]{index=8}
+    notes: "Same arch as Qwen3-8B."
 
-  # --- Llama 3.1 (public mirrors for config fields) ---
+  # --- Llama 3.1 ---
   - name: Llama-3.1-8B-Instruct
     hf_repo: meta-llama/Llama-3.1-8B-Instruct
     engine: vllm
     model_family: llama
     batch_size: 128
-    card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: decoder-only (GQA kv_heads=8) }
-    think_budgets: [32000]
+    card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2024-07-23" }
+    think_budgets: [131072]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a brilliant mathematician who explains your work."
       chat_template_kwargs: null
-      temperature: 0.6
-      top_p: 0.9
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 4096
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Fields taken from Meta-Llama-3.1-8B mirrors (identical arch dims)." # :contentReference[oaicite:10]{index=10}
+    notes: "Fields from Meta-Llama-3.1-8B; 128K context."
 
-  # --- Gemma 3 (gated; values from official or mirrored configs) ---
+  # --- Gemma 3 ---
   - name: gemma-3-1b-it
     hf_repo: google/gemma-3-1b-it
     engine: vllm
     model_family: gemma
     batch_size: 256
-    card: { params_B: 1, layers: 26, hidden_dim: 1152, heads: 4, arch: gemma3_text (decoder-only) }
+    card: { params_B: 1, layers: 26, hidden_dim: 1152, heads: 4, arch: "decoder-only", release_date: "2025-03-12" }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
-      temperature: 0.7
-      top_p: 0.9
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 8192
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Gated repo; 32k input context per card; let loader resolve dims." # :contentReference[oaicite:14]{index=14}
+    notes: "Gated repo; 32k context per docs."
 
   - name: gemma-3-4b-it
     hf_repo: google/gemma-3-4b-it
     engine: vllm
     model_family: gemma
     batch_size: 128
-    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3_text (decoder-only) }
-    think_budgets: [32000]
+    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "decoder-only", release_date: "2025-03-12" }
+    think_budgets: [128000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
-      temperature: 0.7
-      top_p: 0.9
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 8192
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:15]{index=15}
+    notes: "128k input context (Gemma 3 family)."
 
   - name: gemma-3-12b-it
     hf_repo: google/gemma-3-12b-it
     engine: vllm
     model_family: gemma
     batch_size: 32
-    card: { params_B: 12, layers: 40, hidden_dim: 3072, heads: 24, arch: gemma3_text (decoder-only) }
-    think_budgets: [32000]
+    card: { params_B: 12, layers: 40, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-03-12" }
+    think_budgets: [128000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
-      temperature: 0.7
-      top_p: 0.9
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 8192
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:16]{index=16}
+    notes: "128k input context (Gemma 3 family)."
 
   - name: gemma-3-27b-it
     hf_repo: google/gemma-3-27b-it
     engine: vllm
     model_family: gemma
     batch_size: 8
-    card: { params_B: 27, layers: 62, hidden_dim: 5376, heads: 32, arch: gemma3_text (decoder-only; kv_heads=16) }
-    think_budgets: [32000]
+    card: { params_B: 27, layers: 62, hidden_dim: 5376, heads: 32, arch: "decoder-only", release_date: "2025-03-12" }
+    think_budgets: [128000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
-      temperature: 0.7
-      top_p: 0.9
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 8192
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Dims via MLX community mirror; official repo gated." # :contentReference[oaicite:17]{index=17}
+    notes: "128k input context (Gemma 3 family)."
 
   # --- Gemma 3N (edge, selective activation) ---
   - name: gemma-3n-E2B-it
@@ -359,40 +312,30 @@ models:
     engine: vllm
     model_family: gemma
     batch_size: 256
-    card: { params_B: 2, layers: 28, hidden_dim: 1536, heads: 12, arch: gemma3n (multimodal; selective activation) }
+    card: { params_B: 2, layers: 28, hidden_dim: 1536, heads: 12, arch: "multimodal-decoder", release_date: "2025-06-26" }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a logical AI who explains your reasoning."
       chat_template_kwargs: null
-      temperature: 0.7
-      top_p: 0.9
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 8192
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Gated repo; Together AI lists E-series selective activation for edge." # :contentReference[oaicite:18]{index=18}
+    notes: "Edge series; 32K context."
 
   - name: gemma-3n-E4B-it
     hf_repo: google/gemma-3n-E4B-it
     engine: vllm
     model_family: gemma
     batch_size: 128
-    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3n (multimodal; selective activation) }
+    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "multimodal-decoder", release_date: "2025-06-26" }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a logical AI who explains your reasoning."
       chat_template_kwargs: null
-      temperature: 0.7
-      top_p: 0.9
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 8192
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Gated repo; Together AI model page for E4B." # :contentReference[oaicite:19]{index=19}
+    notes: "Edge series; 32K context."
 
   # --- Microsoft Phi-4 family ---
   - name: phi-4
@@ -400,48 +343,23 @@ models:
     engine: vllm
     model_family: phi
     batch_size: 32
-    card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
-    think_budgets: [130000]
+    card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2024-12-13" }
+    think_budgets: [16384]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
       system_prompt: "Reasoning: high. You are a careful and logical assistant. Think step by step."
       chat_template_kwargs: null
-      temperature: 0.8
-      top_p: 0.95
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 32000
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "14B dense transformer; 16k context; defaults per model card." # :contentReference[oaicite:20]{index=20}
+    notes: "14B dense transformer; 16k context."
 
   - name: Phi-4-mini-reasoning
     hf_repo: microsoft/Phi-4-mini-reasoning
     engine: vllm
     model_family: phi
     batch_size: 128
-    card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: decoder-only (dense) }
-    think_budgets: [130000]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
-      generation_mode: "chat"
-      system_prompt: "Reasoning: high. You are a careful and logical assistant. Think step by step."
-      chat_template_kwargs: null
-      temperature: 0.6
-      top_p: 0.95
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 32000
-    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "4.9B parameters; 128k context; reasoning-optimized variant." # :contentReference[oaicite:21]{index=21}
-
-  - name: Phi-4-reasoning-plus
-    hf_repo: microsoft/Phi-4-reasoning-plus
-    engine: vllm
-    model_family: phi
-    batch_size: 32
-    card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: decoder-only (dense) }
-    think_budgets: [130000]
+    card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-04-30" }
+    think_budgets: [128000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -449,11 +367,23 @@ models:
       chat_template_kwargs: null
       temperature: 0.8
       top_p: 0.95
-      top_k: 50
-      do_sample: true
-      max_new_tokens: 32000
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "13.6B parameters; reasoning-optimized variant with enhanced capabilities." # :contentReference[oaicite:22]{index=22}
+    notes: "3.8B parameters; 128k context; reasoning-optimized variant."
+
+  - name: Phi-4-reasoning-plus
+    hf_repo: microsoft/Phi-4-reasoning-plus
+    engine: vllm
+    model_family: phi
+    batch_size: 32
+    card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2025-04-30" }
+    think_budgets: [32000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    generation: 
+      generation_mode: "chat"
+      system_prompt: "Reasoning: high. You are a careful and logical assistant. Think step by step."
+      chat_template_kwargs: null
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "13.6B parameters; reasoning-optimized variant."
 
 # Large models (>40B parameters) - excluded from calculations for now
 _models_excluded:
@@ -464,48 +394,44 @@ _models_excluded:
     engine: vllm
     model_family: llama
     batch_size: 8
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
-    think_budgets: [0, 512, 2048, 8192, 12000, 16192]
-    backend: { 
-       dtype: "auto",  # Let vLLM auto-detect for quantized models
-       gpu_memory_utilization: 0.95, 
-       enforce_eager: true,
-       quantization: "awq",  # Specify AWQ quantization
-       cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
-     }
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05" }
+    think_budgets: [131072]
+    backend: 
+      dtype: "auto"
+      gpu_memory_utilization: 0.95
+      enforce_eager: true
+      quantization: "awq"
+      cpu_offload_gb: 25
     generation: 
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
       temperature: 0.6
       top_p: 0.9
-      max_new_tokens: 512
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Dims via Unsloth config; Scout is 17B with 16E (official docs)." # :contentReference[oaicite:12]{index=12}
+    notes: "Dims via Unsloth config; Scout is 17B with 16E."
 
   - name: Llama-4-Maverick-17B-128E-Instruct-AWQ
     hf_repo: kishizaki-sci/Llama-4-Maverick-17B-128E-Instruct-AWQ
     engine: vllm
     model_family: llama
     batch_size: 4
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts) }
-    think_budgets: [130000]
-    backend: { 
-       dtype: "auto",  # Let vLLM auto-detect for quantized models
-       gpu_memory_utilization: 0.95, 
-       enforce_eager: true,
-       quantization: "awq",  # Specify AWQ quantization
-       cpu_offload_gb: 25,  # Reduced since AWQ uses less memory
-     }
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05" }
+    think_budgets: [131072]
+    backend: 
+      dtype: "auto"
+      gpu_memory_utilization: 0.95
+      enforce_eager: true
+      quantization: "awq"
+      cpu_offload_gb: 25
     generation: 
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
       temperature: 0.6
       top_p: 0.9
-      max_new_tokens: 512
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Dims via Unsloth config; 128E per model naming; multimodal text+vision." # :contentReference[oaicite:13]{index=13}
+    notes: "Llama-4 Maverick; multimodal text+vision."
 
   # --- Qwen3 235B (A22B) ---
   - name: Qwen3-235B-A22B-Thinking-2507-AWQ
@@ -513,17 +439,16 @@ _models_excluded:
     engine: vllm
     model_family: qwen
     batch_size: 1
-    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
-    think_budgets: [130000]
-    backend: { 
-       dtype: "auto",  # Let vLLM auto-detect for quantized models
-       gpu_memory_utilization: 0.95, 
-       enforce_eager: true,
-       quantization: "awq_marlin",  # Specify AWQ quantization
-       cpu_offload_gb: 80,  # Reduced since AWQ uses less memory
-       swap_space: 60,        # CPU RAM as Virtual VRAM
-       block_size: 16
-     }
+    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25" }
+    think_budgets: [262144]
+    backend: 
+      dtype: "auto"
+      gpu_memory_utilization: 0.95
+      enforce_eager: true
+      quantization: "awq_marlin"
+      cpu_offload_gb: 80
+      swap_space: 60
+      block_size: 16
     generation: 
       generation_mode: "chat"
       system_prompt: null
@@ -531,26 +456,24 @@ _models_excluded:
       temperature: 0.6
       top_p: 0.95
       top_k: 20
-      max_new_tokens: 512
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Native thinking mode (<think>…); 262k context; enable vLLM: --enable-reasoning --reasoning-parser deepseek_r1." # :contentReference[oaicite:0]{index=0}
+    notes: "Native thinking mode; 262k context."
 
   - name: Qwen3-235B-A22B-Instruct-2507-AWQ
     hf_repo: QuantTrio/Qwen3-235B-A22B-Instruct-2507-AWQ
     engine: vllm
     model_family: qwen
     batch_size: 1
-    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
-    think_budgets: [130000]
-    backend: { 
-       dtype: "auto",  # Let vLLM auto-detect for quantized models
-       gpu_memory_utilization: 0.95, 
-       enforce_eager: true,
-       quantization: "awq_marlin",  # Specify AWQ quantization
-       cpu_offload_gb: 80,  # Reduced since AWQ uses less memory
-       swap_space: 60,        # CPU RAM as Virtual VRAM
-       block_size: 16
-     }
+    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25" }
+    think_budgets: [262144]
+    backend: 
+      dtype: "auto"
+      gpu_memory_utilization: 0.95
+      enforce_eager: true
+      quantization: "awq_marlin"
+      cpu_offload_gb: 80
+      swap_space: 60
+      block_size: 16
     generation: 
       generation_mode: "chat"
       system_prompt: null
@@ -558,9 +481,8 @@ _models_excluded:
       temperature: 0.7
       top_p: 0.8
       top_k: 20
-      max_new_tokens: 512
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "262k context; non-thinking (no <think>) variant." # :contentReference[oaicite:1]{index=1}
+    notes: "262k context; non-thinking variant."
 
   # --- OpenAI GPT-OSS (Harmony format) ---
   - name: gpt-oss-120b-BitsAndBytes-4bit
@@ -568,26 +490,25 @@ _models_excluded:
     engine: vllm
     model_family: gpt
     batch_size: 1
-    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [130000]
-    backend: { 
-       dtype: "auto",  # Let vLLM auto-detect for quantized models
-       gpu_memory_utilization: 0.95, 
-       enforce_eager: true,
-       quantization: "bitsandbytes",  # Specify AWQ quantization
-       cpu_offload_gb: 80,  # Reduced since AWQ uses less memory
-       swap_space: 60,        # CPU RAM as Virtual VRAM
-       block_size: 16
-     }
+    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [131072]
+    backend: 
+      dtype: "auto"
+      gpu_memory_utilization: 0.95
+      enforce_eager: true
+      quantization: "bitsandbytes"
+      cpu_offload_gb: 80
+      swap_space: 60
+      block_size: 16
     generation: 
       generation_mode: "chat"
       system_prompt: "Reasoning: high"
       chat_template_kwargs: null
-      temperature: 0.6
-      top_p: 0.95
-      max_new_tokens: 20000
+      temperature: 1.0
+      top_p: 1.0
+      top_k: 0
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Harmony chat template required; 131k max_position; MoE MXFP4 weights." # :contentReference[oaicite:7]{index=7}
+    notes: "Harmony chat template required; 131k context; MoE MXFP4 weights."
 
   # --- GLM-4.5 Air (MoE) ---
   - name: GLM-4.5-Air-AWQ-4bit
@@ -595,26 +516,22 @@ _models_excluded:
     engine: vllm
     model_family: glm
     batch_size: 2
-    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: decoder-only MoE (n_routed_experts=128, 8 active) }
-    think_budgets: [130000]
-    backend: { 
-       dtype: "auto",  # Let vLLM auto-detect for quantized models
-       gpu_memory_utilization: 0.95, 
-       enforce_eager: true,
-       quantization: "awq",  # Specify AWQ quantization
-       cpu_offload_gb: 80,  # Reduced since AWQ uses less memory
-       swap_space: 60,        # CPU RAM as Virtual VRAM
-       block_size: 16
-     }
+    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: "decoder-only moe", release_date: "2025-07-28" }
+    think_budgets: [131072]
+    backend: 
+      dtype: "auto"
+      gpu_memory_utilization: 0.95
+      enforce_eager: true
+      quantization: "awq"
+      cpu_offload_gb: 80
+      swap_space: 60
+      block_size: 16
     generation: 
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
-      temperature: 0.6
-      top_p: 0.95
-      max_new_tokens: 512
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Hybrid reasoning modes; 131k context per config." # :contentReference[oaicite:9]{index=9}
+    notes: "Hybrid reasoning modes; ~131k context."
 
   # --- Llama 3.1 (public mirrors for config fields) ---
   - name: Llama-3.1-70B-Instruct-bitsandbytes-4bit
@@ -622,23 +539,19 @@ _models_excluded:
     engine: vllm
     model_family: llama
     batch_size: 2
-    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only (GQA kv_heads=8) }
-    think_budgets: [130000]
-    backend: { 
-       dtype: "auto",  # Let vLLM auto-detect for quantized models
-       gpu_memory_utilization: 0.95, 
-       enforce_eager: true,
-       quantization: "bitsandbytes",  # Specify AWQ quantization
-       cpu_offload_gb: 80,  # Reduced since AWQ uses less memory
-       swap_space: 60,        # CPU RAM as Virtual VRAM
-       block_size: 16
-     }
+    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: "decoder-only", release_date: "2024-07-23" }
+    think_budgets: [131072]
+    backend: 
+      dtype: "auto"
+      gpu_memory_utilization: 0.95
+      enforce_eager: true
+      quantization: "bitsandbytes"
+      cpu_offload_gb: 80
+      swap_space: 60
+      block_size: 16
     generation: 
       generation_mode: "chat"
       system_prompt: "You are a brilliant mathematician who explains your work."
       chat_template_kwargs: null
-      temperature: 0.6
-      top_p: 0.9
-      max_new_tokens: 4096
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Fields from Llama-3.1-70B public config mirrors." # :contentReference[oaicite:11]{index=11}
+    notes: "Fields from Llama-3.1-70B public config mirrors."
