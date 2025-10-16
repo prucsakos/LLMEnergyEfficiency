@@ -10,8 +10,8 @@ class GenerationParams:
 
     Args:
         max_new_tokens: Max tokens to generate.
-        temperature: Sampling temperature (None if not specified).
-        top_p: Top-p nucleus sampling (None if not specified).
+        temperature: Sampling temperature.
+        top_p: Top-p nucleus sampling.
         top_k: Top-k sampling (optional).
         stop: Optional list of stop strings.
         seed: Optional RNG seed for diversity (used by SC).
