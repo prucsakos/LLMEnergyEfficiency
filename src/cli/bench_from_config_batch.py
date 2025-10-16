@@ -60,6 +60,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         temperature=spec.generation.temperature,
         top_p=spec.generation.top_p,
         top_k=spec.generation.top_k,
+        frequency_penalty=spec.generation.frequency_penalty,
         do_sample=spec.generation.do_sample,
         stop=spec.generation.stop,
         seed=spec.generation.seed,

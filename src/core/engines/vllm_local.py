@@ -103,8 +103,10 @@ class VLLMLocalEngine(BaseEngine):
             "stop": params.stop or None,
             "seed": params.seed,
         }
-        
-        # Only add top_k if it's not None
+
+        # Only add parameters that are not None
+        if params.frequency_penalty is not None:
+            sampling_kwargs["frequency_penalty"] = params.frequency_penalty
         if params.top_k is not None:
             sampling_kwargs["top_k"] = params.top_k
             
