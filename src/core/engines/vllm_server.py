@@ -25,8 +25,8 @@ class VLLMOpenAIServerEngine(BaseEngine):
         # Build request parameters with only non-None values
         request_kwargs = {
             "model": self.model,
-            "temperature": params.temperature,
-            "top_p": params.top_p,
+            "temperature": params.temperature if params.temperature is not None else 1.0,
+            "top_p": params.top_p if params.top_p is not None else 1.0,
             "max_tokens": params.max_new_tokens,
             "stop": params.stop or None,
             "seed": params.seed,

@@ -209,9 +209,9 @@ class DeepSpeedLocalEngine(BaseEngine):
         # Prepare generation parameters
         generation_kwargs = {
             "max_new_tokens": params.max_new_tokens,
-            "temperature": params.temperature,
-            "top_p": params.top_p,
-            "do_sample": params.do_sample if params.do_sample is not None else (params.temperature > 0),
+            "temperature": params.temperature if params.temperature is not None else 1.0,
+            "top_p": params.top_p if params.top_p is not None else 1.0,
+            "do_sample": params.do_sample if params.do_sample is not None else ((params.temperature if params.temperature is not None else 1.0) > 0),
             "pad_token_id": self.tokenizer.pad_token_id,
             "eos_token_id": self.tokenizer.eos_token_id,
         }

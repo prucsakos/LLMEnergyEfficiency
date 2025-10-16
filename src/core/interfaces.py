@@ -10,8 +10,8 @@ class GenerationParams:
 
     Args:
         max_new_tokens: Max tokens to generate.
-        temperature: Sampling temperature.
-        top_p: Top-p nucleus sampling.
+        temperature: Sampling temperature (None if not specified).
+        top_p: Top-p nucleus sampling (None if not specified).
         top_k: Top-k sampling (optional).
         stop: Optional list of stop strings.
         seed: Optional RNG seed for diversity (used by SC).
@@ -19,8 +19,8 @@ class GenerationParams:
         use_kv_cache: Whether to use KV cache (if backend supports).
     """
     max_new_tokens: int = 128
-    temperature: float = 0.0
-    top_p: float = 1.0
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
     top_k: Optional[int] = None
     do_sample: Optional[bool] = None  # If None, auto-determined by temperature > 0
     stop: Optional[List[str]] = None
