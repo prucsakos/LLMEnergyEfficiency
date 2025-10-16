@@ -10,6 +10,7 @@ class Card:
     hidden_dim: Optional[int] = None
     heads: Optional[int] = None
     arch: str = None
+    release_date: Optional[str] = None
 
 @dataclass
 class BackendDefaults:
