@@ -344,6 +344,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "layers": spec.card.layers,
         "d_model": spec.card.hidden_dim,
         "heads": spec.card.heads,
+        "release_date": spec.card.release_date,
         "precision": spec.backend.dtype,
         "quant": None,
         "hardware": "NVIDIA RTX 6000 Pro Blackwell",

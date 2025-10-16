@@ -479,7 +479,6 @@ def run_one_with_calibration(spec: RunSpec,
     num_items = max(1, len(per_item_total_tokens))
     num_correct = max(0, int(sum(per_item_correct_flags)))
 
-    acc_pass1 = (num_correct / num_items)  # Pass@1
     # Tokens-per-Correct (mean over dataset tokens)
     tokens_per_correct_mean = (sum(per_item_total_tokens) / max(1, num_correct))
     # Tokens-per-Correct (median over correct items)
@@ -494,79 +493,124 @@ def run_one_with_calibration(spec: RunSpec,
     avg_energy_per_datapoint_j = (total_energy_j / num_items) if total_energy_j > 0 else None
     energy_per_correct_j = (total_energy_j / max(1, num_correct)) if total_energy_j > 0 else None
 
-    # Row for logging (one row per run)
+    # Row for logging (one row per run) - verbose parameter names with detailed comments
     row = {
-        # Model/setup
-        "model": spec.hf_repo,
-        "arch": "decoder-only",
-        "params_B": spec.card.params_B,
-        "layers": spec.card.layers,
-        "d_model": spec.card.hidden_dim,
-        "heads": spec.card.heads,
-        "precision": spec.backend.dtype,
-        "quant": None,
-        "hardware": "NVIDIA RTX 6000 Pro Blackwell",
+        # === MODEL ARCHITECTURE & CONFIGURATION ===
+        # model_huggingface_repo: HuggingFace model repository identifier (spec.hf_repo)
+        "model_huggingface_repo": spec.hf_repo,
+        # model_architecture: Transformer architecture type (hardcoded: decoder-only)
+        "model_architecture": "decoder-only",
+        # model_parameters_billions: Total model parameters in billions (spec.card.params_B)
+        "model_parameters_billions": spec.card.params_B,
+        # model_layers_count: Number of transformer layers (spec.card.layers)
+        "model_layers_count": spec.card.layers,
+        # model_hidden_dimension: Hidden state dimension (spec.card.hidden_dim)
+        "model_hidden_dimension": spec.card.hidden_dim,
+        # model_attention_heads: Number of attention heads (spec.card.heads)
+        "model_attention_heads": spec.card.heads,
+        # model_release_date: Date the model was released (spec.card.release_date)
+        "model_release_date": spec.card.release_date,
+        # model_precision_dtype: Data type used for model weights/computation (spec.backend.dtype)
+        "model_precision_dtype": spec.backend.dtype,
+        # model_quantization_scheme: Quantization method if any (currently None)
+        "model_quantization_scheme": None,
+        # hardware_platform: Target hardware platform identifier
+        "hardware_platform": "NVIDIA RTX 6000 Pro Blackwell",
+        # reasoning_style: Reasoning approach (single_pass, two_pass, self_consistency) (spec.reasoning.style)
         "reasoning_style": spec.reasoning.style,
-        "prompt_set": spec.prompt_set_name,
+        # prompt_template_set: Name of prompt template set used (spec.prompt_set_name)
+        "prompt_template_set": spec.prompt_set_name,
 
-        # Tokens (averaged per datapoint)
-        "avg_prompt_tokens": prompt_tok_sum / max(total, 1),
-        "avg_gen_tokens": avg_gen_tokens,
-        "avg_think_tokens": avg_think_tokens,
-        "avg_answer_tokens": avg_answer_tokens,
-        "budget_utilization_ratio": avg_gen_tokens / spec.think_budget,
-        "passes": 2,
-        "self_consistency_k": spec.reasoning.self_consistency_k,
+        # === TOKEN METRICS (AVERAGED PER DATAPOINT) ===
+        # tokens_avg_prompt_length: Average number of prompt tokens per example (prompt_tok_sum / max(total, 1))
+        "tokens_avg_prompt_length": prompt_tok_sum / max(total, 1),
+        # tokens_avg_generated_total: Average total generated tokens per example (avg_gen_tokens = gen_tok_sum / max(total, 1))
+        "tokens_avg_generated_total": avg_gen_tokens,
+        # tokens_avg_thinking_phase: Average tokens used in thinking/reasoning phase (avg_think_tokens = think_tok_sum / max(total, 1))
+        "tokens_avg_thinking_phase": avg_think_tokens,
+        # tokens_avg_answer_phase: Average tokens used in final answer phase (avg_answer_tokens = ans_tok_sum / max(total, 1))
+        "tokens_avg_answer_phase": avg_answer_tokens,
+        # tokens_budget_utilization_ratio: Ratio of average generated tokens to thinking budget (avg_gen_tokens / spec.think_budget)
+        "tokens_budget_utilization_ratio": avg_gen_tokens / spec.think_budget,
+        # inference_passes_count: Number of forward passes per example (hardcoded: 2 for two-pass reasoning)
+        "inference_passes_count": 2,
+        # self_consistency_samples_k: Number of samples for self-consistency (spec.reasoning.self_consistency_k)
+        "self_consistency_samples_k": spec.reasoning.self_consistency_k,
 
-        # Measured
-        "latency_ms": lat_ms_sum / max(total, 1),
-        "speed_tok_per_s": (gen_tok_sum / (lat_ms_sum / 1000.0)) if lat_ms_sum > 0 else None,
+        # === PERFORMANCE METRICS ===
+        # performance_avg_latency_ms: Average latency per example in milliseconds (lat_ms_sum / max(total, 1))
+        "performance_avg_latency_ms": lat_ms_sum / max(total, 1),
+        # performance_generation_speed_tok_per_s: Token generation speed in tokens/second ((gen_tok_sum / (lat_ms_sum / 1000.0)))
+        "performance_generation_speed_tok_per_s": (gen_tok_sum / (lat_ms_sum / 1000.0)) if lat_ms_sum > 0 else None,
 
-        # Task metric
-        "dataset": spec.dataset,
+        # === TASK & DATASET INFORMATION ===
+        # task_dataset_name: Name of the evaluation dataset (spec.dataset)
+        "task_dataset_name": spec.dataset,
 
-        # Extras (self-eval + FLOPs)
-        "self_eval_acc": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
+        # === EVALUATION METRICS ===
+        # evaluation_self_eval_accuracy: Accuracy from self-evaluation judge (correct_self / max(total, 1)) if enabled
+        "evaluation_self_eval_accuracy": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
 
-        # FLOP estimates (averaged per datapoint)
-        "avg_flops_extrapolated_tflops": to_tflops(avg_extrapolated_flops) if avg_extrapolated_flops is not None else None,
+        # === COMPUTE EFFICIENCY METRICS ===
+        # compute_flops_avg_extrapolated_tflops: Average extrapolated FLOPs in teraFLOPs (to_tflops(avg_extrapolated_flops))
+        "compute_flops_avg_extrapolated_tflops": to_tflops(avg_extrapolated_flops) if avg_extrapolated_flops is not None else None,
 
-        # Extra efficiency metrics
-        "acc_pass1": acc_pass1,  # Accuracy (Pass@1)
-        "tokens_per_correct_mean": tokens_per_correct_mean,   # TPC (mean)
-        "tokens_per_correct_median": tokens_per_correct_median,  # TPC (median across correct)
-        "latency_per_correct_ms": latency_per_correct_ms,    # LpC
-        "compute_gini_total_tokens": compute_gini_total_tokens,  # inequality of compute
-        "avg_energy_per_datapoint_j": avg_energy_per_datapoint_j,  # mean J per item
-        "energy_per_correct_j": energy_per_correct_j,  # EpC_J
-        "total_energy_j": total_energy_j,  # full run J (handy for sanity checks)
+        # === EFFICIENCY METRICS (PERFORMANCE-PER-COMPUTE) ===
+        # efficiency_tokens_per_correct_mean: Mean total tokens used per correct answer (tokens_per_correct_mean)
+        "efficiency_tokens_per_correct_mean": tokens_per_correct_mean,
+        # efficiency_tokens_per_correct_median: Median total tokens used per correct answer (tokens_per_correct_median)
+        "efficiency_tokens_per_correct_median": tokens_per_correct_median,
+        # efficiency_latency_per_correct_ms: Average latency per correct answer in ms (latency_per_correct_ms)
+        "efficiency_latency_per_correct_ms": latency_per_correct_ms,
+        # efficiency_compute_gini_coefficient: Gini coefficient measuring token allocation inequality (compute_gini_total_tokens)
+        "efficiency_compute_gini_coefficient": compute_gini_total_tokens,
 
-        "prompt_cot_think": spec.prompts.cot_think,
-        "prompt_answer": spec.prompts.answer,
-        "prompt_llm_judge": spec.prompts.llm_judge,
+        # === ENERGY EFFICIENCY METRICS ===
+        # energy_avg_joules_per_datapoint: Average energy consumption per example in Joules (avg_energy_per_datapoint_j)
+        "energy_avg_joules_per_datapoint": avg_energy_per_datapoint_j,
+        # energy_joules_per_correct_answer: Energy consumption per correct answer in Joules (energy_per_correct_j)
+        "energy_joules_per_correct_answer": energy_per_correct_j,
+        # energy_total_joules_consumed: Total energy consumed during entire benchmark run (total_energy_j)
+        "energy_total_joules_consumed": total_energy_j,
 
-        # Generation parameters
+        # === PROMPT TEMPLATES ===
+        # prompts_chain_of_thought_template: Template for thinking/reasoning phase (spec.prompts.cot_think)
+        "prompts_chain_of_thought_template": spec.prompts.cot_think,
+        # prompts_answer_generation_template: Template for final answer generation (spec.prompts.answer)
+        "prompts_answer_generation_template": spec.prompts.answer,
+        # prompts_llm_judge_template: Template for LLM-based evaluation/judging (spec.prompts.llm_judge)
+        "prompts_llm_judge_template": spec.prompts.llm_judge,
+
+        # === GENERATION PARAMETERS ===
+        # generation_mode: Generation mode setting (spec.generation.generation_mode)
         "generation_mode": spec.generation.generation_mode,
-        "system_prompt": spec.generation.system_prompt or "none",
-        "chat_template_kwargs": spec.generation.chat_template_kwargs or {},
+        # generation_system_prompt: System prompt for chat-style generation (spec.generation.system_prompt or "none")
+        "generation_system_prompt": spec.generation.system_prompt or "none",
+        # generation_chat_template_kwargs: Additional chat template parameters (spec.generation.chat_template_kwargs or {})
+        "generation_chat_template_kwargs": spec.generation.chat_template_kwargs or {},
 
-        # Notes
-        "notes": f"{notes}",
+        # === EXPERIMENT METADATA ===
+        # experiment_notes: User-provided notes for this experiment run
+        "experiment_notes": f"{notes}",
     }
 
-    # Add calibration info if available
+    # Add calibration info if available (appended to row dictionary)
     if calibration_dataset:
-        row["calibration_points"] = len(calibration_dataset.points)
+        # calibration_data_points_count: Number of calibration data points collected (len(calibration_dataset.points))
+        row["calibration_data_points_count"] = len(calibration_dataset.points)
         if calibration_dataset.model_accuracy:
-            row["calibration_r2"] = calibration_dataset.model_accuracy.get("r2_score")
-            row["calibration_mae_tflops"] = calibration_dataset.model_accuracy.get("mae", 0) / 1e12
-            row["calibration_rmse_tflops"] = calibration_dataset.model_accuracy.get("rmse", 0) / 1e12
+            # calibration_model_r_squared: R² score of calibration model fit (calibration_dataset.model_accuracy.get("r2_score"))
+            row["calibration_model_r_squared"] = calibration_dataset.model_accuracy.get("r2_score")
+            # calibration_model_mae_tflops: Mean Absolute Error in teraFLOPs (calibration_dataset.model_accuracy.get("mae", 0) / 1e12)
+            row["calibration_model_mae_tflops"] = calibration_dataset.model_accuracy.get("mae", 0) / 1e12
+            # calibration_model_rmse_tflops: Root Mean Square Error in teraFLOPs (calibration_dataset.model_accuracy.get("rmse", 0) / 1e12)
+            row["calibration_model_rmse_tflops"] = calibration_dataset.model_accuracy.get("rmse", 0) / 1e12
 
-    extrapolated_flops_str = f"{row['avg_flops_extrapolated_tflops']:.2f}" if row['avg_flops_extrapolated_tflops'] is not None else "N/A"
+    extrapolated_flops_str = f"{row['compute_flops_avg_extrapolated_tflops']:.2f}" if row['compute_flops_avg_extrapolated_tflops'] is not None else "N/A"
     
     flops_info = f"avg_extrapolated_tFLOPs≈{extrapolated_flops_str}"
     
-    logger.log_metrics(row['self_eval_acc'], avg_gen_tokens, row['latency_ms'], flops_info)
+    logger.log_metrics(row['evaluation_self_eval_accuracy'], avg_gen_tokens, row['performance_avg_latency_ms'], flops_info)
     logger.info(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "
                 f"B={spec.think_budget} | K={spec.reasoning.self_consistency_k} | bs={bs} | prompt={spec.prompt_set_name} | "
                 f"avg_gen_tokens={avg_gen_tokens:.2f}, avg_think_tokens={avg_think_tokens:.2f}, avg_answer_tokens={avg_answer_tokens:.2f} | {flops_info}")
