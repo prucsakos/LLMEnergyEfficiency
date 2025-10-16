@@ -42,3 +42,6 @@ Without the models being aware of their thinking budget, the measurment feels fa
 # Nemotron avoids thinking or buged - aime2025
  - First pass: ""
  - Second pass: \<wrong answer\>
+
+
+
