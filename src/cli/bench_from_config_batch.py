@@ -351,6 +351,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "hardware": "NVIDIA RTX 6000 Pro Blackwell",
         "reasoning_style": spec.reasoning.style,
         "prompt_set": spec.prompt_set_name,
+        "batch_size": spec.batch_size,
 
         # Tokens (averaged per datapoint)
         "avg_prompt_tokens": prompt_tok_sum / max(total, 1),

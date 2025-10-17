@@ -521,6 +521,8 @@ def run_one_with_calibration(spec: RunSpec,
         "reasoning_style": spec.reasoning.style,
         # prompt_template_set: Name of prompt template set used (spec.prompt_set_name)
         "prompt_template_set": spec.prompt_set_name,
+        # batch_size: Number of examples processed simultaneously (spec.batch_size)
+        "batch_size": spec.batch_size,
 
         # === TOKEN METRICS (AVERAGED PER DATAPOINT) ===
         # tokens_avg_prompt_length: Average number of prompt tokens per example (prompt_tok_sum / max(total, 1))
