@@ -385,6 +385,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "generation_mode": spec.generation.generation_mode,
         "system_prompt": spec.generation.system_prompt or "none",
         "chat_template_kwargs": spec.generation.chat_template_kwargs or {},
+        "frequency_penalty": spec.generation.frequency_penalty or 0.0,
 
         # Notes
         "notes": f"{notes}",

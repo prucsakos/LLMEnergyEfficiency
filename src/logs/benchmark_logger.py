@@ -27,7 +27,7 @@ class BenchmarkLogger:
     - Structured logging for different components
     """
     
-    def __init__(self, 
+    def __init__(self,
                  name: str = "benchmark",
                  log_dir: str = "logs",
                  log_level: int = logging.INFO,
@@ -35,7 +35,7 @@ class BenchmarkLogger:
                  file_level: int = logging.DEBUG):
         """
         Initialize the benchmark logger.
-        
+
         Args:
             name: Logger name (used in log file naming)
             log_dir: Directory to store log files
@@ -48,24 +48,24 @@ class BenchmarkLogger:
         self.log_level = log_level
         self.console_level = console_level
         self.file_level = file_level
-        
+
         # Create log directory if it doesn't exist
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create logger
         self.logger = logging.getLogger(f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
         self.logger.setLevel(log_level)
-        
+
         # Clear any existing handlers
         self.logger.handlers.clear()
-        
+
         # Create formatters
         self._setup_formatters()
-        
+
         # Setup handlers
         self._setup_console_handler()
         self._setup_file_handler()
-        
+
         # Log initialization
         self.logger.info(f"Benchmark logger initialized: {name}")
         self.logger.info(f"Log directory: {self.log_dir.absolute()}")
@@ -223,21 +223,21 @@ def get_logger(name: str = "benchmark", **kwargs) -> BenchmarkLogger:
     return _global_logger
 
 
-def setup_logging(name: str = "benchmark", 
+def setup_logging(name: str = "benchmark",
                   log_dir: str = "logs",
                   log_level: int = logging.INFO,
                   console_level: int = logging.INFO,
                   file_level: int = logging.DEBUG) -> BenchmarkLogger:
     """
     Setup logging for the application.
-    
+
     Args:
         name: Logger name
         log_dir: Directory to store log files
         log_level: Overall logging level
         console_level: Console output level
         file_level: File output level
-        
+
     Returns:
         Configured BenchmarkLogger instance
     """

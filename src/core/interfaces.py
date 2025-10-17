@@ -13,6 +13,7 @@ class GenerationParams:
         temperature: Sampling temperature.
         top_p: Top-p nucleus sampling.
         top_k: Top-k sampling (optional).
+        frequency_penalty: Frequency penalty (optional).
         stop: Optional list of stop strings.
         seed: Optional RNG seed for diversity (used by SC).
         dtype: 'auto'|'bfloat16'|'float16' etc. (forwarded if backend supports).
@@ -22,6 +23,7 @@ class GenerationParams:
     temperature: Optional[float] = None
     top_p: Optional[float] = None
     top_k: Optional[int] = None
+    frequency_penalty: Optional[float] = None
     do_sample: Optional[bool] = None  # If None, auto-determined by temperature > 0
     stop: Optional[List[str]] = None
     seed: Optional[int] = None

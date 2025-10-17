@@ -55,7 +55,7 @@ prompts:
 
       Count the frequency of each answer and select the most popular one. Output only the chosen answer:
 
-config_name: "smalls1015"
+config_name: "frequency_penalty-0.001"
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]
 datasets: [aime_2025, hmmt_feb_2025]
 
@@ -68,7 +68,7 @@ models:
     model_family: qwen
     batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-31" }
-    think_budgets: [81920]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -77,8 +77,9 @@ models:
       temperature: 0.6
       top_p: 0.95
       top_k: 20
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "256K context; thinking mode (<think>…)." 
+    notes: "256K context; thinking mode (<think>…); prev think_budget: 81920." 
 
   - name: Qwen3-30B-A3B-Instruct-2507
     hf_repo: Qwen/Qwen3-30B-A3B-Instruct-2507
@@ -86,17 +87,18 @@ models:
     model_family: qwen
     batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-30" }
-    think_budgets: [262144]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
+      frequency_penalty: 0.001
       temperature: 0.7
       top_p: 0.8
       top_k: 20
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "262k context; instruct defaults." 
+    notes: "262k context; instruct defaults; prev think_budget: 262144." 
 
   # --- Qwen3 4B ---
   - name: Qwen3-4B-Thinking-2507
@@ -105,7 +107,7 @@ models:
     model_family: qwen
     batch_size: 128
     card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06" }
-    think_budgets: [81920]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -114,8 +116,9 @@ models:
       temperature: 0.6
       top_p: 0.95
       top_k: 20
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "256K context; thinking mode."
+    notes: "256K context; thinking mode; prev think_budget: 81920."
 
   - name: Qwen3-4B-Instruct-2507
     hf_repo: Qwen/Qwen3-4B-Instruct-2507
@@ -123,12 +126,13 @@ models:
     model_family: qwen
     batch_size: 128
     card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06" }
-    think_budgets: [262144]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
+      frequency_penalty: 0.001
       temperature: 0.7
       top_p: 0.8
       top_k: 20
@@ -142,18 +146,19 @@ models:
     model_family: gpt
     batch_size: 8
     card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
-    think_budgets: [131072]
+    think_budgets: [130000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs:
         reasoning_effort: "high"
+      frequency_penalty: 0.001
       temperature: 1.0
       top_p: 1.0
       top_k: 0
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128; prev think_budget: 131072."
 
   - name: gpt-oss-20b-reason:medium
     hf_repo: openai/gpt-oss-20b
@@ -161,7 +166,7 @@ models:
     model_family: gpt
     batch_size: 8
     card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -171,8 +176,9 @@ models:
       temperature: 1.0
       top_p: 1.0
       top_k: 0
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128; prev think_budget: 131072."
 
   - name: gpt-oss-20b-reason:low
     hf_repo: openai/gpt-oss-20b
@@ -180,7 +186,7 @@ models:
     model_family: gpt
     batch_size: 8
     card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
       generation_mode: "chat"
@@ -190,8 +196,9 @@ models:
       temperature: 1.0
       top_p: 1.0
       top_k: 0
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128; prev think_budget: 131072."
 
   # --- Nemotron ---
   - name: Nemotron-Nano-9B-v2
@@ -200,14 +207,15 @@ models:
     model_family: nemotron
     batch_size: 128
     card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: "hybrid-mamba-transformer", release_date: "2025-08-18" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "/think You are an expert math tutor."
       chat_template_kwargs: null
       temperature: 0.6
       top_p: 0.95
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: ""
 
@@ -218,16 +226,17 @@ models:
     model_family: deepseek
     batch_size: 64
     card: { params_B: 8.2, layers: 36, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2025-05-28" }
-    think_budgets: [64000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a top mathematician. Solve the problem with detailed reasoning, then give the final answer."
       chat_template_kwargs: { enable_thinking: true }
+      frequency_penalty: 0.001
       temperature: 0.6
       top_p: 0.95
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Same arch as Qwen3-8B."
+    notes: "Same arch as Qwen3-8B; prev think_budget: 64000."
 
   # --- Llama 3.1 ---
   - name: Llama-3.1-8B-Instruct
@@ -236,12 +245,13 @@ models:
     model_family: llama
     batch_size: 128
     card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2024-07-23" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a brilliant mathematician who explains your work."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Fields from Meta-Llama-3.1-8B; 128K context."
 
@@ -252,12 +262,13 @@ models:
     model_family: gemma
     batch_size: 256
     card: { params_B: 1, layers: 26, hidden_dim: 1152, heads: 4, arch: "decoder-only", release_date: "2025-03-12" }
-    think_budgets: [32000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Gated repo; 32k context per docs."
 
@@ -267,14 +278,15 @@ models:
     model_family: gemma
     batch_size: 128
     card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "decoder-only", release_date: "2025-03-12" }
-    think_budgets: [128000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "128k input context (Gemma 3 family)."
+    notes: "128k input context (Gemma 3 family); prev think_budget: 32000."
 
   - name: gemma-3-12b-it
     hf_repo: google/gemma-3-12b-it
@@ -282,14 +294,15 @@ models:
     model_family: gemma
     batch_size: 32
     card: { params_B: 12, layers: 40, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-03-12" }
-    think_budgets: [128000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "128k input context (Gemma 3 family)."
+    notes: "128k input context (Gemma 3 family); prev think_budget: 32000."
 
   - name: gemma-3-27b-it
     hf_repo: google/gemma-3-27b-it
@@ -297,14 +310,15 @@ models:
     model_family: gemma
     batch_size: 8
     card: { params_B: 27, layers: 62, hidden_dim: 5376, heads: 32, arch: "decoder-only", release_date: "2025-03-12" }
-    think_budgets: [128000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a helpful reasoning assistant."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "128k input context (Gemma 3 family)."
+    notes: "128k input context (Gemma 3 family); prev think_budget: 32000."
 
   # --- Gemma 3N (edge, selective activation) ---
   - name: gemma-3n-E2B-it
@@ -313,14 +327,15 @@ models:
     model_family: gemma
     batch_size: 256
     card: { params_B: 2, layers: 28, hidden_dim: 1536, heads: 12, arch: "multimodal-decoder", release_date: "2025-06-26" }
-    think_budgets: [32000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a logical AI who explains your reasoning."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Edge series; 32K context."
+    notes: "Edge series; 32K context; prev think_budget: 32000."
 
   - name: gemma-3n-E4B-it
     hf_repo: google/gemma-3n-E4B-it
@@ -328,14 +343,15 @@ models:
     model_family: gemma
     batch_size: 128
     card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "multimodal-decoder", release_date: "2025-06-26" }
-    think_budgets: [32000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a logical AI who explains your reasoning."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Edge series; 32K context."
+    notes: "Edge series; 32K context; prev think_budget: 32000."
 
   # --- Microsoft Phi-4 family ---
   - name: phi-4
@@ -344,14 +360,15 @@ models:
     model_family: phi
     batch_size: 32
     card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2024-12-13" }
-    think_budgets: [16384]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "Reasoning: high. You are a careful and logical assistant. Think step by step."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "14B dense transformer; 16k context."
+    notes: "14B dense transformer; 16k context; prev think_budget: 16384."
 
   - name: Phi-4-mini-reasoning
     hf_repo: microsoft/Phi-4-mini-reasoning
@@ -359,16 +376,17 @@ models:
     model_family: phi
     batch_size: 128
     card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-04-30" }
-    think_budgets: [128000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "Reasoning: high. You are a careful and logical assistant. Think step by step."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
       temperature: 0.8
       top_p: 0.95
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "3.8B parameters; 128k context; reasoning-optimized variant."
+    notes: "3.8B parameters; 128k context; reasoning-optimized variant; prev think_budget: 128000."
 
   - name: Phi-4-reasoning-plus
     hf_repo: microsoft/Phi-4-reasoning-plus
@@ -376,14 +394,15 @@ models:
     model_family: phi
     batch_size: 32
     card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2025-04-30" }
-    think_budgets: [32000]
+    think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "Reasoning: high. You are a careful and logical assistant. Think step by step."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "13.6B parameters; reasoning-optimized variant."
+    notes: "13.6B parameters; reasoning-optimized variant; prev think_budget: 128000."
 
 # Large models (>40B parameters) - excluded from calculations for now
 _models_excluded:
@@ -395,17 +414,18 @@ _models_excluded:
     model_family: llama
     batch_size: 8
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: 
       dtype: "auto"
       gpu_memory_utilization: 0.95
       enforce_eager: true
       quantization: "awq"
       cpu_offload_gb: 25
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
+      frequency_penalty: 0.001
       temperature: 0.6
       top_p: 0.9
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -417,17 +437,18 @@ _models_excluded:
     model_family: llama
     batch_size: 4
     card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: 
       dtype: "auto"
       gpu_memory_utilization: 0.95
       enforce_eager: true
       quantization: "awq"
       cpu_offload_gb: 25
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
+      frequency_penalty: 0.001
       temperature: 0.6
       top_p: 0.9
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
@@ -440,7 +461,7 @@ _models_excluded:
     model_family: qwen
     batch_size: 1
     card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25" }
-    think_budgets: [262144]
+    think_budgets: [80000]
     backend: 
       dtype: "auto"
       gpu_memory_utilization: 0.95
@@ -456,8 +477,9 @@ _models_excluded:
       temperature: 0.6
       top_p: 0.95
       top_k: 20
+      frequency_penalty: 0.001
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Native thinking mode; 262k context."
+    notes: "Native thinking mode; 262k context; prev think_budget: 262144."
 
   - name: Qwen3-235B-A22B-Instruct-2507-AWQ
     hf_repo: QuantTrio/Qwen3-235B-A22B-Instruct-2507-AWQ
@@ -465,7 +487,7 @@ _models_excluded:
     model_family: qwen
     batch_size: 1
     card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25" }
-    think_budgets: [262144]
+    think_budgets: [80000]
     backend: 
       dtype: "auto"
       gpu_memory_utilization: 0.95
@@ -474,15 +496,16 @@ _models_excluded:
       cpu_offload_gb: 80
       swap_space: 60
       block_size: 16
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
+      frequency_penalty: 0.001
       temperature: 0.7
       top_p: 0.8
       top_k: 20
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "262k context; non-thinking variant."
+    notes: "262k context; non-thinking variant; prev think_budget: 262144."
 
   # --- OpenAI GPT-OSS (Harmony format) ---
   - name: gpt-oss-120b-BitsAndBytes-4bit
@@ -491,7 +514,7 @@ _models_excluded:
     model_family: gpt
     batch_size: 1
     card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: 
       dtype: "auto"
       gpu_memory_utilization: 0.95
@@ -508,7 +531,7 @@ _models_excluded:
       top_p: 1.0
       top_k: 0
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Harmony chat template required; 131k context; MoE MXFP4 weights."
+    notes: "Harmony chat template required; 131k context; MoE MXFP4 weights; prev think_budget: 131072."
 
   # --- GLM-4.5 Air (MoE) ---
   - name: GLM-4.5-Air-AWQ-4bit
@@ -517,7 +540,7 @@ _models_excluded:
     model_family: glm
     batch_size: 2
     card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: "decoder-only moe", release_date: "2025-07-28" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: 
       dtype: "auto"
       gpu_memory_utilization: 0.95
@@ -526,10 +549,11 @@ _models_excluded:
       cpu_offload_gb: 80
       swap_space: 60
       block_size: 16
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Hybrid reasoning modes; ~131k context."
 
@@ -540,7 +564,7 @@ _models_excluded:
     model_family: llama
     batch_size: 2
     card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: "decoder-only", release_date: "2024-07-23" }
-    think_budgets: [131072]
+    think_budgets: [80000]
     backend: 
       dtype: "auto"
       gpu_memory_utilization: 0.95
@@ -549,9 +573,10 @@ _models_excluded:
       cpu_offload_gb: 80
       swap_space: 60
       block_size: 16
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: "You are a brilliant mathematician who explains your work."
       chat_template_kwargs: null
+      frequency_penalty: 0.001
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Fields from Llama-3.1-70B public config mirrors."

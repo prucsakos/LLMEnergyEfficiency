@@ -16,6 +16,7 @@ import argparse
 import json
 import traceback
 import time
+import logging
 from pathlib import Path
 
 # Add project root to path for imports

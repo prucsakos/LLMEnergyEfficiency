@@ -36,6 +36,7 @@ class GenDefaults:
     temperature: Optional[float] = None
     top_p: Optional[float] = None
     top_k: Optional[int] = None
+    frequency_penalty: Optional[float] = None
     do_sample: Optional[bool] = None  # If None, auto-determined by temperature > 0
     max_new_tokens: int = 128
     stop: Optional[List[str]] = None

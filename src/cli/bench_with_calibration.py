@@ -110,7 +110,7 @@ def run_calibration_subprocess(spec: RunSpec,
             logger.info("Calibration subprocess stdout:")
             for line in result.stdout.strip().split('\n'):
                 logger.info(f"  {line}")
-        
+
         if result.stderr:
             logger.warning("Calibration subprocess stderr:")
             for line in result.stderr.strip().split('\n'):
@@ -589,6 +589,8 @@ def run_one_with_calibration(spec: RunSpec,
         "generation_system_prompt": spec.generation.system_prompt or "none",
         # generation_chat_template_kwargs: Additional chat template parameters (spec.generation.chat_template_kwargs or {})
         "generation_chat_template_kwargs": spec.generation.chat_template_kwargs or {},
+        # generation_frequency_penalty: Frequency penalty parameter (spec.generation.frequency_penalty or 0.0)
+        "generation_frequency_penalty": spec.generation.frequency_penalty or 0.0,
 
         # === EXPERIMENT METADATA ===
         # experiment_notes: User-provided notes for this experiment run

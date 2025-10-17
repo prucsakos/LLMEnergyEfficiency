@@ -57,31 +57,91 @@ prompts:
 
 config_name: "smalls"
 datasets_: [aime_2025, hmmt_feb_2025, gpqa]
-datasets: [aime_2025, hmmt_feb_2025]
+datasets: [aime_2025]
 
 models:
-
   # --- OpenAI GPT-OSS (Harmony format) ---
   - name: gpt-oss-20b-reason:high
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: gpt
     batch_size: 8
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (32E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
-    think_budgets: [128000]
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [130000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs:
         reasoning_effort: "high"
-      temperature: 0.2
+      frequency_penalty: 0.005
+      temperature: 1.0
       top_p: 1.0
-      top_k: 40
-      do_sample: true
-      max_new_tokens: 512
+      top_k: 0
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128." # :contentReference[oaicite:6]{index=6}
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
+
+  - name: gpt-oss-20b-reason:high
+    hf_repo: openai/gpt-oss-20b
+    engine: vllm
+    model_family: gpt
+    batch_size: 8
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [130000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    generation:
+      generation_mode: "chat"
+      system_prompt: null
+      chat_template_kwargs:
+        reasoning_effort: "high"
+      frequency_penalty: 0.01
+      temperature: 1.0
+      top_p: 1.0
+      top_k: 0
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
+
+  - name: gpt-oss-20b-reason:high
+    hf_repo: openai/gpt-oss-20b
+    engine: vllm
+    model_family: gpt
+    batch_size: 8
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [130000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    generation:
+      generation_mode: "chat"
+      system_prompt: null
+      chat_template_kwargs:
+        reasoning_effort: "high"
+      frequency_penalty: 0.05
+      temperature: 1.0
+      top_p: 1.0
+      top_k: 0
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
+
+  - name: gpt-oss-20b-reason:high
+    hf_repo: openai/gpt-oss-20b
+    engine: vllm
+    model_family: gpt
+    batch_size: 8
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    think_budgets: [130000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
+    generation:
+      generation_mode: "chat"
+      system_prompt: null
+      chat_template_kwargs:
+        reasoning_effort: "high"
+      frequency_penalty: 0.1
+      temperature: 1.0
+      top_p: 1.0
+      top_k: 0
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128."
+
+
 asd:
   # --- (kept) Nemotron ---
   - name: Nemotron-Nano-9B-v2
