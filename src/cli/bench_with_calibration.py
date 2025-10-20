@@ -487,10 +487,14 @@ def run_one_with_calibration(spec: RunSpec,
     metrics = {
         # tokens & latency aggregates
         "tokens_avg_prompt_length": (prompt_tok_sum / max(total, 1)),
-        "tokens_avg_generated_total": avg_gen_tokens,
+        "tokens_avg_generated": avg_gen_tokens,  # renamed from tokens_avg_generated_total
         "tokens_avg_generated_correct": (float(sum(correct_generated_tokens)) / len(correct_generated_tokens)) if len(correct_generated_tokens) > 0 else None,
         "tokens_avg_thinking_phase": avg_think_tokens,
         "tokens_avg_answer_phase": avg_answer_tokens,
+
+        # sum-based token metrics
+        "tokens_generated": float(sum(per_item_generated_tokens)),
+        "tokens_generated_correct": float(sum(correct_generated_tokens)),
         "performance_avg_latency_ms": (lat_ms_sum / max(total, 1)),
         "performance_generation_speed_tok_per_s": (gen_tok_sum / (lat_ms_sum / 1000.0)) if lat_ms_sum > 0 else None,
 
@@ -544,8 +548,12 @@ def run_one_with_calibration(spec: RunSpec,
         # === TOKEN METRICS (AVERAGED PER DATAPOINT) ===
         # tokens_avg_prompt_length: Average number of prompt tokens per example (prompt_tok_sum / max(total, 1))
         "tokens_avg_prompt_length": metrics["tokens_avg_prompt_length"],
-        # tokens_avg_generated_total: Average total generated tokens per example (avg_gen_tokens = gen_tok_sum / max(total, 1))
-        "tokens_avg_generated_total": metrics["tokens_avg_generated_total"],
+        # tokens_avg_generated: Average total generated tokens per example (avg_gen_tokens = gen_tok_sum / max(total, 1))
+        "tokens_avg_generated": metrics["tokens_avg_generated"],
+        # tokens_generated: Sum of tokens generated on all answers
+        "tokens_generated": metrics["tokens_generated"],
+        # tokens_generated_correct: Sum of tokens generated on correct answers
+        "tokens_generated_correct": metrics["tokens_generated_correct"],
         # tokens_avg_generated_correct: Average generated tokens on correct examples only
         "tokens_avg_generated_correct": metrics["tokens_avg_generated_correct"],
         # tokens_avg_thinking_phase: Average tokens used in thinking/reasoning phase (avg_think_tokens = think_tok_sum / max(total, 1))

@@ -66,7 +66,6 @@ models:
     hf_repo: Qwen/Qwen3-30B-A3B-Thinking-2507
     engine: vllm
     model_family: qwen
-    batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
@@ -78,7 +77,6 @@ models:
     hf_repo: Qwen/Qwen3-30B-A3B-Thinking-2507
     engine: vllm
     model_family: qwen
-    batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
@@ -90,7 +88,6 @@ models:
     hf_repo: Qwen/Qwen3-30B-A3B-Thinking-2507
     engine: vllm
     model_family: qwen
-    batch_size: 4
     card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: decoder-only MoE (128E, 8 active; GQA 32Q×4KV) }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }

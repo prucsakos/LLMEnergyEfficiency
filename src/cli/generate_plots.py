@@ -72,7 +72,7 @@ def query_wandb_data(project_name: str) -> pd.DataFrame:
                 'dataset': config.get('dataset', 'unknown'),
                 'latency_ms': summary.get('performance_avg_latency_ms', None),
                 'self_eval_acc': summary.get('evaluation_self_eval_accuracy', None),
-                'avg_gen_tokens': summary.get('tokens_avg_generated_total', summary.get('avg_gen_tokens', None)),
+                'avg_gen_tokens': summary.get('tokens_avg_generated', summary.get('avg_gen_tokens', None)),
                 'think_budget': config.get('think_budget', None),
                 'style': config.get('style', None),
                 'K': config.get('K', None),
@@ -247,10 +247,10 @@ def plot_accuracy_vs_release_date(df: pd.DataFrame, output_dir: Path):
             c=dataset_df['params_B'],
             s=50 + (dataset_df['avg_gen_tokens'] / 20000) * 150,
             cmap='viridis',
-            alpha=0.7,
-            edgecolors='black',
-            linewidth=0.5
-        )
+                alpha=0.7,
+                edgecolors='black',
+                linewidth=0.5
+            )
         
         # Add trend line
         x_numeric = pd.to_datetime(dataset_df['release_date_parsed']).astype(np.int64) / 10**9
@@ -320,7 +320,7 @@ def plot_accuracy_vs_tokens_per_correct(df: pd.DataFrame, output_dir: Path, pare
         if len(dataset_df) == 0:
             ax.set_visible(False)
             continue
-        
+    
         scatter = ax.scatter(
             dataset_df['tokens_per_correct'],
             dataset_df['self_eval_acc'],
@@ -372,7 +372,7 @@ def plot_accuracy_vs_tokens_per_correct(df: pd.DataFrame, output_dir: Path, pare
     plt.savefig(output_dir / 'pareto_accuracy_vs_tokens_per_correct.png', dpi=300, bbox_inches='tight')
     print(f"✅ Saved: {output_dir / 'pareto_accuracy_vs_tokens_per_correct.png'}")
     plt.close()
-
+    
 def plot_efficiency_pareto(df: pd.DataFrame, output_dir: Path, pareto: bool = True):
     """Plot 4 & 5: Pareto with tokens_per_correct on x-axis, latency/tokens on y-axis."""
     print("Creating tokens_per_correct vs latency plots (Pareto)...")
@@ -382,7 +382,7 @@ def plot_efficiency_pareto(df: pd.DataFrame, output_dir: Path, pareto: bool = Tr
     if len(plot_df) == 0:
         print("Warning: No data available for efficiency pareto plots")
         return
-    
+
     datasets = sorted(plot_df['dataset'].unique())
     n_datasets = len(datasets)
     n_cols = min(3, n_datasets)
@@ -454,7 +454,7 @@ def plot_efficiency_pareto(df: pd.DataFrame, output_dir: Path, pareto: bool = Tr
     plt.savefig(output_dir / 'pareto_tokens_per_correct_vs_latency.png', dpi=300, bbox_inches='tight')
     print(f"✅ Saved: {output_dir / 'pareto_tokens_per_correct_vs_latency.png'}")
     plt.close()
-
+    
 def plot_leaderboards(df: pd.DataFrame, output_dir: Path):
     """Plot 6 & 7: Leaderboard plots for accuracy and tokens_per_correct."""
     print("Creating leaderboard plots...")
@@ -465,7 +465,7 @@ def plot_leaderboards(df: pd.DataFrame, output_dir: Path):
     if len(plot_df) == 0:
         print("Warning: No data available for leaderboards")
         return
-    
+
     datasets = sorted(plot_df['dataset'].unique())
     n_datasets = len(datasets)
     n_cols = min(3, n_datasets)
@@ -556,7 +556,7 @@ def plot_leaderboards(df: pd.DataFrame, output_dir: Path):
     plt.savefig(output_dir / 'leaderboard_tokens_per_correct.png', dpi=300, bbox_inches='tight')
     print(f"✅ Saved: {output_dir / 'leaderboard_tokens_per_correct.png'}")
     plt.close()
-
+    
 def export_datapoints_to_json(df: pd.DataFrame, output_dir: Path) -> None:
     """Export all datapoints used for plotting to JSON format."""
     print("Exporting datapoints to JSON...")
