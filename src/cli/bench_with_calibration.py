@@ -271,6 +271,7 @@ def run_one_with_calibration(spec: RunSpec,
 
     # NEW – per-item accounting + energy
     per_item_total_tokens: List[float] = []
+    per_item_generated_tokens: List[float] = []  # think + answer only (excludes prompt)
     per_item_latency_ms: List[float] = []
     per_item_correct_flags: List[int] = []
 
@@ -371,6 +372,7 @@ def run_one_with_calibration(spec: RunSpec,
             # NEW — per-item tracking for inequality/efficiency metrics
             total_tokens = float(prompt_tokens + generated_tokens)  # prompt + think + answer
             per_item_total_tokens.append(total_tokens)
+            per_item_generated_tokens.append(float(generated_tokens))  # generated-only for clarity-first metrics
             per_item_latency_ms.append(float(lats[j]))
             # judged correctness (1/0)
             is_correct_flag = int(judge_batch_results[j][0]) if judge_batch_results is not None else 0
@@ -476,19 +478,34 @@ def run_one_with_calibration(spec: RunSpec,
     avg_think_tokens = (think_tok_sum / max(total, 1))
     avg_answer_tokens = (ans_tok_sum / max(total, 1))
 
-    # === Extra metrics (Feature 1) ===
+    # === Centralized derived metrics (each computed exactly once) ===
     num_items = max(1, len(per_item_total_tokens))
     num_correct = max(0, int(sum(per_item_correct_flags)))
+    correct_generated_tokens = [g for g, c in zip(per_item_generated_tokens, per_item_correct_flags) if c]
+    acc_self_eval = (correct_self / max(total, 1)) if (spec.reasoning.self_eval and not skip_evaluation) else None
 
-    # Tokens-per-Correct (mean over dataset tokens)
-    tokens_per_correct_mean = (sum(per_item_total_tokens) / max(1, num_correct))
-    # Tokens-per-Correct (median over correct items)
-    correct_tokens = [t for t, c in zip(per_item_total_tokens, per_item_correct_flags) if c]
-    tokens_per_correct_median = (float(np.median(correct_tokens)) if len(correct_tokens) > 0 else None)
-    # Latency-per-Correct (ms)
-    latency_per_correct_ms = (sum(per_item_latency_ms) / max(1, num_correct))
-    # Compute inequality of token allocation
-    compute_gini_total_tokens = gini(per_item_total_tokens)
+    metrics = {
+        # tokens & latency aggregates
+        "tokens_avg_prompt_length": (prompt_tok_sum / max(total, 1)),
+        "tokens_avg_generated_total": avg_gen_tokens,
+        "tokens_avg_generated_correct": (float(sum(correct_generated_tokens)) / len(correct_generated_tokens)) if len(correct_generated_tokens) > 0 else None,
+        "tokens_avg_thinking_phase": avg_think_tokens,
+        "tokens_avg_answer_phase": avg_answer_tokens,
+        "performance_avg_latency_ms": (lat_ms_sum / max(total, 1)),
+        "performance_generation_speed_tok_per_s": (gen_tok_sum / (lat_ms_sum / 1000.0)) if lat_ms_sum > 0 else None,
+
+        # accuracy
+        "evaluation_self_eval_accuracy": acc_self_eval,
+
+        # efficiency-style aggregates (keep legacy names where applicable)
+        "efficiency_tokens_per_correct_mean": (sum(per_item_total_tokens) / max(1, num_correct)),
+        "efficiency_latency_per_correct_ms": (sum(per_item_latency_ms) / max(1, num_correct)),
+        "efficiency_compute_gini_coefficient": gini(per_item_total_tokens),
+
+        # clarity-first efficiency (generated-only)
+        "efficiency_gini_generated_tokens_all_examples": gini(per_item_generated_tokens) if len(per_item_generated_tokens) > 0 else None,
+        "efficiency_gini_generated_tokens_correct_only": gini(correct_generated_tokens) if len(correct_generated_tokens) > 0 else None,
+    }
 
     # === Energy metrics (Feature 2) ===
     avg_energy_per_datapoint_j = (total_energy_j / num_items) if total_energy_j > 0 else None
@@ -526,25 +543,27 @@ def run_one_with_calibration(spec: RunSpec,
 
         # === TOKEN METRICS (AVERAGED PER DATAPOINT) ===
         # tokens_avg_prompt_length: Average number of prompt tokens per example (prompt_tok_sum / max(total, 1))
-        "tokens_avg_prompt_length": prompt_tok_sum / max(total, 1),
+        "tokens_avg_prompt_length": metrics["tokens_avg_prompt_length"],
         # tokens_avg_generated_total: Average total generated tokens per example (avg_gen_tokens = gen_tok_sum / max(total, 1))
-        "tokens_avg_generated_total": avg_gen_tokens,
+        "tokens_avg_generated_total": metrics["tokens_avg_generated_total"],
+        # tokens_avg_generated_correct: Average generated tokens on correct examples only
+        "tokens_avg_generated_correct": metrics["tokens_avg_generated_correct"],
         # tokens_avg_thinking_phase: Average tokens used in thinking/reasoning phase (avg_think_tokens = think_tok_sum / max(total, 1))
-        "tokens_avg_thinking_phase": avg_think_tokens,
+        "tokens_avg_thinking_phase": metrics["tokens_avg_thinking_phase"],
         # tokens_avg_answer_phase: Average tokens used in final answer phase (avg_answer_tokens = ans_tok_sum / max(total, 1))
-        "tokens_avg_answer_phase": avg_answer_tokens,
+        "tokens_avg_answer_phase": metrics["tokens_avg_answer_phase"],
         # tokens_budget_utilization_ratio: Ratio of average generated tokens to thinking budget (avg_gen_tokens / spec.think_budget)
         "tokens_budget_utilization_ratio": avg_gen_tokens / spec.think_budget,
         # inference_passes_count: Number of forward passes per example (hardcoded: 2 for two-pass reasoning)
-        "inference_passes_count": 2,
+        "inference_passes_count": 1,
         # self_consistency_samples_k: Number of samples for self-consistency (spec.reasoning.self_consistency_k)
         "self_consistency_samples_k": spec.reasoning.self_consistency_k,
 
         # === PERFORMANCE METRICS ===
         # performance_avg_latency_ms: Average latency per example in milliseconds (lat_ms_sum / max(total, 1))
-        "performance_avg_latency_ms": lat_ms_sum / max(total, 1),
+        "performance_avg_latency_ms": metrics["performance_avg_latency_ms"],
         # performance_generation_speed_tok_per_s: Token generation speed in tokens/second ((gen_tok_sum / (lat_ms_sum / 1000.0)))
-        "performance_generation_speed_tok_per_s": (gen_tok_sum / (lat_ms_sum / 1000.0)) if lat_ms_sum > 0 else None,
+        "performance_generation_speed_tok_per_s": metrics["performance_generation_speed_tok_per_s"],
 
         # === TASK & DATASET INFORMATION ===
         # task_dataset_name: Name of the evaluation dataset (spec.dataset)
@@ -552,7 +571,7 @@ def run_one_with_calibration(spec: RunSpec,
 
         # === EVALUATION METRICS ===
         # evaluation_self_eval_accuracy: Accuracy from self-evaluation judge (correct_self / max(total, 1)) if enabled
-        "evaluation_self_eval_accuracy": (correct_self / max(total, 1)) if spec.reasoning.self_eval else None,
+        "evaluation_self_eval_accuracy": metrics["evaluation_self_eval_accuracy"],
 
         # === COMPUTE EFFICIENCY METRICS ===
         # compute_flops_avg_extrapolated_tflops: Average extrapolated FLOPs in teraFLOPs (to_tflops(avg_extrapolated_flops))
@@ -560,13 +579,15 @@ def run_one_with_calibration(spec: RunSpec,
 
         # === EFFICIENCY METRICS (PERFORMANCE-PER-COMPUTE) ===
         # efficiency_tokens_per_correct_mean: Mean total tokens used per correct answer (tokens_per_correct_mean)
-        "efficiency_tokens_per_correct_mean": tokens_per_correct_mean,
-        # efficiency_tokens_per_correct_median: Median total tokens used per correct answer (tokens_per_correct_median)
-        "efficiency_tokens_per_correct_median": tokens_per_correct_median,
+        "efficiency_tokens_per_correct_mean": metrics["efficiency_tokens_per_correct_mean"],
         # efficiency_latency_per_correct_ms: Average latency per correct answer in ms (latency_per_correct_ms)
-        "efficiency_latency_per_correct_ms": latency_per_correct_ms,
+        "efficiency_latency_per_correct_ms": metrics["efficiency_latency_per_correct_ms"],
         # efficiency_compute_gini_coefficient: Gini coefficient measuring token allocation inequality (compute_gini_total_tokens)
-        "efficiency_compute_gini_coefficient": compute_gini_total_tokens,
+        "efficiency_compute_gini_coefficient": metrics["efficiency_compute_gini_coefficient"],
+        # efficiency_gini_generated_tokens_all_examples: Gini of generated token allocation across all items
+        "efficiency_gini_generated_tokens_all_examples": metrics["efficiency_gini_generated_tokens_all_examples"],
+        # efficiency_gini_generated_tokens_correct_only: Gini of generated tokens among correct items
+        "efficiency_gini_generated_tokens_correct_only": metrics["efficiency_gini_generated_tokens_correct_only"],
 
         # === ENERGY EFFICIENCY METRICS ===
         # energy_avg_joules_per_datapoint: Average energy consumption per example in Joules (avg_energy_per_datapoint_j)
