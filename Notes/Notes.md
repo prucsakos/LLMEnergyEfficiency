@@ -43,5 +43,28 @@ Without the models being aware of their thinking budget, the measurment feels fa
  - First pass: ""
  - Second pass: \<wrong answer\>
 
+<br><br><br><br>
+--------
+--------
+--------
 
+# 10/22
+## Key metrics that I capture
+#### Resources
+<i>Total and Per Datapoint Avg might be missleading as the models can fall into curse of repetition capping out the token budget -> corrupting the metrics regarding resources (Energy, Num Tokens Gen, FLOP Estimation)</i>
+- Joules consumed on benchmark
+- Total Number of Tokens Generated | Totel num of tokens on correct predictions only
+- FLOP estimation by extrapolation model - Total | On Corrects only
 
+## Meaningful plots
+- Pareto frontier of models (Min resource, Max accuracy)
+- Trend line of Models by release date and Accuracy - With Generated Tokens on Correct Prediction to highlight reasoning quality
+- Leaderboard of models on Efficiency Score: Accuracy/Resource | Accuracy/(Resource on correct) groupped by accuracy bins
+- Model quality changes on Various Types of Benchmark - Math, GeneralQA, Etc.. - This can be a table?  
+
+## Datasets
+- Math: AIME25, HMMT_FEB25 30-30 thinking question
+- Easy Math: gsm8k - or a subset of it. 
+- Mixed Subhects: GPTQ-Diamond - Physics, Biology, Chemistry - Multi Choice
+- Any other?
+## 

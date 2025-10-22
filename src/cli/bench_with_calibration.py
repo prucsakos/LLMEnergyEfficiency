@@ -524,6 +524,8 @@ def run_one_with_calibration(spec: RunSpec,
         "model_architecture": "decoder-only",
         # model_parameters_billions: Total model parameters in billions (spec.card.params_B)
         "model_parameters_billions": spec.card.params_B,
+        # model_active_parameters_billions: Active/routed parameters in billions for MoE models (spec.card.active_params_B)
+        "model_active_parameters_billions": spec.card.active_params_B,
         # model_layers_count: Number of transformer layers (spec.card.layers)
         "model_layers_count": spec.card.layers,
         # model_hidden_dimension: Hidden state dimension (spec.card.hidden_dim)

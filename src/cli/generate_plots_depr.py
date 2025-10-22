@@ -77,7 +77,7 @@ def query_wandb_data(project_name: str) -> pd.DataFrame:
                 'style': config.get('style', None),
                 'K': config.get('K', None),
                 'batch_size': summary.get('batch_size', None),
-                'params_B': summary.get('model_parameters_billions', None),
+                'params_B': summary.get('model_active_parameters_billions', summary.get('model_parameters_billions', None)),
                 'release_date': summary.get('model_release_date', None),
                 'tokens_per_correct': summary.get('efficiency_tokens_per_correct_mean', None),
                 'energy_joules': summary.get('energy_joules_per_correct_answer', None),

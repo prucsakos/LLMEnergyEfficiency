@@ -243,6 +243,7 @@ class NextTokenCalibrationRunner:
             model_config={
                 "hf_repo": model_spec.hf_repo,
                 "params_B": model_spec.card.params_B,
+                "active_params_B": model_spec.card.active_params_B,
                 "layers": model_spec.card.layers,
                 "hidden_dim": model_spec.card.hidden_dim,
                 "heads": model_spec.card.heads,
@@ -564,6 +565,7 @@ class FLOPCalibrationRunner:
             model_config={
                 "hf_repo": model_spec.hf_repo,
                 "params_B": model_spec.card.params_B,
+                "active_params_B": model_spec.card.active_params_B,
                 "layers": model_spec.card.layers,
                 "hidden_dim": model_spec.card.hidden_dim,
                 "heads": model_spec.card.heads,

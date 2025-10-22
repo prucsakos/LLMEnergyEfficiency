@@ -11,6 +11,7 @@ class Card:
     heads: Optional[int] = None
     arch: str = None
     release_date: Optional[str] = None
+    active_params_B: Optional[float] = None
 
 @dataclass
 class BackendDefaults:

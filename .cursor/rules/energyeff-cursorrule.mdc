@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+When running python commands: Always activate the current .vent with source .venv/bin/activate

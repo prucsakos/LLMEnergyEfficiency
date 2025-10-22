@@ -61,44 +61,53 @@ config_name: "benchmark_validation"
 datasets: [aime_2025]
 
 models:
-  - name: gpt-oss-20b-reason:low
+
+  - name: gemma-3-1b-it
+    hf_repo: google/gemma-3-1b-it
+    engine: vllm
+    model_family: gemma
+    card: { params_B: 1, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3_text (decoder-only), active_params_B: 1 }
+    think_budgets: [3000]
+    backend: { dtype: bfloat16, gpu_memory_utilization: 0.06, enforce_eager: true, max_model_len: 3100 }
+    generation:
+      generation_mode: "chat"
+      system_prompt: null
+      chat_template_kwargs: null
+      frequency_penalty: 0.005
+      temperature: 0.6
+      top_p: 0.95
+    reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
+    notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:15]{index=15}
+
+asd:
+  # --- OpenAI GPT-OSS (Harmony format) ---
+  - name: gpt-oss-20b-reason:high
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: gpt
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
-    think_budgets: [80000]
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05", active_params_B: 21.5 }
+    think_budgets: [130000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: 
+    generation:
       generation_mode: "chat"
       system_prompt: null
       chat_template_kwargs:
-        reasoning_effort: "low"
+        reasoning_effort: "high"
+      frequency_penalty: 0.001
       temperature: 1.0
       top_p: 1.0
       top_k: 0
     reasoning: { style: single_pass, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "Use tokenizer.apply_chat_template (Harmony) or openai-harmony; 131k max_position; sliding_window=128; prev think_budget: 131072."
 
-asd:
   # --- Qwen3 4B ---
   - name: Qwen3-4B-Thinking-2507
     hf_repo: Qwen/Qwen3-4B-Thinking-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV), active_params_B: 4.0 }
     think_budgets: [20000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: { temperature: 0.6, top_p: 0.95, top_k: 20, do_sample: true, max_new_tokens: 512 }
     reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
     notes: "262k context; thinking mode." # :contentReference[oaicite:4]{index=4}
-
-  - name: gemma-3-4b-it
-    hf_repo: google/gemma-3-4b-it
-    engine: vllm
-    model_family: gemma
-    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: gemma3_text (decoder-only) }
-    think_budgets: [8192]
-    backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
-    generation: { temperature: 0.6, top_p: 0.95, do_sample: true, max_new_tokens: 512 }
-    reasoning: { style: cot, self_consistency_k: 0, self_eval: true, openai_eval: true }
-    notes: "128k input context (Gemma 3 family)." # :contentReference[oaicite:15]{index=15}

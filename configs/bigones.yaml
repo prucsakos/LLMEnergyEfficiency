@@ -66,7 +66,7 @@ models:
     hf_repo: kishizaki-sci/Llama-4-Scout-17B-16E-Instruct-AWQ
     engine: vllm
     model_family: llama
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present) }
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (16 experts; vision tower present), active_params_B: 17 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -89,7 +89,7 @@ models:
     hf_repo: kishizaki-sci/Llama-4-Maverick-17B-128E-Instruct-AWQ
     engine: vllm
     model_family: llama
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts) }
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: decoder-only multimodal MoE (128 experts), active_params_B: 17 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -113,7 +113,7 @@ models:
     hf_repo: QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ
     engine: vllm
     model_family: qwen
-    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
+    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV), active_params_B: 22 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -139,7 +139,7 @@ models:
     hf_repo: QuantTrio/Qwen3-235B-A22B-Instruct-2507-AWQ
     engine: vllm
     model_family: qwen
-    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV) }
+    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: decoder-only MoE (128E, 8 active; GQA 64Q×4KV), active_params_B: 22 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -166,7 +166,7 @@ models:
     hf_repo: unsloth/gpt-oss-120b-unsloth-bnb-4bit
     engine: vllm
     model_family: gpt
-    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
+    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8), active_params_B: 5.1 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -192,7 +192,7 @@ models:
     hf_repo: unsloth/gpt-oss-120b-unsloth-bnb-4bit
     engine: vllm
     model_family: gpt
-    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
+    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8), active_params_B: 5.1 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -218,7 +218,7 @@ models:
     hf_repo: unsloth/gpt-oss-120b-unsloth-bnb-4bit
     engine: vllm
     model_family: gpt
-    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8) }
+    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: decoder-only MoE (128E, 4 active; sliding+full attention; YARN RoPE; KV heads=8), active_params_B: 5.1 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -245,7 +245,7 @@ models:
     hf_repo: cpatonn/GLM-4.5-Air-AWQ-4bit
     engine: vllm
     model_family: glm
-    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: decoder-only MoE (n_routed_experts=128, 8 active) }
+    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: decoder-only MoE (n_routed_experts=128, 8 active), active_params_B: 12 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models
@@ -271,7 +271,7 @@ models:
     hf_repo: unsloth/Meta-Llama-3.1-70B-Instruct-bnb-4bit
     engine: vllm
     model_family: llama
-    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only (GQA kv_heads=8) }
+    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: decoder-only (GQA kv_heads=8), active_params_B: 70 }
     think_budgets: [32000]
     backend: { 
        dtype: "auto",  # Let vLLM auto-detect for quantized models

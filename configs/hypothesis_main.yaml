@@ -66,7 +66,7 @@ models:
     hf_repo: Qwen/Qwen3-30B-A3B-Thinking-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-31" }
+    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-31", active_params_B: 3.3 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
@@ -84,7 +84,7 @@ models:
     hf_repo: Qwen/Qwen3-30B-A3B-Instruct-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-30" }
+    card: { params_B: 30.5, layers: 48, hidden_dim: 2048, heads: 32, arch: "decoder-only moe", release_date: "2025-07-30", active_params_B: 3.3 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -103,7 +103,7 @@ models:
     hf_repo: Qwen/Qwen3-4B-Thinking-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06" }
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06", active_params_B: 4.0 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
@@ -121,7 +121,7 @@ models:
     hf_repo: Qwen/Qwen3-4B-Instruct-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06" }
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: "decoder-only", release_date: "2025-08-06", active_params_B: 4.0 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -140,7 +140,7 @@ models:
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: gpt
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05", active_params_B: 3.6 }
     think_budgets: [130000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -159,7 +159,7 @@ models:
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: gpt
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05", active_params_B: 3.6 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
@@ -178,7 +178,7 @@ models:
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: gpt
-    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    card: { params_B: 21.5, layers: 24, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05", active_params_B: 3.6 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation: 
@@ -198,7 +198,7 @@ models:
     hf_repo: nvidia/NVIDIA-Nemotron-Nano-9B-v2
     engine: vllm
     model_family: nemotron
-    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: "hybrid-mamba-transformer", release_date: "2025-08-18" }
+    card: { params_B: 8.89, layers: 56, hidden_dim: 4480, heads: 40, arch: "hybrid-mamba-transformer", release_date: "2025-08-18", active_params_B: 8.89 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -216,7 +216,7 @@ models:
     hf_repo: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
     engine: vllm
     model_family: deepseek
-    card: { params_B: 8.2, layers: 36, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2025-05-28" }
+    card: { params_B: 8.2, layers: 36, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2025-05-28", active_params_B: 8.2 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -234,7 +234,7 @@ models:
     hf_repo: meta-llama/Llama-3.1-8B-Instruct
     engine: vllm
     model_family: llama
-    card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2024-07-23" }
+    card: { params_B: 8, layers: 32, hidden_dim: 4096, heads: 32, arch: "decoder-only", release_date: "2024-07-23", active_params_B: 8 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -250,7 +250,7 @@ models:
     hf_repo: google/gemma-3-1b-it
     engine: vllm
     model_family: gemma
-    card: { params_B: 1, layers: 26, hidden_dim: 1152, heads: 4, arch: "decoder-only", release_date: "2025-03-12" }
+    card: { params_B: 1, layers: 26, hidden_dim: 1152, heads: 4, arch: "decoder-only", release_date: "2025-03-12", active_params_B: 1 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -265,7 +265,7 @@ models:
     hf_repo: google/gemma-3-4b-it
     engine: vllm
     model_family: gemma
-    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "decoder-only", release_date: "2025-03-12" }
+    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "decoder-only", release_date: "2025-03-12", active_params_B: 4 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -280,7 +280,7 @@ models:
     hf_repo: google/gemma-3-12b-it
     engine: vllm
     model_family: gemma
-    card: { params_B: 12, layers: 40, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-03-12" }
+    card: { params_B: 12, layers: 40, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-03-12", active_params_B: 12 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -295,7 +295,7 @@ models:
     hf_repo: google/gemma-3-27b-it
     engine: vllm
     model_family: gemma
-    card: { params_B: 27, layers: 62, hidden_dim: 5376, heads: 32, arch: "decoder-only", release_date: "2025-03-12" }
+    card: { params_B: 27, layers: 62, hidden_dim: 5376, heads: 32, arch: "decoder-only", release_date: "2025-03-12", active_params_B: 27 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -311,7 +311,7 @@ models:
     hf_repo: google/gemma-3n-E2B-it
     engine: vllm
     model_family: gemma
-    card: { params_B: 2, layers: 28, hidden_dim: 1536, heads: 12, arch: "multimodal-decoder", release_date: "2025-06-26" }
+    card: { params_B: 2, layers: 28, hidden_dim: 1536, heads: 12, arch: "multimodal-decoder", release_date: "2025-06-26", active_params_B: 2 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -326,7 +326,7 @@ models:
     hf_repo: google/gemma-3n-E4B-it
     engine: vllm
     model_family: gemma
-    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "multimodal-decoder", release_date: "2025-06-26" }
+    card: { params_B: 4, layers: 32, hidden_dim: 2048, heads: 16, arch: "multimodal-decoder", release_date: "2025-06-26", active_params_B: 4 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -342,7 +342,7 @@ models:
     hf_repo: microsoft/phi-4
     engine: vllm
     model_family: phi
-    card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2024-12-13" }
+    card: { params_B: 14.7, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2024-12-13", active_params_B: 14.7 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -357,7 +357,7 @@ models:
     hf_repo: microsoft/Phi-4-mini-reasoning
     engine: vllm
     model_family: phi
-    card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-04-30" }
+    card: { params_B: 4.9, layers: 32, hidden_dim: 3072, heads: 24, arch: "decoder-only", release_date: "2025-04-30", active_params_B: 4.9 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -374,7 +374,7 @@ models:
     hf_repo: microsoft/Phi-4-reasoning-plus
     engine: vllm
     model_family: phi
-    card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2025-04-30" }
+    card: { params_B: 13.6, layers: 40, hidden_dim: 5120, heads: 40, arch: "decoder-only", release_date: "2025-04-30", active_params_B: 13.6 }
     think_budgets: [80000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.95, enforce_eager: true }
     generation:
@@ -393,7 +393,7 @@ _models_excluded:
     hf_repo: kishizaki-sci/Llama-4-Scout-17B-16E-Instruct-AWQ
     engine: vllm
     model_family: llama
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05" }
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05", active_params_B: 17 }
     think_budgets: [80000]
     backend: 
       dtype: "auto"
@@ -415,7 +415,7 @@ _models_excluded:
     hf_repo: kishizaki-sci/Llama-4-Maverick-17B-128E-Instruct-AWQ
     engine: vllm
     model_family: llama
-    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05" }
+    card: { params_B: 17, layers: 48, hidden_dim: 5120, heads: 40, arch: "multimodal-decoder-moe", release_date: "2025-04-05", active_params_B: 17 }
     think_budgets: [80000]
     backend: 
       dtype: "auto"
@@ -438,7 +438,7 @@ _models_excluded:
     hf_repo: QuantTrio/Qwen3-235B-A22B-Thinking-2507-AWQ
     engine: vllm
     model_family: qwen
-    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25" }
+    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25", active_params_B: 235 }
     think_budgets: [80000]
     backend: 
       dtype: "auto"
@@ -463,7 +463,7 @@ _models_excluded:
     hf_repo: QuantTrio/Qwen3-235B-A22B-Instruct-2507-AWQ
     engine: vllm
     model_family: qwen
-    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25" }
+    card: { params_B: 235, layers: 94, hidden_dim: 4096, heads: 64, arch: "decoder-only moe", release_date: "2025-07-25", active_params_B: 235 }
     think_budgets: [80000]
     backend: 
       dtype: "auto"
@@ -489,7 +489,7 @@ _models_excluded:
     hf_repo: unsloth/gpt-oss-120b-unsloth-bnb-4bit
     engine: vllm
     model_family: gpt
-    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05" }
+    card: { params_B: 117, layers: 36, hidden_dim: 2880, heads: 64, arch: "decoder-only moe", release_date: "2025-08-05", active_params_B: 117 }
     think_budgets: [80000]
     backend: 
       dtype: "auto"
@@ -514,7 +514,7 @@ _models_excluded:
     hf_repo: cpatonn/GLM-4.5-Air-AWQ-4bit
     engine: vllm
     model_family: glm
-    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: "decoder-only moe", release_date: "2025-07-28" }
+    card: { params_B: 106, layers: 46, hidden_dim: 4096, heads: 96, arch: "decoder-only moe", release_date: "2025-07-28", active_params_B: 106 }
     think_budgets: [80000]
     backend: 
       dtype: "auto"
@@ -537,7 +537,7 @@ _models_excluded:
     hf_repo: unsloth/Meta-Llama-3.1-70B-Instruct-bnb-4bit
     engine: vllm
     model_family: llama
-    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: "decoder-only", release_date: "2024-07-23" }
+    card: { params_B: 70, layers: 80, hidden_dim: 8192, heads: 64, arch: "decoder-only", release_date: "2024-07-23", active_params_B: 70 }
     think_budgets: [80000]
     backend: 
       dtype: "auto"

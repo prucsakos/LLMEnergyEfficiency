@@ -66,7 +66,7 @@ models:
     hf_repo: Qwen/Qwen3-4B-Thinking-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV), active_params_B: 4.0 }
     think_budgets: [400]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.40, enforce_eager: true,  max_model_len: 3000 }
     generation: 
@@ -86,7 +86,7 @@ models:
     hf_repo: Qwen/Qwen3-4B-Thinking-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV), active_params_B: 4.0 }
     think_budgets: [500]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.40, enforce_eager: true, max_model_len: 3000 }
     generation: 
@@ -106,7 +106,7 @@ models:
     hf_repo: Qwen/Qwen3-4B-Thinking-2507
     engine: vllm
     model_family: qwen
-    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV) }
+    card: { params_B: 4.0, layers: 36, hidden_dim: 2560, heads: 32, arch: decoder-only (GQA 32Q×8KV), active_params_B: 4.0 }
     think_budgets: [600]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.40, enforce_eager: true, max_model_len: 3000 }
     generation: 

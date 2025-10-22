@@ -343,6 +343,7 @@ def run_one(spec: RunSpec, batch_size: Optional[int] = None, wandb_project: str 
         "model": spec.hf_repo,
         "arch": "decoder-only",
         "params_B": spec.card.params_B,
+        "active_params_B": spec.card.active_params_B,
         "layers": spec.card.layers,
         "d_model": spec.card.hidden_dim,
         "heads": spec.card.heads,

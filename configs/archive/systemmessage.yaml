@@ -66,7 +66,7 @@ models:
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: bpt
-    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer }
+    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer, active_params_B: 20.0 }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.90, enforce_eager: true }
     generation: 
@@ -86,7 +86,7 @@ models:
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: bpt
-    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer }
+    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer, active_params_B: 20.0 }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.90, enforce_eager: true }
     generation: 
@@ -106,7 +106,7 @@ models:
     hf_repo: openai/gpt-oss-20b
     engine: vllm
     model_family: bpt
-    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer }
+    card: { params_B: 20.0, layers: 40, hidden_dim: 2048, heads: 32, arch: decoder-only transformer, active_params_B: 20.0 }
     think_budgets: [32000]
     backend: { dtype: bfloat16, gpu_memory_utilization: 0.90, enforce_eager: true }
     generation: 
