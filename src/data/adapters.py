@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, List, Dict, Any, Optional
+import random
 from datasets import load_dataset
 from .normalize import normalize_freeform, extract_gsm8k_final
 
@@ -147,6 +148,9 @@ def load_gpqa(split: str = "train") -> Iterable[Sample]:
 def load_gpqa_diamond(split: str = "train") -> Iterable[Sample]:
     """Yield GPQA-Diamond samples. Fields: 'Question', 'Correct Answer', 'Incorrect Answer 1', etc."""
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")[split]
+
+    # Collect all samples first
+    samples = []
     for i, row in enumerate(ds):
         q = row["Question"]
         correct = row["Correct Answer"]
@@ -166,7 +170,14 @@ def load_gpqa_diamond(split: str = "train") -> Iterable[Sample]:
         normalized_answer = normalize_freeform(correct)
         formatted_gold = f"({correct_label}) {normalized_answer}"
 
-        yield Sample(id=f"gpqa_diamond-{split}-{i}", question=formatted_question, gold=formatted_gold, choices=choices)
+        samples.append(Sample(id=f"gpqa_diamond-{split}-{i}", question=formatted_question, gold=formatted_gold, choices=choices))
+
+    # Shuffle the samples
+    random.shuffle(samples)
+
+    # Yield shuffled samples
+    for sample in samples:
+        yield sample
 
 # ---------- MMLU-Pro (MCQ) ----------
 def load_mmlu_pro(split: str = "test") -> Iterable[Sample]:
