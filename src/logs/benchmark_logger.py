@@ -56,6 +56,9 @@ class BenchmarkLogger:
         self.logger = logging.getLogger(f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
         self.logger.setLevel(log_level)
 
+        # Prevent propagation to parent loggers to avoid duplicate logging
+        self.logger.propagate = False
+
         # Clear any existing handlers
         self.logger.handlers.clear()
 
