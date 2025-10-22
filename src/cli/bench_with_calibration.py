@@ -24,7 +24,7 @@ from ..core.engines import create_engine
 from ..reasoning.aggregators import majority_vote
 from ..reasoning.controller import self_evaluate_batched, self_consistency_batch, two_pass_batch, single_pass_batch  # use batched judge
 from ..data.adapters import load_gsm8k, load_mmlu, load_csqa, exact_match, Sample, iter_dataset
-from ..metrics.flop_estimation import to_tflops
+from ..metrics.flop_estimation import to_tflops, flops_dense, flops_attention_kv
 from ..metrics.inequality import gini
 from ..metrics.energy import EnergyMeter
 from ..logs.wandb_logger import WandbRunLogger
@@ -374,13 +374,11 @@ def run_one_with_calibration(spec: RunSpec,
             per_item_total_tokens.append(total_tokens)
             per_item_generated_tokens.append(float(generated_tokens))  # generated-only for clarity-first metrics
             per_item_latency_ms.append(float(lats[j]))
-            # judged correctness (1/0)
-            is_correct_flag = int(judge_batch_results[j][0]) if judge_batch_results is not None else 0
-            per_item_correct_flags.append(is_correct_flag)
+            per_item_correct_flags.append(judge_yes)
 
             # Calculate FLOPs for this individual datapoint
             datapoint_flops = {}
-            
+
             # Use calibration-based FLOP estimation if available
             if calibration_dataset and calibration_dataset.extrapolation_model:
                 try:
@@ -394,6 +392,22 @@ def run_one_with_calibration(spec: RunSpec,
                     datapoint_flops['extrapolated'] = None
             else:
                 datapoint_flops['extrapolated'] = None
+
+            # Calculate dense FLOPs estimate
+            total_tokens = prompt_tokens + generated_tokens
+            datapoint_flops['dense'] = flops_dense(
+                num_params=spec.card.active_params_B * 1e9 if spec.card.active_params_B else spec.card.params_B * 1e9,
+                num_tokens=total_tokens
+            )
+
+            # Calculate attention-aware FLOPs with KV cache
+            datapoint_flops['attention_kv'] = flops_attention_kv(
+                num_layers=spec.card.layers,
+                hidden_dim=spec.card.hidden_dim,
+                num_prompt_tokens=prompt_tokens,
+                num_generated_tokens=generated_tokens,
+                num_params=spec.card.active_params_B * 1e9 if spec.card.active_params_B else spec.card.params_B * 1e9
+            )
 
             per_datapoint_flops.append(datapoint_flops)
 
@@ -466,12 +480,39 @@ def run_one_with_calibration(spec: RunSpec,
 
     pbar.close()
 
-    # Compute FLOPs correctly by averaging per-datapoint calculations
-    avg_extrapolated_flops = None
+    # Compute FLOPs as totals (not averages) for better insight
+    total_extrapolated_flops = None
+    total_extrapolated_flops_correct_only = None
+    total_dense_flops = None
+    total_attention_kv_flops = None
+
     if calibration_dataset and calibration_dataset.extrapolation_model:
+        # Calculate total extrapolated FLOPs across all datapoints
         extrapolated_flops_list = [dp['extrapolated'] for dp in per_datapoint_flops if dp['extrapolated'] is not None]
         if extrapolated_flops_list:
-            avg_extrapolated_flops = sum(extrapolated_flops_list) / len(extrapolated_flops_list)
+            total_extrapolated_flops = sum(extrapolated_flops_list)
+
+            # Calculate total extrapolated FLOPs for correct answers only
+            correct_extrapolated_flops = []
+            for i, dp in enumerate(per_datapoint_flops):
+                if dp['extrapolated'] is not None and i < len(per_item_correct_flags) and per_item_correct_flags[i]:
+                    correct_extrapolated_flops.append(dp['extrapolated'])
+
+            if correct_extrapolated_flops:
+                total_extrapolated_flops_correct_only = sum(correct_extrapolated_flops)
+
+    # Calculate total dense FLOPs across all datapoints
+    dense_flops_list = [dp['dense'] for dp in per_datapoint_flops if dp['dense'] is not None]
+    if dense_flops_list:
+        total_dense_flops = sum(dense_flops_list)
+
+    # Calculate total attention-aware FLOPs across all datapoints
+    attention_kv_flops_list = [dp['attention_kv'] for dp in per_datapoint_flops if dp['attention_kv'] is not None]
+    if attention_kv_flops_list:
+        total_attention_kv_flops = sum(attention_kv_flops_list)
+
+    # Keep average for backward compatibility
+    avg_extrapolated_flops = total_extrapolated_flops / len(extrapolated_flops_list) if extrapolated_flops_list else None
     
     # Average tokens for reference
     avg_gen_tokens = (gen_tok_sum / max(total, 1))
@@ -512,8 +553,6 @@ def run_one_with_calibration(spec: RunSpec,
     }
 
     # === Energy metrics (Feature 2) ===
-    avg_energy_per_datapoint_j = (total_energy_j / num_items) if total_energy_j > 0 else None
-    energy_per_correct_j = (total_energy_j / max(1, num_correct)) if total_energy_j > 0 else None
 
     # Row for logging (one row per run) - verbose parameter names with detailed comments
     row = {
@@ -578,14 +617,24 @@ def run_one_with_calibration(spec: RunSpec,
         # === TASK & DATASET INFORMATION ===
         # task_dataset_name: Name of the evaluation dataset (spec.dataset)
         "task_dataset_name": spec.dataset,
+        # task_dataset_size: Total number of examples in the dataset (total_n)
+        "task_dataset_size": total_n,
 
         # === EVALUATION METRICS ===
         # evaluation_self_eval_accuracy: Accuracy from self-evaluation judge (correct_self / max(total, 1)) if enabled
         "evaluation_self_eval_accuracy": metrics["evaluation_self_eval_accuracy"],
 
-        # === COMPUTE EFFICIENCY METRICS ===
-        # compute_flops_avg_extrapolated_tflops: Average extrapolated FLOPs in teraFLOPs (to_tflops(avg_extrapolated_flops))
-        "compute_flops_avg_extrapolated_tflops": to_tflops(avg_extrapolated_flops) if avg_extrapolated_flops is not None else None,
+        # === RESOURCE METRICS ===
+        # resource_flops_total_extrapolated_tflops: Total extrapolated FLOPs in teraFLOPs (to_tflops(total_extrapolated_flops))
+        "resource_flops_total_extrapolated_tflops": to_tflops(total_extrapolated_flops) if total_extrapolated_flops is not None else None,
+        # resource_flops_total_extrapolated_correct_only_tflops: Total extrapolated FLOPs for correct answers only in teraFLOPs
+        "resource_flops_total_extrapolated_correct_only_tflops": to_tflops(total_extrapolated_flops_correct_only) if total_extrapolated_flops_correct_only is not None else None,
+        # resource_flops_total_dense_tflops: Total dense FLOPs in teraFLOPs (to_tflops(total_dense_flops))
+        "resource_flops_total_dense_tflops": to_tflops(total_dense_flops) if total_dense_flops is not None else None,
+        # resource_flops_total_attention_kv_tflops: Total attention-aware FLOPs with KV cache in teraFLOPs (to_tflops(total_attention_kv_flops))
+        "resource_flops_total_attention_kv_tflops": to_tflops(total_attention_kv_flops) if total_attention_kv_flops is not None else None,
+        # resource_flops_avg_extrapolated_tflops: Average extrapolated FLOPs in teraFLOPs (to_tflops(avg_extrapolated_flops)) - kept for backward compatibility
+        "resource_flops_avg_extrapolated_tflops": to_tflops(avg_extrapolated_flops) if avg_extrapolated_flops is not None else None,
 
         # === EFFICIENCY METRICS (PERFORMANCE-PER-COMPUTE) ===
         # efficiency_tokens_per_correct_mean: Mean total tokens used per correct answer (tokens_per_correct_mean)
@@ -599,13 +648,9 @@ def run_one_with_calibration(spec: RunSpec,
         # efficiency_gini_generated_tokens_correct_only: Gini of generated tokens among correct items
         "efficiency_gini_generated_tokens_correct_only": metrics["efficiency_gini_generated_tokens_correct_only"],
 
-        # === ENERGY EFFICIENCY METRICS ===
-        # energy_avg_joules_per_datapoint: Average energy consumption per example in Joules (avg_energy_per_datapoint_j)
-        "energy_avg_joules_per_datapoint": avg_energy_per_datapoint_j,
-        # energy_joules_per_correct_answer: Energy consumption per correct answer in Joules (energy_per_correct_j)
-        "energy_joules_per_correct_answer": energy_per_correct_j,
-        # energy_total_joules_consumed: Total energy consumed during entire benchmark run (total_energy_j)
-        "energy_total_joules_consumed": total_energy_j,
+        # === RESOURCE METRICS (ENERGY) ===
+        # resource_energy_total_joules_consumed: Total energy consumed during entire benchmark run (total_energy_j)
+        "resource_energy_total_joules_consumed": total_energy_j,
 
         # === PROMPT TEMPLATES ===
         # prompts_chain_of_thought_template: Template for thinking/reasoning phase (spec.prompts.cot_think)
@@ -642,9 +687,10 @@ def run_one_with_calibration(spec: RunSpec,
             # calibration_model_rmse_tflops: Root Mean Square Error in teraFLOPs (calibration_dataset.model_accuracy.get("rmse", 0) / 1e12)
             row["calibration_model_rmse_tflops"] = calibration_dataset.model_accuracy.get("rmse", 0) / 1e12
 
-    extrapolated_flops_str = f"{row['compute_flops_avg_extrapolated_tflops']:.2f}" if row['compute_flops_avg_extrapolated_tflops'] is not None else "N/A"
-    
-    flops_info = f"avg_extrapolated_tFLOPs≈{extrapolated_flops_str}"
+    total_flops_str = f"{row['resource_flops_total_extrapolated_tflops']:.2f}" if row['resource_flops_total_extrapolated_tflops'] is not None else "N/A"
+    correct_only_flops_str = f"{row['resource_flops_total_extrapolated_correct_only_tflops']:.2f}" if row['resource_flops_total_extrapolated_correct_only_tflops'] is not None else "N/A"
+
+    flops_info = f"total_extrapolated_tFLOPs={total_flops_str}, correct_only_tFLOPs={correct_only_flops_str}"
     
     logger.log_metrics(row['evaluation_self_eval_accuracy'], avg_gen_tokens, row['performance_avg_latency_ms'], flops_info)
     logger.info(f"[RUN] {spec.model_name} | {spec.dataset} | style={spec.reasoning.style} | "

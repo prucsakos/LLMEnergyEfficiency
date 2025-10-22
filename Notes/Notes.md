@@ -67,4 +67,7 @@ Without the models being aware of their thinking budget, the measurment feels fa
 - Easy Math: gsm8k - or a subset of it. 
 - Mixed Subhects: GPTQ-Diamond - Physics, Biology, Chemistry - Multi Choice
 - Any other?
-## 
+
+## Flop Calibration 
+- Linear regression with second degree polinomial features - sklearn
+- Calib. Dataset is generated with random tokens by given model's Tokenizer. 
