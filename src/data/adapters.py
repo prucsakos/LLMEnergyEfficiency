@@ -148,36 +148,34 @@ def load_gpqa(split: str = "train") -> Iterable[Sample]:
 def load_gpqa_diamond(split: str = "train") -> Iterable[Sample]:
     """Yield GPQA-Diamond samples. Fields: 'Question', 'Correct Answer', 'Incorrect Answer 1', etc."""
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")[split]
-
-    # Collect all samples first
-    samples = []
     for i, row in enumerate(ds):
         q = row["Question"]
         correct = row["Correct Answer"]
         incorrect1 = row["Incorrect Answer 1"]
         incorrect2 = row["Incorrect Answer 2"]
         incorrect3 = row["Incorrect Answer 3"]
+
+        # Create choices list and shuffle to randomize answer positions
         choices = [correct, incorrect1, incorrect2, incorrect3]
+        # Create a list of (choice_text, is_correct) tuples
+        choice_items = [(correct, True), (incorrect1, False), (incorrect2, False), (incorrect3, False)]
+        # Shuffle the choice items
+        random.shuffle(choice_items)
+        # Extract shuffled choices and find new correct index
+        shuffled_choices = [item[0] for item in choice_items]
+        correct_idx = next(i for i, item in enumerate(choice_items) if item[1])
 
         # Concatenate choices into the question in a clear format
-        choices_text = "\n".join([f"({chr(65+j)}) {choice}" for j, choice in enumerate(choices)])
+        choices_text = "\n".join([f"({chr(65+j)}) {choice}" for j, choice in enumerate(shuffled_choices)])
         formatted_question = f"{q}\n\nChoose the best answer from the following options:\n{choices_text}"
 
-        # Find the correct answer index and format the gold answer with label
-        correct_idx = choices.index(correct)
+        # Format the gold answer with the new correct label
         correct_label = chr(65 + correct_idx)  # A, B, C, D
         # Normalize only the answer text, preserve the choice label case
         normalized_answer = normalize_freeform(correct)
         formatted_gold = f"({correct_label}) {normalized_answer}"
 
-        samples.append(Sample(id=f"gpqa_diamond-{split}-{i}", question=formatted_question, gold=formatted_gold, choices=choices))
-
-    # Shuffle the samples
-    random.shuffle(samples)
-
-    # Yield shuffled samples
-    for sample in samples:
-        yield sample
+        yield Sample(id=f"gpqa_diamond-{split}-{i}", question=formatted_question, gold=formatted_gold, choices=shuffled_choices)
 
 # ---------- MMLU-Pro (MCQ) ----------
 def load_mmlu_pro(split: str = "test") -> Iterable[Sample]:
