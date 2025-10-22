@@ -128,6 +128,8 @@ class DeepSpeedLocalEngine(BaseEngine):
         # Enable FLOP profiling if requested
         if self.enable_flop_profiling:
             self._setup_flop_profiling()
+            # Track previous FLOP count for incremental measurements
+            self.previous_total_flops = 0
         
         logger.info(f"✅ DeepSpeed calibration model loaded successfully: {model_id}")
     
@@ -166,19 +168,25 @@ class DeepSpeedLocalEngine(BaseEngine):
         """Measure FLOPs for the generation."""
         if not self.enable_flop_profiling or not hasattr(self, 'flops_profiler') or self.flops_profiler is None:
             return None
-        
+
         try:
-            # Get FLOP measurements
-            forward_flops = self.flops_profiler.get_total_flops()
-            
+            # Get current cumulative FLOP measurements
+            current_total_flops = self.flops_profiler.get_total_flops()
+
+            # Calculate incremental FLOPs for this specific run
+            incremental_flops = current_total_flops - self.previous_total_flops
+
+            # Update previous total for next measurement
+            self.previous_total_flops = current_total_flops
+
             # Estimate FLOPs per token (rough approximation)
             total_tokens = input_ids.shape[1] + generated_tokens
-            flops_per_token = forward_flops / max(total_tokens, 1)
-            
+            flops_per_token = incremental_flops / max(total_tokens, 1)
+
             return DeepSpeedFLOPs(
-                forward_flops=int(forward_flops),
+                forward_flops=int(incremental_flops),
                 backward_flops=0,  # No backward pass in inference
-                total_flops=int(forward_flops),
+                total_flops=int(incremental_flops),
                 flops_per_token=flops_per_token
             )
         except Exception as e:
@@ -290,6 +298,10 @@ class DeepSpeedLocalEngine(BaseEngine):
                     self.flops_profiler = None
                 except Exception as e:
                     print(f"Warning: FLOP profiler cleanup failed: {e}")
+
+            # Reset FLOP counter for next session
+            if hasattr(self, 'previous_total_flops'):
+                self.previous_total_flops = 0
             
             # Step 2: More aggressive cleanup for DeepSpeed engine
             if hasattr(self, 'ds_engine') and self.ds_engine is not None:
